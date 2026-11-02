@@ -5,9 +5,11 @@ import { PASSO_QUANTIDADE, QUANTIDADE_MAXIMA, QUANTIDADE_MINIMA } from "../servi
 
 export const SABOR_MISTO = "Misto";
 
-const itemSaborSchema =z.object({
+// Com quantidade: o cliente definiu quantas unidades de cada sabor.
+// Sem quantidade: o cliente só escolheu o sabor e a loja divide as unidades.
+const itemSaborSchema = z.object({
   saborId: z.number().int().positive(),
-  quantidade: z.number().int().positive(),
+  quantidade: z.number().int().positive().optional(),
 });
 
 export const criarPedidoSchema = z
@@ -27,6 +29,13 @@ export const criarPedidoSchema = z
     sabores: z.array(itemSaborSchema).max(50).default([]),
     tipoEntrega: z.enum(TipoEntrega),
     endereco: z.string().trim().min(5).max(300).optional(),
+    // Opcional (só vale na entrega). Texto vazio é tratado como "não informado".
+    pontoReferencia: z
+      .string()
+      .trim()
+      .max(200, "O ponto de referência deve ter no máximo 200 caracteres.")
+      .transform((v) => (v === "" ? undefined : v))
+      .optional(),
     // Entrega ou retirada em data e hora específicas. Ausente = "para quando ficar pronto".
     horarioAgendado: z.iso
       .datetime({ offset: true })
@@ -53,13 +62,23 @@ export const criarPedidoSchema = z
         ctx.addIssue({ code: "custom", path: ["sabores"], message: "Sabor repetido no pedido." });
       }
 
-      const soma = pedido.sabores.reduce((acc, s) => acc + s.quantidade, 0);
-      if (soma !== pedido.quantidade) {
+      const comQuantidade = pedido.sabores.filter((s) => s.quantidade !== undefined).length;
+
+      if (comQuantidade > 0 && comQuantidade < pedido.sabores.length) {
         ctx.addIssue({
           code: "custom",
           path: ["sabores"],
-          message: `A soma dos sabores (${soma}) deve ser igual à quantidade do pedido (${pedido.quantidade}).`,
+          message: "Informe a quantidade de todos os sabores ou de nenhum.",
         });
+      } else if (comQuantidade > 0) {
+        const soma = pedido.sabores.reduce((acc, s) => acc + (s.quantidade ?? 0), 0);
+        if (soma !== pedido.quantidade) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["sabores"],
+            message: `A soma dos sabores (${soma}) deve ser igual à quantidade do pedido (${pedido.quantidade}).`,
+          });
+        }
       }
     }
   });
@@ -72,6 +91,7 @@ export const pedidoRespostaSchema = z.object({
   nomeCliente: z.string(),
   tipoEntrega: z.enum(TipoEntrega),
   endereco: z.string().nullable(),
+  pontoReferencia: z.string().nullable(),
   // Data e hora pedidas pelo cliente; nulo = "para quando ficar pronto".
   horarioAgendado: z.string().nullable(),
   // Só para pedidos sem horário agendado: informado pelo admin quando aprova/inicia o pedido.
@@ -93,7 +113,8 @@ export const pedidoRespostaSchema = z.object({
   total: z.string(),
   criadoEm: z.string(),
   // Pedido sem sabores escolhidos aparece como "Misto" (no banco o item fica com saborId nulo).
-  itens: z.array(z.object({ sabor: z.string(), quantidade: z.number() })),
+  // quantidade nula = o cliente só escolheu o sabor (a loja divide as unidades).
+  itens: z.array(z.object({ sabor: z.string(), quantidade: z.number().nullable() })),
 });
 
 // Visão do admin: inclui os dados de contato do cliente.
@@ -107,6 +128,7 @@ export function paraResposta(p: PedidoComItens): z.infer<typeof pedidoRespostaSc
     nomeCliente: p.nomeCliente,
     tipoEntrega: p.tipoEntrega,
     endereco: p.endereco,
+    pontoReferencia: p.pontoReferencia,
     horarioAgendado: p.horarioAgendado?.toISOString() ?? null,
     tempoPreparoMin: p.tempoPreparoMin,
     previsaoEm: p.previsaoEm?.toISOString() ?? null,

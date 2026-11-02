@@ -70,6 +70,7 @@ export interface Pedido {
   nomeCliente: string
   tipoEntrega: TipoEntrega
   endereco: string | null
+  pontoReferencia: string | null
   /** Data e hora pedidas pelo cliente; null = "para quando ficar pronto". */
   horarioAgendado: string | null
   /** Só para pedidos sem horário agendado: informado pelo admin. */
@@ -82,7 +83,8 @@ export interface Pedido {
   taxaEntrega: string
   total: string
   criadoEm: string
-  itens: { sabor: string; quantidade: number }[]
+  /** quantidade null = o cliente só escolheu o sabor (a loja divide as unidades). */
+  itens: { sabor: string; quantidade: number | null }[]
 }
 
 // Visão do admin: inclui o telefone (só dígitos).
@@ -94,9 +96,12 @@ export interface CriarPedidoBody {
   nomeCliente: string
   telefone: string
   quantidade: number
-  sabores: { saborId: number; quantidade: number }[]
+  /** Com quantidade em todos os itens, ou sem em nenhum (só a escolha dos sabores). */
+  sabores: { saborId: number; quantidade?: number }[]
   tipoEntrega: TipoEntrega
   endereco?: string
+  /** Opcional, só na entrega. */
+  pontoReferencia?: string
   /** Omitido = "para quando ficar pronto". */
   horarioAgendado?: string
   formaPagamento: FormaPagamento
@@ -115,4 +120,22 @@ export interface SalvarPixBody {
 // Sabor na visão do admin (inclui desativados).
 export interface SaborAdmin extends Sabor {
   ativo: boolean
+}
+
+// Marca e aparência (editáveis no painel). Cores em #rrggbb; ausente = padrão do tema.
+export type ChaveCor = 'fundo' | 'texto' | 'cartao' | 'primaria' | 'destaque' | 'textoSecundario' | 'borda'
+export type TemaCores = Partial<Record<ChaveCor, string>>
+export type TemaCoresAdmin = TemaCores & { barraLateral?: string }
+
+export interface Cores {
+  publico?: { claro?: TemaCores; escuro?: TemaCores }
+  admin?: { claro?: TemaCoresAdmin; escuro?: TemaCoresAdmin }
+}
+
+export interface Marca {
+  nome: string
+  /** Versão da logo (use em logoUrl) ou null quando não há logo. */
+  logoVersao: number | null
+  /** null = tema padrão. */
+  cores: Cores | null
 }

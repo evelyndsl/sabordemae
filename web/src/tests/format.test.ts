@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatPhone, hasMaxTwoDecimals, nextStatus, parseMoney, statusFlow } from '@/lib/format'
+import { formatPhone, formatQtdItem, hasMaxTwoDecimals, nextStatus, parseMoney, statusFlow, temItemADividir } from '@/lib/format'
 import { whatsappLink } from '@/lib/whatsapp'
 
 describe('statusFlow e nextStatus', () => {
@@ -49,3 +49,12 @@ describe('whatsappLink', () => {
     expect(whatsappLink('5511912345678', 'Olá, pedido AB2C')).toBe('https://wa.me/5511912345678?text=Ol%C3%A1%2C%20pedido%20AB2C')
   })
 })
+
+describe("itens do pedido", () => {
+  it("mostra a quantidade ou 'a dividir' quando o cliente só escolheu o sabor", () => {
+    expect(formatQtdItem(20)).toBe('20 un.');
+    expect(formatQtdItem(null)).toBe('a dividir');
+    expect(temItemADividir([{ quantidade: null }, { quantidade: null }])).toBe(true);
+    expect(temItemADividir([{ quantidade: 30 }, { quantidade: 20 }])).toBe(false);
+  });
+});

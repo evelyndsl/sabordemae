@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Lock } from 'lucide-react'
-import { Brand, BRAND_NAME } from '@/components/brand'
+import { Brand } from '@/components/brand'
+import { useBrand } from '@/context/brand'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { useAuth } from '@/context/auth'
 
 export default function LoginPage() {
+  const { marca } = useBrand()
   const { isAdmin, login } = useAuth()
   const navigate = useNavigate()
   const [error, setError] = useState('')
@@ -38,7 +40,7 @@ export default function LoginPage() {
         <div className="login-card__head">
           <Brand to="/pedido" showName={false} />
           <h1 className="login-card__title">Área do lojista</h1>
-          <p className="login-card__text">{BRAND_NAME} · entre para acompanhar os pedidos.</p>
+          <p className="login-card__text">{marca.nome} · entre para acompanhar os pedidos.</p>
         </div>
         <form onSubmit={submit} className="stack">
           <div className="field">

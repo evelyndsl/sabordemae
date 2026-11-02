@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarClock, Clock, Minus, Plus, Search, ShoppingBag, Store, Truck } from 'lucide-react'
+import { CalendarClock, Check, Clock, Minus, Plus, Search, ShoppingBag, Store, Truck } from 'lucide-react'
 import { ErrorState, LoadingState } from '@/components/state-views'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,7 @@ import { formatDateTime, formatPhone, formatPrice, paymentLabels, QUANDO_PRONTO,
 import { calcularPreco, quantidadeValida } from '@/lib/preco'
 import { previaPrazoPix, textoPrazoPix } from '@/lib/prazo-pix'
 import { cn } from '@/lib/utils'
-import { BRAND_NAME } from '@/components/brand'
+import { useBrand } from '@/context/brand'
 import type { Catalogo, CriarPedidoBody, FormaPagamento, TipoEntrega } from '@/types/types'
 
 type Erros = Record<string, string>
@@ -56,16 +56,19 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
   const { sabores, valores, tempo, taxas, pix } = catalogo
   const navigate = useNavigate()
 
-  const [qtdText, setQtdText] = useState('50')
-  const [escolherSabores, setEscolherSabores] = useState(false)
-  const [selecao, setSelecao] = useState<Record<number, number>>({})
-  const [tipo, setTipo] = useState<TipoEntrega>('ENTREGA')
+  // Nada vem pré-selecionado: o cliente escolhe cada opção (null = ainda não escolheu).
+  const [qtdText, setQtdText] = useState('')
+  const [modoSabores, setModoSabores] = useState<'misto' | 'quantidades' | 'selecao' | null>(null)
+  const [selecao, setSelecao] = useState<Record<number, number>>({}) // modo "quantidades": saborId -> unidades
+  const [escolhidos, setEscolhidos] = useState<number[]>([]) // modo "selecao": só os sabores marcados
+  const [tipo, setTipo] = useState<TipoEntrega | null>(null)
   const [endereco, setEndereco] = useState('')
-  const [quando, setQuando] = useState<'pronto' | 'agendar'>('pronto')
+  const [pontoReferencia, setPontoReferencia] = useState('')
+  const [quando, setQuando] = useState<'pronto' | 'agendar' | null>(null)
   const [horario, setHorario] = useState('')
   const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
-  const [pagamento, setPagamento] = useState<FormaPagamento>('DINHEIRO')
+  const [pagamento, setPagamento] = useState<FormaPagamento | null>(null)
   const [erros, setErros] = useState<Erros>({})
   const [erroGeral, setErroGeral] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -74,9 +77,15 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
   const qtdOk = quantidadeValida(qtd, valores)
   const somaSabores = Object.values(selecao).reduce((a, b) => a + b, 0)
   const restante = qtdOk ? qtd - somaSabores : 0
+  const nSabores = modoSabores === 'quantidades' ? Object.keys(selecao).length : modoSabores === 'selecao' ? escolhidos.length : 0
 
+  // O subtotal já aparece com a quantidade; a taxa e o total só depois de escolher entrega ou retirada.
+  const subtotal = useMemo(
+    () => (qtdOk ? calcularPreco(qtd, 'RETIRADA', valores, taxas).subtotal : null),
+    [qtd, qtdOk, valores, taxas],
+  )
   const preco = useMemo(
-    () => (qtdOk ? calcularPreco(qtd, tipo, valores, taxas) : null),
+    () => (qtdOk && tipo ? calcularPreco(qtd, tipo, valores, taxas) : null),
     [qtd, qtdOk, tipo, valores, taxas],
   )
   const faltaParaGratis = taxas.entregaGratisAPartirDe - (qtdOk ? qtd : 0)
@@ -84,9 +93,9 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
   const formasPagamento = (['DINHEIRO', 'CARTAO', 'PIX'] as FormaPagamento[]).filter((f) => f !== 'PIX' || pix.configurada)
 
   function bump(delta: number) {
-    const base = qtdOk ? qtd : valores.quantidadeMinima
-    const next = Math.min(valores.quantidadeMaxima, Math.max(valores.quantidadeMinima, base + delta))
-    setQtdText(String(next))
+    // Campo vazio ou inválido: os botões começam pela quantidade mínima.
+    if (!qtdOk) return setQtdText(String(valores.quantidadeMinima))
+    setQtdText(String(Math.min(valores.quantidadeMaxima, Math.max(valores.quantidadeMinima, qtd + delta))))
   }
 
   function changeFlavor(id: number, delta: number) {
@@ -98,15 +107,36 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
     })
   }
 
+  // A quantidade de cada sabor também pode ser digitada (só números; vazio = 0).
+  function setFlavorQty(id: number, text: string) {
+    const n = Number(text.replace(/\D/g, ''))
+    setSelecao((prev) => {
+      const copy = { ...prev, [id]: n }
+      if (!n) delete copy[id]
+      return copy
+    })
+  }
+
+  function toggleFlavor(id: number) {
+    setEscolhidos((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
   function validar(): Erros {
     const e: Erros = {}
     if (!qtdOk) e.quantidade = `Escolha de ${valores.quantidadeMinima} a ${valores.quantidadeMaxima} unidades, de ${valores.passo} em ${valores.passo}.`
-    if (escolherSabores && qtdOk && somaSabores !== qtd) {
-      e.sabores = `A soma dos sabores (${somaSabores}) deve ser igual a ${qtd}.`
+    if (!modoSabores) e.sabores = 'Escolha como quer os sabores.'
+    else if (modoSabores === 'quantidades') {
+      if (somaSabores === 0) e.sabores = 'Defina a quantidade de ao menos um sabor.'
+      else if (qtdOk && somaSabores !== qtd) e.sabores = `A soma dos sabores (${somaSabores}) deve ser igual a ${qtd}.`
+    } else if (escolhidos.length === 0) {
+      e.sabores = 'Marque ao menos um sabor.'
     }
+    if (!tipo) e.tipoEntrega = 'Escolha entrega ou retirada.'
+    if (tipo === 'ENTREGA' && endereco.trim().length < 5) e.endereco = 'Informe o endereço de entrega.'
+    if (!quando) e.quando = 'Escolha quando quer receber.'
     if (nome.trim().length < 2) e.nomeCliente = 'Informe seu nome.'
     if (!/^\d{10,11}$/.test(telefone.replace(/\D/g, ''))) e.telefone = 'Informe um telefone com DDD.'
-    if (tipo === 'ENTREGA' && endereco.trim().length < 5) e.endereco = 'Informe o endereço de entrega.'
+    if (!pagamento) e.formaPagamento = 'Escolha a forma de pagamento.'
     if (quando === 'agendar') {
       if (!horario) e.horarioAgendado = 'Escolha a data e o horário.'
       else if (new Date(horario).getTime() <= Date.now()) e.horarioAgendado = 'O horário escolhido deve ser no futuro.'
@@ -119,15 +149,23 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
     setErroGeral('')
     const e = validar()
     setErros(e)
-    if (Object.keys(e).length) return
+    if (Object.keys(e).length || !tipo || !pagamento) return
 
     const body: CriarPedidoBody = {
       nomeCliente: nome.trim(),
       telefone: telefone.replace(/\D/g, ''),
       quantidade: qtd,
-      sabores: escolherSabores ? Object.entries(selecao).map(([id, q]) => ({ saborId: Number(id), quantidade: q })) : [],
+      // "misto": nenhum sabor (a loja monta a variedade). "quantidades": cada sabor com suas unidades.
+      // "selecao": só os sabores marcados (a loja divide as unidades entre eles).
+      sabores:
+        modoSabores === 'quantidades'
+          ? Object.entries(selecao).map(([id, q]) => ({ saborId: Number(id), quantidade: q }))
+          : modoSabores === 'selecao'
+            ? escolhidos.map((id) => ({ saborId: id }))
+            : [],
       tipoEntrega: tipo,
       endereco: tipo === 'ENTREGA' ? endereco.trim() : undefined,
+      pontoReferencia: tipo === 'ENTREGA' && pontoReferencia.trim() ? pontoReferencia.trim() : undefined,
       horarioAgendado: quando === 'agendar' ? new Date(horario).toISOString() : undefined,
       formaPagamento: pagamento,
     }
@@ -189,19 +227,24 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
         {/* 2. Sabores */}
         <section className="section">
           <h2 className="section__title"><span className="section__step">2</span> Sabores</h2>
-          <p className="section__hint">Deixe misto ou escolha quantos de cada sabor.</p>
-          <div className="option-grid">
-            <button type="button" className="option" aria-pressed={!escolherSabores} onClick={() => setEscolherSabores(false)}>
+          <p className="section__hint">Deixe misto, diga a quantidade de cada sabor ou só marque os sabores que você quer.</p>
+          <div className="option-grid option-grid--3">
+            <button type="button" className="option" aria-pressed={modoSabores === 'misto'} onClick={() => setModoSabores('misto')}>
               <span className="option__title">Misto</span>
-              <span className="option__desc">A gente monta uma variedade para você.</span>
+              <span className="option__desc">A gente monta uma variedade de todos os sabores para você.</span>
             </button>
-            <button type="button" className="option" aria-pressed={escolherSabores} onClick={() => setEscolherSabores(true)}>
-              <span className="option__title">Escolher sabores</span>
-              <span className="option__desc">Defina a quantidade de cada um.</span>
+            <button type="button" className="option" aria-pressed={modoSabores === 'selecao'} onClick={() => setModoSabores('selecao')}>
+              <span className="option__title">Só escolher os sabores</span>
+              <span className="option__desc">Você marca os sabores e a gente divide as unidades entre eles.</span>
+            </button>
+            <button type="button" className="option" aria-pressed={modoSabores === 'quantidades'} onClick={() => setModoSabores('quantidades')}>
+              <span className="option__title">Definir a quantidade</span>
+              <span className="option__desc">Você diz quantas unidades quer de cada sabor.</span>
             </button>
           </div>
+          {!modoSabores && erros.sabores && <p className="field__error mt-2">{erros.sabores}</p>}
 
-          {escolherSabores && (
+          {modoSabores === 'quantidades' && (
             <>
               <ul className="flavor-list">
                 {sabores.map((s) => {
@@ -213,7 +256,15 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
                         <Button type="button" variant="outline" size="icon-sm" aria-label={`Menos ${s.nome}`} disabled={q === 0} onClick={() => changeFlavor(s.id, -1)}>
                           <Minus />
                         </Button>
-                        <span className="flavor__count">{q}</span>
+                        <Input
+                          inputMode="numeric"
+                          className="flavor__input"
+                          value={q === 0 ? '' : String(q)}
+                          placeholder="0"
+                          maxLength={4}
+                          aria-label={`Quantidade de ${s.nome}`}
+                          onChange={(e) => setFlavorQty(s.id, e.target.value)}
+                        />
                         <Button type="button" variant="outline" size="icon-sm" aria-label={`Mais ${s.nome}`} disabled={qtdOk && restante <= 0} onClick={() => changeFlavor(s.id, 1)}>
                           <Plus />
                         </Button>
@@ -224,7 +275,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
               </ul>
               <p className="flavor-progress" data-state={!qtdOk ? undefined : restante === 0 ? 'ok' : restante < 0 ? 'over' : undefined}>
                 {!qtdOk
-                  ? 'Defina a quantidade primeiro.'
+                  ? 'Defina a quantidade do pedido primeiro.'
                   : restante === 0
                     ? `Tudo certo: ${qtd} de ${qtd} unidades.`
                     : restante > 0
@@ -232,6 +283,38 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
                       : `Você passou ${-restante} unidades do total de ${qtd}.`}
               </p>
               {erros.sabores && <p className="field__error mt-1">{erros.sabores}</p>}
+            </>
+          )}
+
+          {modoSabores === 'selecao' && (
+            <>
+              <div className="flavor-picker__bar">
+                <span className="flavor-progress" data-state={escolhidos.length > 0 ? 'ok' : undefined}>
+                  {escolhidos.length === 0
+                    ? 'Marque ao menos um sabor.'
+                    : `${escolhidos.length} ${escolhidos.length === 1 ? 'sabor escolhido' : 'sabores escolhidos'}.`}
+                </span>
+                <div className="flavor-picker__actions">
+                  <button type="button" className="flavor-picker__link" onClick={() => setEscolhidos(sabores.map((s) => s.id))}>
+                    Marcar todos
+                  </button>
+                  <button type="button" className="flavor-picker__link" disabled={escolhidos.length === 0} onClick={() => setEscolhidos([])}>
+                    Limpar
+                  </button>
+                </div>
+              </div>
+              <ul className="flavor-picker">
+                {sabores.map((s) => (
+                  <li key={s.id}>
+                    <button type="button" className="option flavor-picker__item" aria-pressed={escolhidos.includes(s.id)} onClick={() => toggleFlavor(s.id)}>
+                      <span className="option__title">
+                        {escolhidos.includes(s.id) && <Check className="size-4" />} {s.nome}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {erros.sabores && <p className="field__error mt-2">{erros.sabores}</p>}
             </>
           )}
         </section>
@@ -251,6 +334,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
               <span className="option__desc">Sem taxa. Você busca com a gente.</span>
             </button>
           </div>
+          {erros.tipoEntrega && <p className="field__error mt-2">{erros.tipoEntrega}</p>}
           {tipo === 'ENTREGA' && (
             <div className="field mt-4">
               <Label htmlFor="endereco">Endereço de entrega</Label>
@@ -258,8 +342,15 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
               {erros.endereco && <p className="field__error">{erros.endereco}</p>}
             </div>
           )}
+          {tipo === 'ENTREGA' && (
+            <div className="field mt-3">
+              <Label htmlFor="referencia">Ponto de referência <span className="field__optional">(opcional)</span></Label>
+              <Input id="referencia" value={pontoReferencia} onChange={(e) => setPontoReferencia(e.target.value)} maxLength={200} placeholder="Ex.: portão azul, perto da padaria" aria-invalid={!!erros.pontoReferencia} />
+              {erros.pontoReferencia && <p className="field__error">{erros.pontoReferencia}</p>}
+            </div>
+          )}
 
-          <h3 className="mt-5 mb-2 text-sm font-medium">{tipo === 'ENTREGA' ? 'Entregar' : 'Retirar'} quando?</h3>
+          <h3 className="mt-5 mb-2 text-sm font-medium">{tipo === 'ENTREGA' ? 'Entregar' : tipo === 'RETIRADA' ? 'Retirar' : 'Receber'} quando?</h3>
           <div className="option-grid">
             <button type="button" className="option" aria-pressed={quando === 'pronto'} onClick={() => setQuando('pronto')}>
               <span className="option__title"><Clock className="size-4" /> {QUANDO_PRONTO}</span>
@@ -270,6 +361,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
               <span className="option__desc">Escolha o dia e o horário.</span>
             </button>
           </div>
+          {erros.quando && <p className="field__error mt-2">{erros.quando}</p>}
           {quando === 'agendar' && (
             <div className="field mt-3">
               <Label htmlFor="horario">Data e horário</Label>
@@ -307,6 +399,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
               </button>
             ))}
           </div>
+          {erros.formaPagamento && <p className="field__error mt-2">{erros.formaPagamento}</p>}
           {pagamento === 'PIX' && (
             <div className="alert alert--info mt-3 grid gap-1">
               <p>Depois de enviar o pedido você verá a chave Pix para copiar, o valor e o botão para enviar o comprovante por WhatsApp.</p>
@@ -327,14 +420,18 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
         <dl className="summary__rows">
           <div className="summary__row">
             <dt>Unidades</dt>
-            <dd>{qtdOk ? `${qtd} (${escolherSabores ? `${Object.keys(selecao).length} sabores` : 'misto'})` : '—'}</dd>
+            <dd>
+              {qtdOk
+                ? `${qtd}${modoSabores === 'misto' ? ' (misto)' : nSabores > 0 ? ` (${nSabores} ${nSabores === 1 ? 'sabor' : 'sabores'})` : ''}`
+                : '—'}
+            </dd>
           </div>
           <div className="summary__row">
             <dt>Subtotal</dt>
-            <dd>{preco ? formatPrice(preco.subtotal) : '—'}</dd>
+            <dd>{subtotal !== null ? formatPrice(subtotal) : '—'}</dd>
           </div>
           <div className="summary__row">
-            <dt>{tipo === 'ENTREGA' ? 'Entrega' : 'Retirada'}</dt>
+            <dt>{tipo === 'ENTREGA' ? 'Entrega' : tipo === 'RETIRADA' ? 'Retirada' : 'Entrega ou retirada'}</dt>
             <dd>{!preco ? '—' : preco.taxa === 0 ? 'Grátis' : formatPrice(preco.taxa)}</dd>
           </div>
           <div className="summary__row summary__row--total">
@@ -359,6 +456,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
 }
 
 export default function OrderPage() {
+  const { marca } = useBrand()
   const catalogo = useFetch(api.catalogo, [])
 
   return (
@@ -370,7 +468,7 @@ export default function OrderPage() {
             <Clock className="size-4" />
             {catalogo.data ? `Preparo em ${catalogo.data.tempo.minimoMin} a ${catalogo.data.tempo.maximoMin} min` : 'Mini salgados feitos com carinho'}
           </p>
-          <h1 className="hero__title">{BRAND_NAME}: salgadinhos para qualquer festa</h1>
+          <h1 className="hero__title">{marca.nome}</h1>
           <p className="hero__text">Escolha a quantidade, os sabores e como quer receber. A gente cuida do resto.</p>
           <TrackOrder />
         </section>

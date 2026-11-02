@@ -25,7 +25,7 @@ const preflight = (metodo: string, origin: string) =>
 
 describe("CORS (preflight do navegador)", () => {
   // O painel do admin usa PUT e PATCH: se o preflight não os liberar, o navegador nem envia a requisição.
-  it.each(["GET", "POST", "PUT", "PATCH"])("libera %s para a origem do front", async (metodo) => {
+  it.each(["GET", "POST", "PUT", "PATCH", "DELETE"])("libera %s para a origem do front", async (metodo) => {
     const res = await preflight(metodo, origemPermitida);
 
     expect(res.statusCode).toBe(204);

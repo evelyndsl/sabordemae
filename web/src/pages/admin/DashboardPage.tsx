@@ -36,12 +36,12 @@ function OrderCard({
         <ul className="order-card__items">
           {pedido.itens.map((i) => (
             <li key={i.sabor}>
-              <span>{i.quantidade}× {i.sabor}</span>
+              <span>{i.quantidade === null ? `${i.sabor} (a dividir)` : `${i.quantidade}× ${i.sabor}`}</span>
             </li>
           ))}
         </ul>
         <div className="order-card__info">
-          {pedido.tipoEntrega === 'ENTREGA' ? <p><MapPin /> {pedido.endereco}</p> : <p><Store /> Retirada no local</p>}
+          {pedido.tipoEntrega === 'ENTREGA' ? <p><MapPin /> {pedido.endereco}{pedido.pontoReferencia ? ` · Ref.: ${pedido.pontoReferencia}` : ''}</p> : <p><Store /> Retirada no local</p>}
           <p>
             <Clock />
             {pedido.horarioAgendado

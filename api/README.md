@@ -117,13 +117,16 @@ Observações de produção:
 | Método | Rota | Acesso |
 |---|---|---|
 | GET | `/health` | público |
-| GET | `/sabores`, `/valores`, `/tempo-preparo`, `/taxa-entrega`, `/pix` | público |
+| GET | `/sabores`, `/valores`, `/tempo-preparo`, `/taxa-entrega`, `/pix`, `/marca` | público |
+| GET | `/marca/logo` (imagem PNG/SVG da logo; 404 se não houver) | público |
 | POST | `/pedido` (limite: 10/min) | público |
 | GET | `/pedido/:codigo` | público |
 | POST | `/auth/login` (limite: 5/min) | público |
 | GET | `/pedidos`, `/admin/sabores` | admin |
 | PUT | `/pedido/:codigo/status`, `/pedido/:codigo/tempo-preparo` | admin |
 | PUT | `/tempo-preparo`, `/taxa-entrega`, `/pix`, `/valores` | admin |
+| PUT | `/marca` (nome e cores), `/marca/logo` (logo em base64) | admin |
+| DELETE | `/pedido/:codigo` (exclusão definitiva), `/marca/logo` | admin |
 | POST | `/sabores` | admin |
 | PATCH | `/sabores/:id` | admin |
 

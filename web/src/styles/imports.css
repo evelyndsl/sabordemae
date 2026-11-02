@@ -5,5 +5,7 @@
 @import "./components/tracking.css";
 @import "./components/dashboard.css";
 @import "./components/admin-forms.css";
+@import "./components/order-alert.css";
+@import "./components/settings.css";
 @import "./components/badge.css";
 @import "./components/states.css";

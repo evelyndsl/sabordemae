@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, BadgeCheck, Clock, MapPin, MessageCircle, Phone, Store } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, BadgeCheck, Clock, MapPin, MessageCircle, Phone, Store, Trash2 } from 'lucide-react'
 import { FormStatus } from '@/components/form-status'
+import { useBrand } from '@/context/brand'
 import { ErrorState, LoadingState } from '@/components/state-views'
 import { StatusBadge } from '@/components/status-badge'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -11,7 +12,7 @@ import { useFetch } from '@/hooks/use-fetch'
 import { useSave } from '@/hooks/use-save'
 import { useStatusUpdate } from '@/hooks/use-status-update'
 import { ApiError, api } from '@/lib/api'
-import { formatDateTime, formatPhone, formatPrice, formatTime, paymentLabels, QUANDO_PRONTO, statusFlow, statusLabels, tipoLabels } from '@/lib/format'
+import { formatDateTime, formatQtdItem, temItemADividir, formatPhone, formatPrice, formatTime, paymentLabels, QUANDO_PRONTO, statusFlow, statusLabels, tipoLabels } from '@/lib/format'
 import { textoPrazoPix } from '@/lib/prazo-pix'
 import { whatsappLink } from '@/lib/whatsapp'
 import type { Pedido, PedidoAdmin } from '@/types/types'
@@ -68,7 +69,59 @@ function TempoPreparoForm({ pedido, onSaved }: { pedido: Pedido; onSaved: (p: Pe
   )
 }
 
+// Exclusão definitiva do pedido, com confirmação (não dá para desfazer).
+function ExcluirPedido({ codigo }: { codigo: string }) {
+  const navigate = useNavigate()
+  const [confirmando, setConfirmando] = useState(false)
+  const [excluindo, setExcluindo] = useState(false)
+  const [erro, setErro] = useState('')
+
+  async function excluir() {
+    setExcluindo(true)
+    setErro('')
+    try {
+      await api.excluirPedido(codigo)
+      navigate('/admin/dashboard', { replace: true })
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Não foi possível excluir o pedido.')
+      setExcluindo(false)
+    }
+  }
+
+  return (
+    <section className="danger-zone" aria-label="Excluir pedido">
+      {!confirmando ? (
+        <>
+          <div>
+            <h3 className="danger-zone__title">Excluir pedido</h3>
+            <p className="danger-zone__text">Remove o pedido e seus itens de forma definitiva.</p>
+          </div>
+          <Button variant="destructive" onClick={() => setConfirmando(true)}>
+            <Trash2 /> Excluir pedido
+          </Button>
+        </>
+      ) : (
+        <div className="danger-zone__confirm" role="alertdialog" aria-labelledby="excluir-titulo">
+          <p id="excluir-titulo" className="danger-zone__title">
+            Excluir o pedido {codigo}? Esta ação não pode ser desfeita.
+          </p>
+          <div className="danger-zone__actions">
+            <Button variant="destructive" disabled={excluindo} onClick={excluir}>
+              <Trash2 /> {excluindo ? 'Excluindo...' : 'Sim, excluir'}
+            </Button>
+            <Button variant="outline" disabled={excluindo} onClick={() => setConfirmando(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+      {erro && <p role="alert" className="alert alert--error">{erro}</p>}
+    </section>
+  )
+}
+
 export default function OrderDetailPage() {
+  const { marca } = useBrand()
   const { codigo = '' } = useParams()
   const pedido = useFetch(() => carregarPedido(codigo), [codigo], 30_000)
   const { update, busy, error } = useStatusUpdate((atualizado: PedidoAdmin) => pedido.mutate(() => atualizado))
@@ -93,7 +146,7 @@ export default function OrderDetailPage() {
 
   const editavel = p.telefone !== undefined
   const aguardandoPagamento = p.status === 'AGUARDANDO_PAGAMENTO'
-  const mensagem = `Olá, ${p.nomeCliente.split(' ')[0]}! Aqui é do Sabor de Mãe, sobre o seu pedido ${p.codigo} (${statusLabels[p.status].toLowerCase()}).`
+  const mensagem = `Olá, ${p.nomeCliente.split(' ')[0]}! Aqui é do ${marca.nome}, sobre o seu pedido ${p.codigo} (${statusLabels[p.status].toLowerCase()}).`
 
   return (
     <div className="admin-content max-w-4xl">
@@ -155,7 +208,16 @@ export default function OrderDetailPage() {
             {p.telefone && <div><dt><Phone className="size-3.5" /> Telefone</dt><dd>{formatPhone(p.telefone)}</dd></div>}
             <div>
               <dt>{p.tipoEntrega === 'ENTREGA' ? <MapPin className="size-3.5" /> : <Store className="size-3.5" />} {tipoLabels[p.tipoEntrega]}</dt>
-              <dd>{p.tipoEntrega === 'ENTREGA' ? p.endereco : 'Retirada no local'}</dd>
+              <dd>
+                {p.tipoEntrega === 'ENTREGA' ? (
+                  <>
+                    {p.endereco}
+                    {p.pontoReferencia && <span className="block font-normal text-muted-foreground">Ref.: {p.pontoReferencia}</span>}
+                  </>
+                ) : (
+                  'Retirada no local'
+                )}
+              </dd>
             </div>
             <div>
               <dt><Clock className="size-3.5" /> Quando</dt>
@@ -172,9 +234,12 @@ export default function OrderDetailPage() {
           <h3 className="section__title mb-2">Itens</h3>
           <ul className="item-list">
             {p.itens.map((i) => (
-              <li key={i.sabor}><span>{i.sabor}</span><span>{i.quantidade} un.</span></li>
+              <li key={i.sabor}><span>{i.sabor}</span><span>{formatQtdItem(i.quantidade)}</span></li>
             ))}
           </ul>
+          {temItemADividir(p.itens) && (
+            <p className="summary__note mt-2">O cliente escolheu só os sabores: divida as {p.quantidadeTotal} unidades entre eles.</p>
+          )}
           <dl className="summary__rows mt-3 mb-0 border-b-0 pb-0">
             <div className="summary__row"><dt>Subtotal ({p.quantidadeTotal} un.)</dt><dd>{formatPrice(p.subtotal)}</dd></div>
             <div className="summary__row"><dt>Entrega</dt><dd>{parseFloat(p.taxaEntrega) === 0 ? 'Grátis' : formatPrice(p.taxaEntrega)}</dd></div>
@@ -182,6 +247,8 @@ export default function OrderDetailPage() {
           </dl>
         </section>
       </div>
+
+      {editavel && <ExcluirPedido codigo={p.codigo} />}
     </div>
   )
 }

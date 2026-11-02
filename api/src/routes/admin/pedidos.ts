@@ -2,7 +2,7 @@ import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { StatusPedido } from "../../generated/prisma/enums.js";
 import { paraRespostaAdmin, pedidoAdminRespostaSchema } from "../../schemas/pedido.js";
-import { atualizarStatusPedido, definirTempoPreparoPedido, listarPedidos } from "../../services/pedidos.js";
+import { atualizarStatusPedido, definirTempoPreparoPedido, excluirPedido, listarPedidos } from "../../services/pedidos.js";
 
 export const adminPedidosRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
@@ -50,6 +50,15 @@ export const adminPedidosRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request) => {
       const pedido = await definirTempoPreparoPedido(request.params.codigo, request.body.minutos);
       return paraRespostaAdmin(pedido);
+    },
+  );
+  // Exclusão definitiva (os itens do pedido vão junto). Não há como desfazer.
+  app.delete(
+    "/pedido/:codigo",
+    { schema: { params: z.object({ codigo: z.string().length(8).transform((v) => v.toUpperCase()) }) } },
+    async (request, reply) => {
+      await excluirPedido(request.params.codigo);
+      return reply.status(204).send();
     },
   );
 };

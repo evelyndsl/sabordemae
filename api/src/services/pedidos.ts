@@ -1,6 +1,6 @@
 import { FormaPagamento, StatusPedido, TipoEntrega } from "../generated/prisma/enums.js";
 import { gerarCodigoPedido } from "../lib/codigo.js";
-import { NaoEncontradoError, RegraDeNegocioError } from "../lib/errors.js";
+import { NaoEncontradoError, RegraDeNegocioError, codigoErroPrisma } from "../lib/errors.js";
 import { prisma } from "../lib/prisma.js";
 import type { CriarPedidoInput } from "../schemas/pedido.js";
 import { calcularPreco, paraCentavos } from "./preco.js";
@@ -60,7 +60,7 @@ export async function criarPedido(input: CriarPedidoInput) {
   // Pedido misto vira um único item sem sabor.
   const itens =
     input.sabores.length > 0
-      ? input.sabores.map((s) => ({ saborId: s.saborId, quantidade: s.quantidade }))
+      ? input.sabores.map((s) => ({ saborId: s.saborId, quantidade: s.quantidade ?? null }))
       : [{ saborId: null, quantidade: input.quantidade }];
 
   const ehEntrega = input.tipoEntrega === TipoEntrega.ENTREGA;
@@ -84,6 +84,7 @@ export async function criarPedido(input: CriarPedidoInput) {
           telefone: input.telefone,
           tipoEntrega: input.tipoEntrega,
           endereco: ehEntrega ? (input.endereco ?? null) : null,
+          pontoReferencia: ehEntrega ? (input.pontoReferencia ?? null) : null,
           horarioAgendado: input.horarioAgendado ?? null,
           formaPagamento: input.formaPagamento,
           status: ehPix ? StatusPedido.AGUARDANDO_PAGAMENTO : StatusPedido.AGUARDANDO,
@@ -148,6 +149,16 @@ export async function definirTempoPreparoPedido(codigo: string, minutos: number)
     data: { tempoPreparoMin: minutos, previsaoEm: new Date(Date.now() + minutos * 60_000) },
     include: incluirItens,
   });
+}
+
+// Exclusão definitiva: os itens do pedido são apagados junto (onDelete: Cascade).
+export async function excluirPedido(codigo: string) {
+  try {
+    await prisma.pedido.delete({ where: { codigo } });
+  } catch (err) {
+    if (codigoErroPrisma(err) === "P2025") throw new NaoEncontradoError("Pedido não encontrado.");
+    throw err;
+  }
 }
 
 // Datas do filtro valem no horário de Brasília (UTC-3, sem horário de verão).

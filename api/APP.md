@@ -79,7 +79,8 @@ O preço é sempre calculado no servidor; o valor enviado pelo cliente é ignora
 | Entrega gratuita | A partir de 200 unidades (200 ou mais) |
 | Retirada | Sem taxa |
 | Horário (entrega e retirada) | `horarioAgendado` opcional (data e hora com fuso, no futuro). Ausente = "para quando ficar pronto": o admin informa o tempo de preparo do pedido em `PUT /pedido/{codigo}/tempo-preparo` `{ minutos }` e a resposta traz `tempoPreparoMin` e `previsaoEm` |
-| Sabores | Pedido misto (sem sabores) ou sabores somando exatamente a quantidade; quantidade por sabor é qualquer inteiro positivo. Na resposta, o pedido misto vem como um único item `{ sabor: "Misto", quantidade }` (no banco o `saborId` fica nulo) |
+| Sabores | Três formas de enviar `sabores`: (1) vazio = pedido misto (na resposta vem um único item `{ sabor: "Misto", quantidade }`, no banco `saborId` nulo); (2) cada sabor com `quantidade`: a soma deve ser exatamente a quantidade do pedido; (3) só os sabores, **sem** `quantidade`: a loja divide as unidades e cada item vem com `quantidade: null`. Misturar itens com e sem quantidade é recusado (400). Sabor repetido é recusado |
+| Ponto de referência | `pontoReferencia` opcional (até 200 caracteres), só vale na entrega; vazio é tratado como não informado |
 | Código do pedido | 8 caracteres (sem I, L, O, 0, 1), usado pelo cliente para consultar `GET /pedido/{codigo}` |
 
 Exemplos: 10 retirada = R$ 13,00 · 10 entrega = R$ 20,00 · 50 entrega = R$ 44,00 · 110 retirada = R$ 70,40 · 190 entrega = R$ 126,60 · 200 entrega = R$ 128,00 (sem taxa).
@@ -100,6 +101,10 @@ Exemplos: 10 retirada = R$ 13,00 · 10 entrega = R$ 20,00 · 50 entrega = R$ 44,
 |---|---|
 | `GET /pedidos?status=&de=&ate=` | Lista pedidos (com telefone), mais recentes primeiro |
 | `PUT /pedido/{codigo}/status` | Muda o status. Entrega: aguardando, em produção, em rota de entrega, finalizado. Retirada: aguardando, em produção, pronto para retirada, finalizado. O admin pode voltar uma etapa |
+| `PUT /marca` | `{ nome, cores }`. `cores` é `null` (tema padrão) ou `{ publico|admin: { claro|escuro: { fundo, texto, cartao, primaria, destaque, textoSecundario, borda, barraLateral (só admin) } } }`, cada uma em `#RRGGBB` (todas opcionais) |
+| `PUT /marca/logo` | `{ tipo: "image/png" | "image/svg+xml", dados: <base64> }`, até 300 KB. A API confere o conteúdo real (assinatura do PNG; SVG sem scripts, eventos ou elementos externos). A logo fica no banco e é servida em `GET /marca/logo?v=<logoVersao>` com cabeçalhos que impedem execução de conteúdo ativo |
+| `DELETE /marca/logo` | Remove a logo |
+| `DELETE /pedido/{codigo}` | Exclui o pedido e seus itens de forma definitiva (204). Não há como desfazer |
 | `PUT /tempo-preparo` | `{ minimoMin, maximoMin }` |
 | `PUT /taxa-entrega` | `{ taxaAte49, taxaDe50a199 }` (em reais, até 2 casas) |
 | `PUT /pix` | `{ tipo: CPF \| CNPJ \| TELEFONE \| ALEATORIA, chave }`. CPF e CNPJ são validados pelos dígitos verificadores, o telefone exige DDD e a chave aleatória deve ser um UUID |

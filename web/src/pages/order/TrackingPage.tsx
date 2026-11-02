@@ -7,7 +7,7 @@ import { StatusBadge } from '@/components/status-badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { useFetch } from '@/hooks/use-fetch'
 import { ApiError, api } from '@/lib/api'
-import { formatDateTime, formatPrice, formatTime, paymentLabels, QUANDO_PRONTO, statusFlow, statusLabels, tipoLabels } from '@/lib/format'
+import { formatDateTime, formatQtdItem, temItemADividir, formatPrice, formatTime, paymentLabels, QUANDO_PRONTO, statusFlow, statusLabels, tipoLabels } from '@/lib/format'
 import { textoPrazoPix } from '@/lib/prazo-pix'
 import { whatsappLink } from '@/lib/whatsapp'
 import type { Pedido, Pix } from '@/types/types'
@@ -169,7 +169,16 @@ export default function TrackingPage() {
               <dl className="info-list">
                 <div>
                   <dt>{p.tipoEntrega === 'ENTREGA' ? <MapPin className="size-3.5" /> : <Store className="size-3.5" />} {tipoLabels[p.tipoEntrega]}</dt>
-                  <dd>{p.tipoEntrega === 'ENTREGA' ? p.endereco : 'Retirada no local'}</dd>
+                  <dd>
+                    {p.tipoEntrega === 'ENTREGA' ? (
+                      <>
+                        {p.endereco}
+                        {p.pontoReferencia && <span className="block font-normal text-muted-foreground">Ref.: {p.pontoReferencia}</span>}
+                      </>
+                    ) : (
+                      'Retirada no local'
+                    )}
+                  </dd>
                 </div>
                 <div>
                   <dt><Clock className="size-3.5" /> Quando</dt>
@@ -192,10 +201,13 @@ export default function TrackingPage() {
                 {p.itens.map((i) => (
                   <li key={i.sabor}>
                     <span>{i.sabor}</span>
-                    <span>{i.quantidade} un.</span>
+                    <span>{formatQtdItem(i.quantidade)}</span>
                   </li>
                 ))}
               </ul>
+              {temItemADividir(p.itens) && (
+                <p className="summary__note mt-2">Você escolheu só os sabores: a gente divide as {p.quantidadeTotal} unidades entre eles.</p>
+              )}
               <dl className="summary__rows mt-3 mb-0 border-b-0 pb-0">
                 <div className="summary__row"><dt>Subtotal ({p.quantidadeTotal} un.)</dt><dd>{formatPrice(p.subtotal)}</dd></div>
                 <div className="summary__row"><dt>Entrega</dt><dd>{parseFloat(p.taxaEntrega) === 0 ? 'Grátis' : formatPrice(p.taxaEntrega)}</dd></div>

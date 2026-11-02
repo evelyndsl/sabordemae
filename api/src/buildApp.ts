@@ -29,7 +29,7 @@ export async function configurarApp(instancia: FastifyInstance) {
   // barra no preflight todas as edições do admin (status, preços, Pix, sabores...).
   await app.register(cors, {
     origin: env.WEB_URL,
-    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "OPTIONS"],
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
   await app.register(rateLimit, { global: false });
   await app.register(jwt, { secret: env.JWT_SECRET, sign: { expiresIn: "12h" } });

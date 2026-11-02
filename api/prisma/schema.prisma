@@ -74,6 +74,13 @@ model Configuracao {
   // em relação ao horário agendado. Vale até 100 unidades; acima disso, usa o campo seguinte.
   pixAntecedenciaAteLimiteHoras   Int          @default(2)
   pixAntecedenciaAcimaLimiteHoras Int          @default(4)
+  // Marca e aparência (editáveis no painel). A logo fica no próprio banco (limite de 300 KB).
+  nomeMarca                       String       @default("Sabor de Mãe") @db.VarChar(60)
+  logoDados                       Bytes?
+  logoTipo                        String?      @db.VarChar(30)
+  logoAtualizadaEm                DateTime?
+  // Cores personalizadas: { publico|admin: { claro|escuro: { fundo, texto, ... } } }. Nulo = tema padrão.
+  cores                           Json?
 }
 
 model Pedido {
@@ -83,6 +90,8 @@ model Pedido {
   telefone             String         @db.VarChar(20)
   tipoEntrega          TipoEntrega
   endereco             String?        @db.VarChar(300)
+  // Opcional, só em entregas: "perto da padaria", "portão azul"...
+  pontoReferencia      String?        @db.VarChar(200)
   // Data e hora pedidas pelo cliente (entrega ou retirada). Nulo = "para quando ficar pronto".
   horarioAgendado      DateTime?
   formaPagamento       FormaPagamento
@@ -110,7 +119,8 @@ model ItemPedido {
   // Nulo quando o cliente pediu a quantidade mista.
   saborId    Int?
   sabor      Sabor? @relation(fields: [saborId], references: [id], onDelete: Restrict)
-  quantidade Int
+  // Nulo quando o cliente só escolheu os sabores, sem dizer quantas unidades de cada (a loja divide).
+  quantidade Int?
 }
 
 model AdminUser {

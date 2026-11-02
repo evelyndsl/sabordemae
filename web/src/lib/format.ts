@@ -101,3 +101,7 @@ export const tipoPixLabels = {
   TELEFONE: 'Telefone',
   ALEATORIA: 'Chave aleatória',
 } as const
+
+// Itens do pedido: "20 un." ou, quando o cliente só escolheu o sabor, "a dividir" (a loja divide as unidades).
+export const formatQtdItem = (quantidade: number | null) => (quantidade === null ? 'a dividir' : `${quantidade} un.`)
+export const temItemADividir = (itens: { quantidade: number | null }[]) => itens.some((i) => i.quantidade === null)

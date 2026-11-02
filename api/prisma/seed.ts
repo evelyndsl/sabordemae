@@ -49,6 +49,7 @@ const configuracaoPadrao = {
   whatsappEstabelecimento: null,
   pixAntecedenciaAteLimiteHoras: 2,
   pixAntecedenciaAcimaLimiteHoras: 4,
+  nomeMarca: "Sabor de Mãe",
 } as const;
 
 async function main() {

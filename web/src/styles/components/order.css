@@ -1,64 +1,197 @@
 /* Página de pedido do cliente: quantidade, sabores e resumo. */
-
 .qty {
-  @apply flex flex-wrap items-center gap-3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
 }
+
 .qty__input {
-  @apply h-12 w-28 text-center text-xl font-bold;
+  width: 7rem;
+  height: 3rem;
+  text-align: center;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 700;
 }
+
 .qty__unit {
-  @apply text-sm text-muted-foreground;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 .flavor-list {
-  @apply mt-4 grid gap-2;
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
+
 .flavor {
-  @apply flex items-center justify-between gap-3 rounded-lg border px-3 py-2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  &[data-active='true'] {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
 }
-.flavor[data-active='true'] {
-  @apply border-accent bg-accent/10;
-}
+
 .flavor__name {
-  @apply text-sm font-medium;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
 }
+
 .flavor__controls {
-  @apply flex items-center gap-2;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
-.flavor__count {
-  @apply w-8 text-center text-sm tabular-nums;
+
+/* Quantidade do sabor, digitada no teclado (os botões - e + continuam funcionando). */
+.flavor__input {
+  width: 4rem;
+  height: 2rem;
+  padding-inline: 0.25rem;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-variant-numeric: tabular-nums;
 }
+
+/* Modo "só escolher os sabores": lista de sabores para marcar. */
+.flavor-picker {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+
+  @media (min-width: 40rem) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.flavor-picker__item {
+  width: 100%;
+  min-height: 2.75rem;
+  justify-content: center;
+}
+
+.flavor-picker__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.flavor-picker__actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.flavor-picker__link {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover:not(:disabled) {
+    color: var(--foreground);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    text-decoration: none;
+  }
+}
+
 .flavor-progress {
-  @apply mt-3 text-sm font-medium text-muted-foreground;
-}
-.flavor-progress[data-state='ok'] {
-  @apply text-foreground;
-}
-.flavor-progress[data-state='over'] {
-  @apply text-destructive;
+  margin-top: 0.75rem;
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+
+  &[data-state='ok'] {
+    color: var(--foreground);
+  }
+
+  &[data-state='over'] {
+    color: var(--destructive);
+  }
 }
 
 .summary {
-  @apply rounded-xl border bg-card p-4 sm:p-5 lg:sticky lg:top-24;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 1.4);
+  background: var(--card);
+
+  @media (min-width: 40rem) {
+    padding: 1.25rem;
+  }
+
+  @media (min-width: 64rem) {
+    position: sticky;
+    top: 6rem;
+  }
 }
+
 .summary__title {
-  @apply mb-3 flex items-center gap-2 text-lg font-semibold;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 600;
 }
+
 .summary__rows {
-  @apply mb-4 space-y-1 border-y py-3 text-sm;
+  margin-bottom: 1rem;
+  padding-block: 0.75rem;
+  border-block: 1px solid var(--border);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+
+  & > :not(:last-child) {
+    margin-bottom: 0.25rem;
+  }
 }
+
 .summary__row {
-  @apply flex justify-between gap-3;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+
+  & dt {
+    color: var(--muted-foreground);
+  }
 }
-.summary__row dt {
-  @apply text-muted-foreground;
-}
+
 .summary__row--total {
-  @apply pt-1 text-base font-semibold;
+  padding-top: 0.25rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+
+  & dt {
+    color: var(--foreground);
+  }
 }
-.summary__row--total dt {
-  @apply text-foreground;
-}
+
 .summary__note {
-  @apply mb-3 text-xs text-muted-foreground;
+  margin-bottom: 0.75rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1rem;
 }

@@ -1,71 +1,184 @@
 /* Painel do admin: indicadores, filtros e cards de pedido. */
-
 .kpi-grid {
-  @apply grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  @media (min-width: 64rem) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
 }
+
 .kpi {
-  @apply flex items-start justify-between gap-2 rounded-xl border bg-card p-4;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 1.4);
+  background: var(--card);
 }
+
 .kpi__label {
-  @apply text-xs text-muted-foreground sm:text-sm;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1rem;
+
+  @media (min-width: 40rem) {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
 }
+
 .kpi__value {
-  @apply mt-1 truncate text-xl font-bold sm:text-2xl;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+
+  @media (min-width: 40rem) {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
 }
+
 .kpi__icon {
-  @apply grid size-9 shrink-0 place-items-center rounded-lg bg-accent/25;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .toolbar {
-  @apply flex flex-wrap items-end justify-between gap-3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
+
 .toolbar__title {
-  @apply text-lg font-semibold;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 600;
 }
+
 .toolbar__date {
-  @apply flex items-center gap-2;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .order-grid {
-  @apply grid gap-3 md:grid-cols-2 xl:grid-cols-3;
+  display: grid;
+  gap: 0.75rem;
+
+  @media (min-width: 48rem) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 80rem) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
+
 .order-card {
-  @apply flex h-full flex-col gap-3 rounded-xl border bg-card p-4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 1.4);
+  background: var(--card);
 }
+
 .order-card__head {
-  @apply flex items-start justify-between gap-2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
+
 .order-card__title {
-  @apply font-semibold;
+  font-weight: 600;
 }
+
 .order-card__meta {
-  @apply text-xs text-muted-foreground;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1rem;
 }
+
 .order-card__items {
-  @apply space-y-0.5 text-sm;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+
+  & > :not(:last-child) {
+    margin-bottom: 0.125rem;
+  }
+
+  & li {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
 }
-.order-card__items li {
-  @apply flex justify-between gap-2;
-}
+
 .order-card__info {
-  @apply space-y-1 text-xs text-muted-foreground;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1rem;
+
+  & > :not(:last-child) {
+    margin-bottom: 0.25rem;
+  }
+
+  & p {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.375rem;
+  }
+
+  & svg {
+    flex-shrink: 0;
+    width: 0.875rem;
+    height: 0.875rem;
+    margin-top: 0.125rem;
+  }
 }
-.order-card__info p {
-  @apply flex items-start gap-1.5;
-}
-.order-card__info svg {
-  @apply mt-0.5 size-3.5 shrink-0;
-}
+
 .order-card__foot {
-  @apply mt-auto flex flex-wrap items-center justify-between gap-2 border-t pt-3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
 }
+
 .order-card__total {
-  @apply font-semibold;
+  font-weight: 600;
 }
+
 .order-card__actions {
-  @apply flex flex-wrap gap-2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .status-picker {
-  @apply flex flex-wrap gap-2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }

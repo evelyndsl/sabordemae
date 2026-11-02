@@ -8,10 +8,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   QrCode,
+  Settings,
   Soup,
   type LucideIcon,
 } from 'lucide-react'
 import { Brand } from '@/components/brand'
+import { NewOrderAlerts } from '@/components/new-order-alerts'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { useAuth } from '@/context/auth'
@@ -21,6 +23,7 @@ const navItems: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/admin/sabores', label: 'Sabores', icon: Soup },
   { to: '/admin/precos', label: 'Preços e entrega', icon: CircleDollarSign },
   { to: '/admin/pix', label: 'Pix e contato', icon: QrCode },
+  { to: '/admin/configuracoes', label: 'Configurações', icon: Settings },
 ]
 
 const COLLAPSED_KEY = 'saborDeMae:sidebarRecolhida'
@@ -102,6 +105,7 @@ export default function AdminLayout() {
           <h1 className="admin-topbar__title">{pageTitle(location.pathname)}</h1>
           <div className="site-header__actions">
             <Link to="/pedido" className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'lg:hidden' })}>Site</Link>
+            <NewOrderAlerts />
             <ThemeToggle />
             <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Sair" onClick={sair}>
               <LogOut />

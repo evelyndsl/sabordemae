@@ -1,22 +1,31 @@
 /* Selos de status do pedido. */
-
 .status-badge {
-  @apply border-0;
-}
-.status-badge[data-status='AGUARDANDO'],
-.status-badge[data-status='AGUARDANDO_PAGAMENTO'] {
-  @apply bg-accent text-accent-foreground;
-}
-.status-badge[data-status='PAGAMENTO_APROVADO'] {
-  @apply bg-accent/40 text-foreground;
-}
-.status-badge[data-status='EM_PRODUCAO'] {
-  @apply bg-foreground text-background;
-}
-.status-badge[data-status='EM_ROTA_ENTREGA'],
-.status-badge[data-status='PRONTO_RETIRADA'] {
-  @apply bg-muted-foreground text-background;
-}
-.status-badge[data-status='FINALIZADO'] {
-  @apply bg-muted text-foreground;
+  border: 0;
+
+  &[data-status='AGUARDANDO'],
+  &[data-status='AGUARDANDO_PAGAMENTO'] {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  &[data-status='PAGAMENTO_APROVADO'] {
+    background: color-mix(in srgb, var(--accent) 40%, transparent);
+    color: var(--foreground);
+  }
+
+  &[data-status='EM_PRODUCAO'] {
+    background: var(--foreground);
+    color: var(--background);
+  }
+
+  &[data-status='EM_ROTA_ENTREGA'],
+  &[data-status='PRONTO_RETIRADA'] {
+    background: var(--muted-foreground);
+    color: var(--background);
+  }
+
+  &[data-status='FINALIZADO'] {
+    background: var(--muted);
+    color: var(--foreground);
+  }
 }

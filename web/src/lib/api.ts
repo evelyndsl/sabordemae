@@ -1,5 +1,7 @@
 import type {
   Catalogo,
+  Cores,
+  Marca,
   CriarPedidoBody,
   Pedido,
   PedidoAdmin,
@@ -52,7 +54,7 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'PATCH'
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: unknown
   auth?: boolean
   query?: Record<string, string | undefined>
@@ -81,6 +83,7 @@ async function request<T>(path: string, { method = 'GET', body, auth = false, qu
     throw new ApiError(0, 'Não foi possível conectar ao servidor. Verifique sua conexão e tente de novo.')
   }
 
+  if (res.status === 204) return undefined as T // sem corpo (ex.: exclusão)
   if (res.ok) return (await res.json()) as T
 
   let data: { mensagem?: string; message?: string; erros?: { campo: string; mensagem: string }[] } = {}
@@ -101,7 +104,11 @@ async function request<T>(path: string, { method = 'GET', body, auth = false, qu
   throw new ApiError(res.status, data.mensagem ?? fallback, data.erros)
 }
 
+// Endereço da imagem da logo (a versão muda a cada logo nova, então o navegador pode guardar em cache).
+export const logoUrl = (versao: number) => `${BASE_URL}/marca/logo?v=${versao}`
+
 export const api = {
+  marca: () => request<Marca>('/marca'),
   // Público
   sabores: () => request<Sabor[]>('/sabores'),
   valores: () => request<Valores>('/valores'),
@@ -143,6 +150,13 @@ export const api = {
       auth: true,
       body: { minutos },
     }),
+  salvarMarca: (body: { nome: string; cores: Cores | null }) =>
+    request<Marca>('/marca', { method: 'PUT', auth: true, body }),
+  enviarLogo: (tipo: 'image/png' | 'image/svg+xml', dados: string) =>
+    request<Marca>('/marca/logo', { method: 'PUT', auth: true, body: { tipo, dados } }),
+  removerLogo: () => request<Marca>('/marca/logo', { method: 'DELETE', auth: true }),
+  excluirPedido: (codigo: string) =>
+    request<void>(`/pedido/${encodeURIComponent(codigo)}`, { method: 'DELETE', auth: true }),
   atualizarStatus: (codigo: string, status: StatusPedido) =>
     request<PedidoAdmin>(`/pedido/${encodeURIComponent(codigo)}/status`, {
       method: 'PUT',

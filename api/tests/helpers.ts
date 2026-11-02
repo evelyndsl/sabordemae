@@ -66,8 +66,14 @@ export async function salvarConfiguracao() {
   const { id, ...config } = await prisma.configuracao.findUniqueOrThrow({ where: { id: 1 } });
   const faixas = await prisma.faixaPreco.findMany();
 
+  const { Prisma } = await import("../src/generated/prisma/client.js");
+
   return async () => {
-    await prisma.configuracao.update({ where: { id }, data: config });
+    // Coluna Json nula precisa de Prisma.DbNull para ser gravada de volta.
+    await prisma.configuracao.update({
+      where: { id },
+      data: { ...config, cores: config.cores === null ? Prisma.DbNull : config.cores },
+    });
     for (const faixa of faixas) {
       await prisma.faixaPreco.update({ where: { id: faixa.id }, data: { valor: faixa.valor } });
     }

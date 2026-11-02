@@ -58,6 +58,7 @@ O WhatsApp do estabelecimento, a chave Pix, o favorecido e o banco **não** são
 | `/admin/pedidos/:codigo` | admin | Detalhe, status, aprovar pagamento Pix, tempo de preparo e WhatsApp do cliente. |
 | `/admin/sabores` | admin | Criar, renomear e ativar/desativar sabores. |
 | `/admin/precos` | admin | Tabela de preços, taxas de entrega e tempo de preparo. |
+| `/admin/configuracoes` | admin | Nome da marca, logo (PNG/SVG) e cores (aplicativo de pedidos e painel, claro e escuro). |
 | `/admin/pix` | admin | WhatsApp do estabelecimento, chave Pix, favorecido, banco e prazo de pagamento. |
 
 Rotas `/admin/*` (exceto o login) redirecionam para o login quando não há token ou quando a API responde 401.
@@ -70,7 +71,8 @@ web/src/
 ├── components/       componentes da aplicação; ui/ = shadcn
 ├── context/          autenticação do admin
 ├── hooks/            useFetch, useSave, useStatusUpdate
-├── lib/              api.ts (cliente HTTP), regras (preco, prazo-pix), formatação e testes
+├── lib/              api.ts (cliente HTTP), regras (preco, prazo-pix), formatação e alerta sonoro
+├── tests/            testes (Vitest) das regras de lib/
 ├── types/            tipos espelhando o contrato da API
 └── styles/
     ├── index.css     Tailwind, tokens de cor (:root e .dark) e base
