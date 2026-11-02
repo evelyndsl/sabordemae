@@ -6,7 +6,7 @@ import { ADMIN_TESTE } from "./test-env.js";
 // antes de a aplicação ser carregada.
 
 export async function criarApp(): Promise<FastifyInstance> {
-  const { buildApp } = await import("../src/app.js");
+  const { buildApp } = await import("../src/buildApp.js");
   const app = await buildApp();
   await app.ready();
   return app;

@@ -1,6 +1,6 @@
 # API — Sabor de Mãe (delivery de mini salgados)
 
-API REST do app de pedidos. O front fica em [`../web`](../web/README.md); a visão geral do projeto está no [README da raiz](../README.md) e o passo a passo de deploy em [`../WORKFLOW.md`](../WORKFLOW.md).
+API REST do app de pedidos. O front fica em [`../web`](../web/README.md); a visão geral do projeto está no [README da raiz](../README.md).
 
 - **Stack:** Node.js 24, Fastify 5, TypeScript, Prisma 7 (PostgreSQL / Neon), Zod, JWT, Vitest.
 - **Regras de negócio** (preços, quantidades, entrega, Pix, status): [`APP.md`](APP.md).
@@ -66,8 +66,9 @@ Copie `.env.example` para `.env` (o `.env` nunca vai para o git).
 api/
 ├── prisma/            schema.prisma, migrations/ e seed.ts
 ├── src/
-│   ├── server.ts      sobe o servidor (entrada local e na Vercel)
-│   ├── app.ts         monta o Fastify (CORS, rate limit, JWT, rotas)
+│   ├── index.ts       entrada da Vercel: exporta o handler serverless (default)
+│   ├── server.ts      entrada local (npm run dev / npm start): faz o listen
+│   ├── buildApp.ts    monta o Fastify (CORS, rate limit, JWT, rotas)
 │   ├── routes/        rotas públicas, auth e admin/
 │   ├── schemas/       validação de entrada/saída (Zod)
 │   ├── services/      regras de negócio (preço, pedidos, prazo do Pix, catálogo)
@@ -85,11 +86,11 @@ npm test
 - Usam o banco de `DATABASE_TESTS_URL` e **se recusam a rodar** se ele for igual ao `DATABASE_URL`.
 - A cada execução o banco de testes recebe as migrations e volta aos dados base, com um admin próprio (`admin_teste`).
 - Regras puras (preço, prazo do Pix, validações) não usam o banco; as rotas são chamadas em memória com `app.inject`.
-- No GitHub, o workflow `.github/workflows/api-tests.yml` roda typecheck + testes a cada push/PR que mexa em `api/` (precisa do secret `DATABASE_TESTS_URL`; veja o [WORKFLOW.md](../WORKFLOW.md)).
+- No GitHub, o workflow `.github/workflows/api-tests.yml` roda typecheck + testes a cada push/PR que mexa em `api/` (precisa do secret `DATABASE_TESTS_URL`, criado em *Settings → Secrets and variables → Actions* do repositório, com a string de um banco de testes separado).
 
 ## Deploy (Vercel)
 
-A API roda na Vercel como função serverless, **sem `vercel.json`** (a Vercel detecta o Fastify em `src/server.ts`). Resumo:
+A API roda na Vercel como função serverless, **sem `vercel.json`** (a Vercel usa `src/index.ts`, que exporta o handler). Resumo:
 
 1. Crie um projeto na Vercel apontando para este repositório com **Root Directory = `api`**.
 2. Configure `DATABASE_URL`, `JWT_SECRET` e `WEB_URL` (URL do front em produção).
@@ -105,8 +106,6 @@ A API roda na Vercel como função serverless, **sem `vercel.json`** (a Vercel d
    $env:ADMIN_USER="<usuario>"; $env:ADMIN_PASSWORD="<senha forte>"; npm run db:seed
    ```
 4. Teste `GET <url-da-api>/health`.
-
-Detalhes, ordem das etapas e solução de problemas: [`../WORKFLOW.md`](../WORKFLOW.md).
 
 Observações de produção:
 - O rate limit (`/pedido`: 10/min, `/auth/login`: 5/min) fica na memória de cada instância; em serverless ele é aproximado.

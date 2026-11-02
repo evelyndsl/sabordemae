@@ -15,7 +15,7 @@ const dadosCliente = {
 
 beforeAll(async () => {
   // Import dinâmico: garante que o setup já apontou DATABASE_URL para o banco de testes.
-  const { buildApp } = await import("../src/app.js");
+  const { buildApp } = await import("../src/buildApp.js");
   ({ prisma } = await import("../src/lib/prisma.js"));
   app = await buildApp();
   await app.ready();
