@@ -1,15 +1,18 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { buildApp } from "./buildApp.js";
+import Fastify from "fastify";
+import { configurarApp, opcoesFastify } from "./buildApp.js";
 
-// Entrada da Vercel: ela procura src/app.*, src/index.* e src/server.* (nessa ordem) e exige que o
-// arquivo escolhido exporte uma função (ou um servidor) como default.
-// Por isso a API fica em buildApp.ts (sem default) e este arquivo expõe o handler serverless.
+// Entrada da Vercel. Duas exigências dela, vistas nos erros de deploy:
+//  1. o arquivo de entrada precisa importar o "fastify" diretamente (por isso o Fastify é criado aqui);
+//  2. o export default precisa ser uma função (ou servidor).
+// As rotas e plugins ficam em buildApp.ts (sem export default, para a Vercel não escolhê-lo como entrada).
 // Em desenvolvimento local (npm run dev / npm start) o servidor sobe por src/server.ts.
 
 let pronto: ReturnType<typeof iniciar> | undefined;
 
 async function iniciar() {
-  const app = await buildApp();
+  const app = Fastify(opcoesFastify);
+  await configurarApp(app);
   await app.ready();
   return app;
 }

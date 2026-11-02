@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -25,6 +26,15 @@ describe("entrada da Vercel (src/index.ts)", () => {
   it("exporta uma função como default (exigência da Vercel)", async () => {
     const modulo = await import("../src/index.js");
     expect(typeof modulo.default).toBe("function");
+  });
+
+  // A Vercel só aceita como entrada um arquivo que importe o fastify diretamente, e escolhe src/app.*
+  // antes de src/index.*: sem estas duas garantias o deploy quebra (BUILD_FAILED ou 500).
+  it("a entrada importa o fastify e não existe src/app.* disputando a escolha", () => {
+    expect(readFileSync(new URL("../src/index.ts", import.meta.url), "utf8")).toMatch(/from\s+["']fastify["']/);
+    for (const ext of ["ts", "js", "mts", "cts", "mjs", "cjs"]) {
+      expect(existsSync(new URL(`../src/app.${ext}`, import.meta.url))).toBe(false);
+    }
   });
 
   it("responde GET /health pelo handler", async () => {

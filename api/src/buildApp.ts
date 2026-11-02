@@ -1,7 +1,7 @@
 import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
 import rateLimit from "@fastify/rate-limit";
-import Fastify from "fastify";
+import Fastify, { type FastifyInstance } from "fastify";
 import {
   serializerCompiler,
   validatorCompiler,
@@ -11,12 +11,15 @@ import { env } from "./lib/env.js";
 import { registrarTratadorDeErros } from "./plugins/erros.js";
 import { routes } from "./routes/index.js";
 
-export async function buildApp() {
-  // trustProxy: atrás da Vercel o IP real do cliente vem no x-forwarded-for (rate-limit).
-  const app = Fastify({
-    logger: env.NODE_ENV !== "test",
-    trustProxy: true,
-  }).withTypeProvider<ZodTypeProvider>();
+// trustProxy: atrás da Vercel o IP real do cliente vem no x-forwarded-for (rate-limit).
+export const opcoesFastify = {
+  logger: env.NODE_ENV !== "test",
+  trustProxy: true,
+};
+
+/** Registra CORS, rate limit, JWT, validação e rotas em uma instância do Fastify já criada. */
+export async function configurarApp(instancia: FastifyInstance) {
+  const app = instancia.withTypeProvider<ZodTypeProvider>();
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
@@ -33,4 +36,8 @@ export async function buildApp() {
   await app.register(routes);
 
   return app;
+}
+
+export async function buildApp() {
+  return configurarApp(Fastify(opcoesFastify));
 }
