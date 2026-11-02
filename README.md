@@ -6,7 +6,6 @@ Aplicação de delivery para uma única loja (sem multi-tenant): o cliente monta
 |---|---|---|
 | [`api/`](api/README.md) | API REST: Node.js, Fastify, Prisma, PostgreSQL (Neon) | regras de negócio em [`api/APP.md`](api/APP.md) |
 | [`web/`](web/README.md) | Front: React, TypeScript, Vite, Tailwind, shadcn/ui | páginas do cliente e painel do admin |
-| [`WORKFLOW.md`](WORKFLOW.md) | Como ligar GitHub, Vercel e Neon e colocar no ar | passo a passo e solução de problemas |
 
 ## Rodar localmente (resumo)
 
@@ -50,11 +49,11 @@ cd api && npm test      # precisa de DATABASE_TESTS_URL (banco separado) no .env
 cd web && npm test      # não precisa de nada
 ```
 
-O GitHub Actions roda os dois automaticamente (`.github/workflows/`). Detalhes em cada README e no [WORKFLOW.md](WORKFLOW.md).
+O GitHub Actions roda os dois automaticamente (`.github/workflows/`). Detalhes em cada README.
 
 ## Deploy
 
-API e web são **dois projetos na Vercel** (Root Directory `api` e `web`), com o banco no Neon. A ordem das etapas, as variáveis de cada lugar e como elas se ligam estão no [WORKFLOW.md](WORKFLOW.md).
+API e web são **dois projetos na Vercel** (Root Directory `api` e `web`), com o banco no Neon. As variáveis e os passos de cada projeto estão em [`api/README.md`](api/README.md) e [`web/README.md`](web/README.md); a API precisa de `WEB_URL` com a URL do front e o front de `VITE_API_URL` com a URL da API.
 
 ## Estrutura
 
@@ -63,6 +62,5 @@ deliveryapp/
 ├── .github/workflows/   testes da API e do web (GitHub Actions)
 ├── api/                 backend
 ├── web/                 frontend
-├── README.md            este arquivo
-└── WORKFLOW.md          ligações e deploy
+└── README.md            este arquivo
 ```

@@ -1,6 +1,6 @@
 # Web — Sabor de Mãe (delivery de mini salgados)
 
-Front do app de pedidos: a página do cliente (`/pedido`) e o painel do lojista (`/admin`). Ele só conversa com a [API](../api/README.md); visão geral do projeto no [README da raiz](../README.md) e passo a passo de deploy no [`../WORKFLOW.md`](../WORKFLOW.md).
+Front do app de pedidos: a página do cliente (`/pedido`) e o painel do lojista (`/admin`). Ele só conversa com a [API](../api/README.md); visão geral do projeto no [README da raiz](../README.md).
 
 - **Stack:** React 19, TypeScript, Vite, React Router, Tailwind CSS v4, shadcn/ui (Base UI), lucide-react e Vitest.
 - **Idioma:** interface em português do Brasil. Funciona em computador, tablet e celular, com tema claro e escuro.
@@ -94,8 +94,6 @@ Testam as regras do front: prévia de preço, prazo de pagamento do Pix, fluxo d
 2. Defina `VITE_API_URL` com a URL da API em produção (sem barra no final).
 3. Faça o deploy. O `vercel.json` desta pasta redireciona qualquer rota para o `index.html`; sem ele, abrir ou recarregar `/pedido/CODIGO` ou `/admin/dashboard` daria 404.
 4. Na API, confirme que `WEB_URL` é exatamente a URL deste front (senão o navegador bloqueia as chamadas por CORS).
-
-Passo a passo completo e problemas comuns: [`../WORKFLOW.md`](../WORKFLOW.md).
 
 ## Adicionar componentes shadcn
 
