@@ -1,0 +1,9 @@
+/* Imports dos CSS de componentes. Cada arquivo em ./components cobre uma área da interface. */
+@import "./components/layout.css";
+@import "./components/form.css";
+@import "./components/order.css";
+@import "./components/tracking.css";
+@import "./components/dashboard.css";
+@import "./components/admin-forms.css";
+@import "./components/badge.css";
+@import "./components/states.css";

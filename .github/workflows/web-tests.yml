@@ -1,0 +1,43 @@
+name: Web - testes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/web-tests.yml"
+  pull_request:
+    paths:
+      - "web/**"
+      - ".github/workflows/web-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # Mesmo comando do deploy na Vercel: confere os tipos (tsc) e gera o build de produção.
+      - name: Build (tipos + Vite)
+        run: npm run build
+
+      # Testes das regras do front (preço, prazo do Pix, status, máscaras). Não usam rede nem banco.
+      - name: Rodar testes
+        run: npm test

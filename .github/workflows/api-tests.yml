@@ -1,0 +1,52 @@
+name: API - testes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - ".github/workflows/api-tests.yml"
+  pull_request:
+    paths:
+      - "api/**"
+      - ".github/workflows/api-tests.yml"
+
+# Todas as execuções usam o mesmo banco de testes: uma por vez, sem cancelar a que já está rodando.
+concurrency:
+  group: api-tests-database
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      # O "postinstall" roda `prisma generate`, que só lê o schema (a URL abaixo é fictícia e não é usada para conectar).
+      - name: Instalar dependências
+        run: npm ci
+        env:
+          DATABASE_URL: postgresql://usuario:senha@localhost:5432/ci
+
+      - name: Checar tipos
+        run: npm run typecheck
+
+      # Os testes aplicam as migrations e o seed no banco de testes e recusam rodar se ele for igual ao DATABASE_URL.
+      - name: Rodar testes
+        run: npm test
+        env:
+          DATABASE_TESTS_URL: ${{ secrets.DATABASE_TESTS_URL }}

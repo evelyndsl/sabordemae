@@ -1,0 +1,73 @@
+/* Acompanhamento do pedido (cliente) e linha do tempo de status. */
+
+.code-badge {
+  @apply inline-block rounded-lg bg-secondary px-3 py-1.5 font-mono text-2xl font-bold tracking-widest;
+}
+.tracking-head {
+  @apply flex flex-wrap items-center justify-between gap-3;
+}
+.tracking-head__title {
+  @apply text-sm text-muted-foreground;
+}
+
+.timeline {
+  @apply grid;
+}
+.timeline__step {
+  @apply relative flex items-start gap-3 pb-5 last:pb-0;
+}
+.timeline__step:not(:last-child)::before {
+  content: '';
+  @apply absolute left-3.5 top-7 bottom-0 w-px -translate-x-1/2 bg-border;
+}
+.timeline__dot {
+  @apply z-10 grid size-7 shrink-0 place-items-center rounded-full border bg-background text-muted-foreground;
+}
+.timeline__label {
+  @apply pt-1 text-sm text-muted-foreground;
+}
+.timeline__step[data-state='done'] .timeline__dot {
+  @apply border-accent bg-accent text-accent-foreground;
+}
+.timeline__step[data-state='current'] .timeline__dot {
+  @apply border-primary bg-primary text-primary-foreground;
+}
+.timeline__step[data-state='done'] .timeline__label,
+.timeline__step[data-state='current'] .timeline__label {
+  @apply font-medium text-foreground;
+}
+
+.info-list {
+  @apply grid gap-3 text-sm;
+}
+.info-list dt {
+  @apply flex items-center gap-1.5 text-muted-foreground;
+}
+.info-list dd {
+  @apply font-medium;
+}
+.item-list {
+  @apply divide-y text-sm;
+}
+.item-list li {
+  @apply flex justify-between gap-3 py-2;
+}
+
+.pix-box {
+  @apply grid gap-3 rounded-lg border border-accent/50 bg-accent/15 p-4;
+}
+.pix-box__data {
+  @apply grid gap-3 text-sm;
+}
+.pix-box__data dt {
+  @apply text-xs text-muted-foreground;
+}
+.pix-box__data dd {
+  @apply font-medium;
+}
+.pix-box__amount {
+  @apply text-2xl font-bold;
+}
+.pix-box__key {
+  @apply break-all rounded-md bg-background px-3 py-2 font-mono text-sm;
+}

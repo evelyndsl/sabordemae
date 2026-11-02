@@ -1,0 +1,64 @@
+/* Página de pedido do cliente: quantidade, sabores e resumo. */
+
+.qty {
+  @apply flex flex-wrap items-center gap-3;
+}
+.qty__input {
+  @apply h-12 w-28 text-center text-xl font-bold;
+}
+.qty__unit {
+  @apply text-sm text-muted-foreground;
+}
+
+.flavor-list {
+  @apply mt-4 grid gap-2;
+}
+.flavor {
+  @apply flex items-center justify-between gap-3 rounded-lg border px-3 py-2;
+}
+.flavor[data-active='true'] {
+  @apply border-accent bg-accent/10;
+}
+.flavor__name {
+  @apply text-sm font-medium;
+}
+.flavor__controls {
+  @apply flex items-center gap-2;
+}
+.flavor__count {
+  @apply w-8 text-center text-sm tabular-nums;
+}
+.flavor-progress {
+  @apply mt-3 text-sm font-medium text-muted-foreground;
+}
+.flavor-progress[data-state='ok'] {
+  @apply text-foreground;
+}
+.flavor-progress[data-state='over'] {
+  @apply text-destructive;
+}
+
+.summary {
+  @apply rounded-xl border bg-card p-4 sm:p-5 lg:sticky lg:top-24;
+}
+.summary__title {
+  @apply mb-3 flex items-center gap-2 text-lg font-semibold;
+}
+.summary__rows {
+  @apply mb-4 space-y-1 border-y py-3 text-sm;
+}
+.summary__row {
+  @apply flex justify-between gap-3;
+}
+.summary__row dt {
+  @apply text-muted-foreground;
+}
+.summary__row--total {
+  @apply pt-1 text-base font-semibold;
+}
+.summary__row--total dt {
+  @apply text-foreground;
+}
+.summary__note {
+  @apply mb-3 text-xs text-muted-foreground;
+}

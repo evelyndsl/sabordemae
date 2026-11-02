@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TipoEntrega {
+  ENTREGA
+  RETIRADA
+}
+
+enum FormaPagamento {
+  DINHEIRO
+  CARTAO
+  PIX
+}
+
+enum TipoChavePix {
+  CPF
+  CNPJ
+  TELEFONE
+  ALEATORIA
+}
+
+enum StatusPedido {
+  // Pedidos pagos com Pix: AGUARDANDO_PAGAMENTO -> PAGAMENTO_APROVADO -> EM_PRODUCAO -> ...
+  AGUARDANDO_PAGAMENTO
+  PAGAMENTO_APROVADO
+  // Demais formas de pagamento: AGUARDANDO -> EM_PRODUCAO -> ...
+  AGUARDANDO
+  EM_PRODUCAO
+  EM_ROTA_ENTREGA
+  PRONTO_RETIRADA
+  FINALIZADO
+}
+
+model Sabor {
+  id    Int          @id @default(autoincrement())
+  nome  String       @unique @db.VarChar(80)
+  ativo Boolean      @default(true)
+  itens ItemPedido[]
+}
+
+model FaixaPreco {
+  id         Int     @id @default(autoincrement())
+  quantidade Int     @unique
+  valor      Decimal @db.Decimal(10, 2)
+}
+
+// Linha única (id = 1) com os parâmetros ajustáveis pelo admin.
+model Configuracao {
+  id                              Int          @id @default(1)
+  tempoPreparoMinimoMin           Int          @default(30)
+  tempoPreparoMaximoMin           Int          @default(60)
+  valorUnidadeAcimaDe100          Decimal      @default(0.64) @db.Decimal(10, 2)
+  // Taxa de entrega de até 49 unidades.
+  taxaEntregaAte49                Decimal      @default(7.00) @db.Decimal(10, 2)
+  // Taxa de entrega de 50 a 199 unidades.
+  taxaEntregaDe50a199             Decimal      @default(5.00) @db.Decimal(10, 2)
+  // Entrega grátis a partir desta quantidade (inclusive).
+  entregaGratisAPartirDe          Int          @default(200)
+  // Chave Pix mostrada ao cliente. O padrão é um marcador de "ainda não configurada".
+  tipoChavePix                    TipoChavePix @default(CPF)
+  chavePix                        String       @default("00000000000") @db.VarChar(100)
+  // Dados exibidos na tela de pagamento Pix.
+  titularPix                      String?      @db.VarChar(80)
+  bancoPix                        String?      @db.VarChar(80)
+  // WhatsApp do estabelecimento (só dígitos, DDD + número): para onde o cliente envia o comprovante.
+  whatsappEstabelecimento         String?      @db.VarChar(20)
+  // Pedido para um dia seguinte: o Pix deve ser pago com esta antecedência mínima (em horas)
+  // em relação ao horário agendado. Vale até 100 unidades; acima disso, usa o campo seguinte.
+  pixAntecedenciaAteLimiteHoras   Int          @default(2)
+  pixAntecedenciaAcimaLimiteHoras Int          @default(4)
+}
+
+model Pedido {
+  id                   String         @id @default(uuid()) @db.Uuid
+  codigo               String         @unique @db.VarChar(12)
+  nomeCliente          String         @db.VarChar(120)
+  telefone             String         @db.VarChar(20)
+  tipoEntrega          TipoEntrega
+  endereco             String?        @db.VarChar(300)
+  // Data e hora pedidas pelo cliente (entrega ou retirada). Nulo = "para quando ficar pronto".
+  horarioAgendado      DateTime?
+  formaPagamento       FormaPagamento
+  status               StatusPedido   @default(AGUARDANDO)
+  quantidadeTotal      Int
+  subtotal             Decimal        @db.Decimal(10, 2)
+  taxaEntrega          Decimal        @db.Decimal(10, 2)
+  total                Decimal        @db.Decimal(10, 2)
+  // Só para pedidos sem horário agendado: tempo de preparo informado pelo admin e a previsão resultante.
+  tempoPreparoMin      Int?
+  previsaoEm           DateTime?
+  // Só Pix: antecedência exigida (h) e limite para pagar. Ambos nulos = pagar no ato do pedido.
+  pixAntecedenciaHoras Int?
+  pagarAte             DateTime?
+  criadoEm             DateTime       @default(now())
+  itens                ItemPedido[]
+
+  @@index([status, criadoEm])
+}
+
+model ItemPedido {
+  id         Int    @id @default(autoincrement())
+  pedidoId   String @db.Uuid
+  pedido     Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  // Nulo quando o cliente pediu a quantidade mista.
+  saborId    Int?
+  sabor      Sabor? @relation(fields: [saborId], references: [id], onDelete: Restrict)
+  quantidade Int
+}
+
+model AdminUser {
+  id        Int    @id @default(autoincrement())
+  usuario   String @unique @db.VarChar(60)
+  senhaHash String
+}
