@@ -11,17 +11,6 @@
   width: min(22rem, calc(100vw - 2rem));
 }
 
-.order-alerts__hint {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--card);
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  color: var(--muted-foreground);
-}
-
 .order-alerts__clear {
   align-self: flex-end;
   color: var(--muted-foreground);

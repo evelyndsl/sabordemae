@@ -305,14 +305,67 @@
   }
 }
 
+/* Celular: menu (dropdown) antes da logo. A sidebar só aparece a partir de 64rem. */
+.admin-topbar__start {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
 .admin-topbar__brand {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
   font-weight: 600;
 
   @media (min-width: 64rem) {
     display: none;
+  }
+}
+
+.admin-menu {
+  position: relative;
+  flex-shrink: 0;
+
+  @media (min-width: 64rem) {
+    display: none;
+  }
+}
+
+.admin-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  width: max-content;
+  min-width: 14rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 1.4);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+
+  & .admin-nav__link {
+    width: 100%;
+    padding-block: 0.625rem;
+    color: color-mix(in srgb, var(--foreground) 75%, transparent);
+    text-align: left;
+
+    &:hover {
+      background: var(--muted);
+    }
+
+    &[aria-current='page'] {
+      background: var(--muted);
+      color: var(--foreground);
+    }
   }
 }
 

@@ -7,7 +7,7 @@ import { formatPrice } from '@/lib/format'
 // Botão de som no topo do painel + avisos de novos pedidos. Fica no layout do admin:
 // funciona em qualquer página do painel enquanto ele estiver aberto.
 export function NewOrderAlerts() {
-  const { soundOn, locked, alerts, toggleSound, dismiss, dismissAll } = useNewOrderAlerts()
+  const { soundOn, alerts, toggleSound, dismiss, dismissAll } = useNewOrderAlerts()
   const label = soundOn ? 'Desligar o som de novos pedidos' : 'Ligar o som de novos pedidos'
 
   return (
@@ -16,12 +16,8 @@ export function NewOrderAlerts() {
         {soundOn ? <Bell /> : <BellOff />}
       </Button>
 
-      {(alerts.length > 0 || (soundOn && locked)) && (
+      {alerts.length > 0 && (
         <div className="order-alerts" role="region" aria-label="Avisos de novos pedidos" aria-live="polite">
-          {soundOn && locked && (
-            <p className="order-alerts__hint">Clique em qualquer lugar da página para ativar o som dos avisos.</p>
-          )}
-
           {alerts.map((p) => (
             <div key={p.codigo} className="order-alert">
               <BellRing className="order-alert__icon" />

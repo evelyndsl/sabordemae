@@ -124,14 +124,16 @@ export default function DashboardPage() {
             )}
             {(
               [
-                ['dia', 'Dia'],
-                ['semana', 'Semanal'],
-                ['mes', 'Mensal'],
-                ['todos', 'Todos os dias'],
+                ['dia', 'Dia', 'D'],
+                ['semana', 'Semanal', 'S'],
+                ['mes', 'Mensal', 'M'],
+                ['todos', 'Todos os dias', 'TD'],
               ] as const
-            ).map(([valor, rotulo]) => (
-              <button key={valor} className="chip" aria-pressed={periodo === valor} onClick={() => setPeriodo(valor)}>
-                {rotulo}
+            ).map(([valor, rotulo, sigla]) => (
+              // No celular só a sigla (menos elementos e sem quebra de linha); o nome completo continua para leitores de tela.
+              <button key={valor} className="chip" aria-pressed={periodo === valor} aria-label={rotulo} title={rotulo} onClick={() => setPeriodo(valor)}>
+                <span aria-hidden="true" className="sm:hidden">{sigla}</span>
+                <span aria-hidden="true" className="hidden sm:inline">{rotulo}</span>
               </button>
             ))}
           </div>

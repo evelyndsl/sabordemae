@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   CircleDollarSign,
@@ -6,17 +6,19 @@ import {
   Clock,
   LayoutDashboard,
   LogOut,
+  Menu,
   PanelLeftClose,
   PanelLeftOpen,
   QrCode,
   Settings,
   Soup,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 import { Brand } from '@/components/brand'
 import { NewOrderAlerts } from '@/components/new-order-alerts'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/auth'
 
 const navItems: { to: string; label: string; icon: LucideIcon }[] = [
@@ -49,6 +51,24 @@ export default function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(readCollapsed)
+  const [menuAberto, setMenuAberto] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Fecha o menu do celular ao trocar de página, ao clicar fora ou com Esc.
+  useEffect(() => setMenuAberto(false), [location.pathname])
+  useEffect(() => {
+    if (!menuAberto) return
+    const fora = (e: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuAberto(false)
+    }
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMenuAberto(false)
+    document.addEventListener('pointerdown', fora)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('pointerdown', fora)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [menuAberto])
 
   if (!isAdmin) return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />
 
@@ -103,24 +123,42 @@ export default function AdminLayout() {
 
       <div className="min-w-0">
         <header className="admin-topbar">
-          <div className="admin-topbar__brand"><Brand to="/admin/dashboard" /></div>
+          <div className="admin-topbar__start">
+            <div className="admin-menu" ref={menuRef}>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={menuAberto ? 'Fechar menu' : 'Abrir menu'}
+                aria-expanded={menuAberto}
+                aria-controls="admin-menu-celular"
+                onClick={() => setMenuAberto((v) => !v)}
+              >
+                {menuAberto ? <X /> : <Menu />}
+              </Button>
+              {menuAberto && (
+                <nav id="admin-menu-celular" className="admin-dropdown" aria-label="Menu do admin">
+                  {navItems.map(({ to, label, icon: Icon }) => (
+                    <NavLink key={to} to={to} className="admin-nav__link">
+                      <Icon className="size-4 shrink-0" /> {label}
+                    </NavLink>
+                  ))}
+                  <Link to="/pedido" className="admin-nav__link">
+                    <ExternalLink className="size-4 shrink-0" /> Ver página de pedido
+                  </Link>
+                  <button type="button" className="admin-nav__link" onClick={sair}>
+                    <LogOut className="size-4 shrink-0" /> Sair
+                  </button>
+                </nav>
+              )}
+            </div>
+            <div className="admin-topbar__brand"><Brand to="/admin/dashboard" /></div>
+          </div>
           <h1 className="admin-topbar__title">{pageTitle(location.pathname)}</h1>
           <div className="site-header__actions">
-            <Link to="/pedido" className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'lg:hidden' })}>Site</Link>
             <NewOrderAlerts />
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Sair" onClick={sair}>
-              <LogOut />
-            </Button>
           </div>
         </header>
-        <nav className="admin-tabs" aria-label="Menu do admin">
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} className="admin-nav__link">
-              <Icon className="size-4" /> {label}
-            </NavLink>
-          ))}
-        </nav>
         <main className="admin-main">
           <Outlet />
         </main>

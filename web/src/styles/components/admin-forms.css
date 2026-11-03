@@ -1,34 +1,5 @@
 /* Telas de configuração do admin: sabores, preços e Pix. */
 
-/* Abas do menu no celular (a sidebar só aparece a partir de 64rem). */
-.admin-tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-inline: -1rem;
-  padding: 0.5rem 1rem;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--border);
-  background: var(--background);
-
-  @media (min-width: 64rem) {
-    display: none;
-  }
-
-  & .admin-nav__link {
-    flex-shrink: 0;
-    color: color-mix(in srgb, var(--foreground) 70%, transparent);
-
-    &:hover {
-      background: var(--muted);
-    }
-
-    &[aria-current='page'] {
-      background: var(--muted);
-      color: var(--foreground);
-    }
-  }
-}
-
 .page-head {
   display: flex;
   flex-wrap: wrap;
