@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { criarPedidoSchema, paraResposta, pedidoRespostaSchema } from "../schemas/pedido.js";
+import { notificarNovoPedido } from "../services/notificacao.js";
 import { buscarPedidoPorCodigo, criarPedido } from "../services/pedidos.js";
 
 export const pedidosRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -12,6 +13,8 @@ export const pedidosRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const pedido = await criarPedido(request.body);
+      // Aguarda o aviso (tem tempo limite e nunca lança erro): na Vercel a função encerra junto com a resposta.
+      await notificarNovoPedido(pedido);
       return reply.status(201).send(paraResposta(pedido));
     },
   );
