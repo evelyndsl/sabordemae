@@ -43,12 +43,37 @@
 
 .stack {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
 .field {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* a coluna não cresce com o conteúdo do campo */
   gap: 0.375rem;
+}
+
+/*
+ * Campos de data e hora: em celulares (principalmente iOS Safari e alguns Androids) o campo nativo
+ * tem largura interna própria e ignora width: 100%, saindo do card. O DevTools de desktop não reproduz.
+ */
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: left;
+}
+
+input[type='date']::-webkit-date-and-time-value,
+input[type='time']::-webkit-date-and-time-value,
+input[type='datetime-local']::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
 }
 
 .field__error {
