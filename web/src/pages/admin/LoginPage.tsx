@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { Lock } from 'lucide-react'
+import { Eye, EyeOff, Lock } from 'lucide-react'
 import { Brand } from '@/components/brand'
 import { useBrand } from '@/context/brand'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -15,6 +15,7 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [mostrarSenha, setMostrarSenha] = useState(false)
 
   if (isAdmin) return <Navigate to="/admin/dashboard" replace />
 
@@ -49,7 +50,26 @@ export default function LoginPage() {
           </div>
           <div className="field">
             <Label htmlFor="senha">Senha</Label>
-            <Input id="senha" name="senha" type="password" autoComplete="current-password" required />
+            <div className="relative">
+              <Input
+                id="senha"
+                name="senha"
+                type={mostrarSenha ? 'text' : 'password'}
+                autoComplete="current-password"
+                required
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarSenha((v) => !v)}
+                aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                aria-pressed={mostrarSenha}
+                title={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                {mostrarSenha ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
           </div>
           {error && <p role="alert" className="alert alert--error">{error}</p>}
           <Button type="submit" className="h-10" disabled={loading}>
