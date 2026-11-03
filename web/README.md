@@ -51,14 +51,15 @@ O WhatsApp do estabelecimento, a chave Pix, o favorecido e o banco **não** são
 | Rota | Quem acessa | O que é |
 |---|---|---|
 | `/` | todos | Redireciona para `/pedido`. |
-| `/pedido` | cliente | Quantidade, sabores, entrega/retirada, quando, dados e pagamento. |
+| `/pedido` | cliente | Quantidade, sabores, entrega/retirada, quando, dados e pagamento. Mostra o horário de atendimento e avisa quando estamos fechados, fora do horário ou sem entrega no dia. |
 | `/pedido/:codigo` | cliente | Acompanhamento do pedido; no Pix mostra chave, valor e botão do WhatsApp. |
 | `/admin/login` | lojista | Login (usuário e senha da API; o token fica no `localStorage`). |
 | `/admin/dashboard` | admin | Pedidos do dia, filtros e avanço de status. |
 | `/admin/pedidos/:codigo` | admin | Detalhe, status, aprovar pagamento Pix, tempo de preparo e WhatsApp do cliente. |
 | `/admin/sabores` | admin | Criar, renomear e ativar/desativar sabores. |
 | `/admin/precos` | admin | Tabela de preços, taxas de entrega e tempo de preparo. |
-| `/admin/configuracoes` | admin | Nome da marca, logo (PNG/SVG) e cores (aplicativo de pedidos e painel, claro e escuro). |
+| `/admin/funcionamento` | admin | Horário de atendimento, "Estabelecimento fechado" e liga/desliga da entrega de hoje. |
+| `/admin/configuracoes` | admin | Nome da marca, logos (PNG/SVG, uma para o modo claro e outra para o escuro) e cores (aplicativo de pedidos e painel, claro e escuro). |
 | `/admin/pix` | admin | WhatsApp do estabelecimento, chave Pix, favorecido, banco e prazo de pagamento. |
 
 Rotas `/admin/*` (exceto o login) redirecionam para o login quando não há token ou quando a API responde 401.
@@ -71,7 +72,7 @@ web/src/
 ├── components/       componentes da aplicação; ui/ = shadcn
 ├── context/          autenticação do admin
 ├── hooks/            useFetch, useSave, useStatusUpdate
-├── lib/              api.ts (cliente HTTP), regras (preco, prazo-pix), formatação e alerta sonoro
+├── lib/              api.ts (cliente HTTP), regras (preco, prazo-pix, funcionamento), formatação e alerta sonoro
 ├── tests/            testes (Vitest) das regras de lib/
 ├── types/            tipos espelhando o contrato da API
 └── styles/

@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
 import {
+  funcionamentoRespostaSchema,
   pixRespostaSchema,
   saborRespostaSchema,
   taxasEntregaRespostaSchema,
@@ -14,6 +15,7 @@ import {
   obterTempoPreparo,
   obterValores,
 } from "../services/catalogo.js";
+import { obterFuncionamento } from "../services/funcionamento.js";
 
 export const catalogoRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
@@ -36,6 +38,12 @@ export const catalogoRoutes: FastifyPluginAsyncZod = async (app) => {
     "/taxa-entrega",
     { schema: { response: { 200: taxasEntregaRespostaSchema } } },
     async () => obterTaxasEntrega(),
+  );
+
+  app.get(
+    "/funcionamento",
+    { schema: { response: { 200: funcionamentoRespostaSchema } } },
+    async () => obterFuncionamento(),
   );
 
   app.get("/pix", { schema: { response: { 200: pixRespostaSchema } } }, async () => obterPix());

@@ -51,6 +51,19 @@ export const pixRespostaSchema = z.object({
   }),
 });
 
+export const funcionamentoRespostaSchema = z.object({
+  // Horário de atendimento diário (HH:MM, Brasília). Nulos = sem horário definido.
+  horarioAbertura: z.string().nullable(),
+  horarioFechamento: z.string().nullable(),
+  // Chave do admin: fecha o estabelecimento até ser desativada, independente do horário.
+  estabelecimentoFechado: z.boolean(),
+  // Resultado agora: false se fechado manualmente ou fora do horário.
+  aberto: z.boolean(),
+  motivoFechado: z.enum(["FECHADO_MANUAL", "FORA_DO_HORARIO"]).nullable(),
+  // false = hoje só retirada (entrega ainda pode ser agendada para outro dia).
+  entregaHoje: z.boolean(),
+});
+
 // Entradas do admin
 
 // Texto opcional: ausente = não altera; vazio = apaga.
@@ -120,6 +133,32 @@ export const atualizarTaxasEntregaSchema = z.object({
   taxaAte49: valorEmReais(1000),
   taxaDe50a199: valorEmReais(1000),
 });
+
+const horario = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use o formato HH:MM (ex.: 08:00).");
+
+// O admin envia sempre o estado completo. Sem horário de atendimento: os dois campos nulos.
+export const atualizarFuncionamentoSchema = z
+  .object({
+    horarioAbertura: horario.nullable(),
+    horarioFechamento: horario.nullable(),
+    estabelecimentoFechado: z.boolean(),
+    entregaHoje: z.boolean(),
+  })
+  .superRefine((f, ctx) => {
+    if ((f.horarioAbertura === null) !== (f.horarioFechamento === null)) {
+      ctx.addIssue({
+        code: "custom",
+        path: [f.horarioAbertura === null ? "horarioAbertura" : "horarioFechamento"],
+        message: "Informe a abertura e o fechamento, ou deixe os dois vazios.",
+      });
+    } else if (f.horarioAbertura !== null && f.horarioAbertura === f.horarioFechamento) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["horarioFechamento"],
+        message: "O fechamento deve ser diferente da abertura.",
+      });
+    }
+  });
 
 export const criarSaborSchema = z.object({ nome: z.string().trim().min(2).max(80) });
 

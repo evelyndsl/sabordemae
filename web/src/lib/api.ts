@@ -1,6 +1,7 @@
 import type {
   Catalogo,
   Cores,
+  Funcionamento,
   Marca,
   CriarPedidoBody,
   Pedido,
@@ -8,6 +9,7 @@ import type {
   Pix,
   Sabor,
   SaborAdmin,
+  SalvarFuncionamentoBody,
   SalvarPixBody,
   StatusPedido,
   TaxasEntrega,
@@ -105,7 +107,8 @@ async function request<T>(path: string, { method = 'GET', body, auth = false, qu
 }
 
 // Endereço da imagem da logo (a versão muda a cada logo nova, então o navegador pode guardar em cache).
-export const logoUrl = (versao: number) => `${BASE_URL}/marca/logo?v=${versao}`
+export const logoUrl = (versao: number, modo: 'claro' | 'escuro' = 'claro') =>
+  `${BASE_URL}/marca/logo?${modo === 'escuro' ? 'modo=escuro&' : ''}v=${versao}`
 
 export const api = {
   marca: () => request<Marca>('/marca'),
@@ -115,15 +118,17 @@ export const api = {
   tempoPreparo: () => request<TempoPreparo>('/tempo-preparo'),
   taxas: () => request<TaxasEntrega>('/taxa-entrega'),
   pix: () => request<Pix>('/pix'),
+  funcionamento: () => request<Funcionamento>('/funcionamento'),
   async catalogo(): Promise<Catalogo> {
-    const [sabores, valores, tempo, taxas, pix] = await Promise.all([
+    const [sabores, valores, tempo, taxas, pix, funcionamento] = await Promise.all([
       api.sabores(),
       api.valores(),
       api.tempoPreparo(),
       api.taxas(),
       api.pix(),
+      api.funcionamento(),
     ])
-    return { sabores, valores, tempo, taxas, pix }
+    return { sabores, valores, tempo, taxas, pix, funcionamento }
   },
   criarPedido: (body: CriarPedidoBody) => request<Pedido>('/pedido', { method: 'POST', body }),
   buscarPedido: (codigo: string) => request<Pedido>(`/pedido/${encodeURIComponent(codigo)}`),
@@ -143,6 +148,8 @@ export const api = {
     request<TaxasEntrega>('/taxa-entrega', { method: 'PUT', auth: true, body }),
   salvarTempoPreparo: (body: TempoPreparo) =>
     request<TempoPreparo>('/tempo-preparo', { method: 'PUT', auth: true, body }),
+  salvarFuncionamento: (body: SalvarFuncionamentoBody) =>
+    request<Funcionamento>('/funcionamento', { method: 'PUT', auth: true, body }),
   salvarPix: (body: SalvarPixBody) => request<Pix>('/pix', { method: 'PUT', auth: true, body }),
   definirTempoPreparoPedido: (codigo: string, minutos: number) =>
     request<PedidoAdmin>(`/pedido/${encodeURIComponent(codigo)}/tempo-preparo`, {
@@ -152,9 +159,10 @@ export const api = {
     }),
   salvarMarca: (body: { nome: string; cores: Cores | null }) =>
     request<Marca>('/marca', { method: 'PUT', auth: true, body }),
-  enviarLogo: (tipo: 'image/png' | 'image/svg+xml', dados: string) =>
-    request<Marca>('/marca/logo', { method: 'PUT', auth: true, body: { tipo, dados } }),
-  removerLogo: () => request<Marca>('/marca/logo', { method: 'DELETE', auth: true }),
+  enviarLogo: (tipo: 'image/png' | 'image/svg+xml', dados: string, modo: 'claro' | 'escuro' = 'claro') =>
+    request<Marca>('/marca/logo', { method: 'PUT', auth: true, body: { modo, tipo, dados } }),
+  removerLogo: (modo: 'claro' | 'escuro' = 'claro') =>
+    request<Marca>('/marca/logo', { method: 'DELETE', auth: true, query: { modo } }),
   excluirPedido: (codigo: string) =>
     request<void>(`/pedido/${encodeURIComponent(codigo)}`, { method: 'DELETE', auth: true }),
   atualizarStatus: (codigo: string, status: StatusPedido) =>

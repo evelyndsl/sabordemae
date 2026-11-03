@@ -56,12 +56,33 @@ export interface InstrucaoPix {
   pagarAte: string | null
 }
 
+export interface Funcionamento {
+  /** Horário de atendimento diário (HH:MM, Brasília). null nos dois = sem horário definido. */
+  horarioAbertura: string | null
+  horarioFechamento: string | null
+  /** Chave do admin: fecha o estabelecimento até ser desativada, independente do horário. */
+  estabelecimentoFechado: boolean
+  /** Resultado agora (fechado manualmente ou fora do horário = false). */
+  aberto: boolean
+  motivoFechado: 'FECHADO_MANUAL' | 'FORA_DO_HORARIO' | null
+  /** false = hoje só retirada (a entrega ainda pode ser agendada para outro dia). */
+  entregaHoje: boolean
+}
+
+export interface SalvarFuncionamentoBody {
+  horarioAbertura: string | null
+  horarioFechamento: string | null
+  estabelecimentoFechado: boolean
+  entregaHoje: boolean
+}
+
 export interface Catalogo {
   sabores: Sabor[]
   valores: Valores
   tempo: TempoPreparo
   taxas: TaxasEntrega
   pix: Pix
+  funcionamento: Funcionamento
 }
 
 export interface Pedido {
@@ -136,6 +157,8 @@ export interface Marca {
   nome: string
   /** Versão da logo (use em logoUrl) ou null quando não há logo. */
   logoVersao: number | null
+  /** Versão da logo do modo escuro, ou null (o modo escuro usa a logo normal). */
+  logoEscuraVersao: number | null
   /** null = tema padrão. */
   cores: Cores | null
 }

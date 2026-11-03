@@ -35,7 +35,7 @@ describe("GET /marca (público)", () => {
     const res = await app.inject({ method: "GET", url: "/marca" });
 
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ nome: "Sabor de Mãe", logoVersao: null, cores: null });
+    expect(res.json()).toEqual({ nome: "Sabor de Mãe", logoVersao: null, logoEscuraVersao: null, cores: null });
   });
 
   it("GET /marca/logo sem logo cadastrada devolve 404", async () => {
@@ -115,6 +115,58 @@ describe("logo (PNG ou SVG)", () => {
     expect(res.statusCode).toBe(200);
     expect(res.json().logoVersao).toBeNull();
     expect((await app.inject({ method: "GET", url: "/marca/logo" })).statusCode).toBe(404);
+  });
+
+  describe("logo do modo escuro", () => {
+    const enviarEscura = (tipo: string, conteudo: Buffer | string) =>
+      put("/marca/logo", { modo: "escuro", tipo, dados: Buffer.from(conteudo).toString("base64") });
+    const apagar = (modo?: string) =>
+      app.inject({ method: "DELETE", url: modo ? `/marca/logo?modo=${modo}` : "/marca/logo", headers });
+
+    it("guarda as duas logos separadas, cada uma com a sua versão e a sua imagem", async () => {
+      await apagar();
+      await apagar("escuro");
+      await enviarLogo("image/png", PNG_1X1);
+      const res = await enviarEscura("image/svg+xml", SVG);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().logoVersao).toEqual(expect.any(Number));
+      expect(res.json().logoEscuraVersao).toEqual(expect.any(Number));
+
+      const claro = await app.inject({ method: "GET", url: "/marca/logo" });
+      const escuro = await app.inject({ method: "GET", url: "/marca/logo?modo=escuro" });
+      expect(claro.headers["content-type"]).toBe("image/png");
+      expect(escuro.headers["content-type"]).toBe("image/svg+xml");
+      expect(escuro.headers["content-security-policy"]).toContain("sandbox");
+    });
+
+    it("remover uma não mexe na outra", async () => {
+      await enviarLogo("image/png", PNG_1X1);
+      await enviarEscura("image/png", PNG_1X1);
+
+      const semEscura = await apagar("escuro");
+      expect(semEscura.json().logoEscuraVersao).toBeNull();
+      expect(semEscura.json().logoVersao).toEqual(expect.any(Number));
+      expect((await app.inject({ method: "GET", url: "/marca/logo?modo=escuro" })).statusCode).toBe(404);
+      expect((await app.inject({ method: "GET", url: "/marca/logo" })).statusCode).toBe(200);
+
+      await enviarEscura("image/png", PNG_1X1);
+      const semClara = await apagar();
+      expect(semClara.json().logoVersao).toBeNull();
+      expect(semClara.json().logoEscuraVersao).toEqual(expect.any(Number));
+    });
+
+    it("a logo escura passa pelas mesmas validações e o modo precisa ser válido", async () => {
+      expect((await enviarEscura("image/png", "isto não é um png")).statusCode).toBe(400);
+      expect((await enviarEscura("image/svg+xml", "<svg><script>alert(1)</script></svg>")).statusCode).toBe(400);
+      expect((await put("/marca/logo", { modo: "roxo", tipo: "image/png", dados: PNG_1X1.toString("base64") })).statusCode).toBe(400);
+      expect((await app.inject({ method: "GET", url: "/marca/logo?modo=roxo" })).statusCode).toBe(400);
+    });
+
+    it("exige autenticação para enviar e remover", async () => {
+      expect((await put("/marca/logo", { modo: "escuro", tipo: "image/png", dados: "AAAA" }, false)).statusCode).toBe(401);
+      expect((await app.inject({ method: "DELETE", url: "/marca/logo?modo=escuro" })).statusCode).toBe(401);
+    });
   });
 
   it("recusa arquivos que não são o que dizem ser, tipos não permitidos e arquivos grandes", async () => {

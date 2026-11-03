@@ -1,9 +1,11 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import {
+  atualizarFuncionamentoSchema,
   atualizarPixSchema,
   atualizarTaxasEntregaSchema,
   atualizarTempoPreparoSchema,
   atualizarValoresSchema,
+  funcionamentoRespostaSchema,
   pixRespostaSchema,
   taxasEntregaRespostaSchema,
   tempoPreparoRespostaSchema,
@@ -15,6 +17,7 @@ import {
   atualizarTempoPreparo,
   atualizarValores,
 } from "../../services/catalogo.js";
+import { atualizarFuncionamento } from "../../services/funcionamento.js";
 
 export const adminConfigRoutes: FastifyPluginAsyncZod = async (app) => {
   app.put(
@@ -37,6 +40,17 @@ export const adminConfigRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) => atualizarTaxasEntrega(request.body),
+  );
+
+  app.put(
+    "/funcionamento",
+    {
+      schema: {
+        body: atualizarFuncionamentoSchema,
+        response: { 200: funcionamentoRespostaSchema },
+      },
+    },
+    async (request) => atualizarFuncionamento(request.body),
   );
 
   app.put(

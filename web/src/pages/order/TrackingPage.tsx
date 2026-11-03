@@ -69,7 +69,7 @@ function PixBox({ pix, pedido }: { pix: Pix; pedido: Pedido }) {
           <MessageCircle /> Enviar comprovante no WhatsApp
         </a>
       ) : (
-        <p className="text-sm text-muted-foreground">Depois de pagar, envie o comprovante para o WhatsApp do estabelecimento.</p>
+        <p className="text-sm text-muted-foreground">Depois de pagar, envie o comprovante para o WhatsApp do estabelecimento. O pedido só será iniciado após a confirmação do pagamento.</p>
       )}
     </section>
   )

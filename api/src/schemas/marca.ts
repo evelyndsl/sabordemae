@@ -31,10 +31,16 @@ function criarCoresSchema<C extends z.ZodType<string>>(cor: C) {
 export const coresSchema = criarCoresSchema(corEntrada);
 const coresRespostaSchema = criarCoresSchema(corSaida);
 
+export const MODOS_LOGO = ["claro", "escuro"] as const;
+export const modoLogoSchema = z.enum(MODOS_LOGO).default("claro");
+export type ModoLogo = (typeof MODOS_LOGO)[number];
+
 export const marcaRespostaSchema = z.object({
   nome: z.string(),
   // Versão da logo (use em /marca/logo?v=...) ou nulo quando não há logo.
   logoVersao: z.number().nullable(),
+  // Logo do modo escuro (opcional). Nulo = o modo escuro usa a logo normal.
+  logoEscuraVersao: z.number().nullable(),
   cores: coresRespostaSchema.nullable(),
 });
 
@@ -44,7 +50,11 @@ export const atualizarMarcaSchema = z.object({
   cores: coresSchema.nullable(),
 });
 
+export const logoQuerySchema = z.object({ modo: modoLogoSchema });
+
 export const enviarLogoSchema = z.object({
+  // Qual logo está sendo enviada. Ausente = a logo normal (modo claro).
+  modo: modoLogoSchema,
   tipo: z.enum(TIPOS_LOGO),
   // Conteúdo do arquivo em base64 (sem o prefixo "data:...").
   dados: z.string().min(1).max(600_000),

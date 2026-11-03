@@ -1,7 +1,7 @@
 import { Prisma } from "../generated/prisma/client.js";
 import { validarLogo, type TipoLogo } from "../lib/logo.js";
 import { prisma } from "../lib/prisma.js";
-import { coresSchema } from "../schemas/marca.js";
+import { coresSchema, type ModoLogo } from "../schemas/marca.js";
 import { obterConfiguracao } from "./catalogo.js";
 
 export async function obterMarca() {
@@ -12,14 +12,17 @@ export async function obterMarca() {
   return {
     nome: config.nomeMarca,
     logoVersao: config.logoDados && config.logoAtualizadaEm ? config.logoAtualizadaEm.getTime() : null,
+    logoEscuraVersao: config.logoEscuraDados && config.logoEscuraAtualizadaEm ? config.logoEscuraAtualizadaEm.getTime() : null,
     cores: cores?.success ? cores.data : null,
   };
 }
 
-export async function obterLogo() {
+export async function obterLogo(modo: ModoLogo = "claro") {
   const config = await obterConfiguracao();
-  if (!config.logoDados || !config.logoTipo) return null;
-  return { tipo: config.logoTipo, dados: Buffer.from(config.logoDados) };
+  const dados = modo === "escuro" ? config.logoEscuraDados : config.logoDados;
+  const tipo = modo === "escuro" ? config.logoEscuraTipo : config.logoTipo;
+  if (!dados || !tipo) return null;
+  return { tipo, dados: Buffer.from(dados) };
 }
 
 export async function atualizarMarca(dados: { nome: string; cores: unknown }) {
@@ -30,21 +33,27 @@ export async function atualizarMarca(dados: { nome: string; cores: unknown }) {
   return obterMarca();
 }
 
-export async function salvarLogo(tipo: TipoLogo, base64: string) {
+export async function salvarLogo(modo: ModoLogo, tipo: TipoLogo, base64: string) {
   const dados = Buffer.from(base64, "base64");
   validarLogo(tipo, dados);
 
   await prisma.configuracao.update({
     where: { id: 1 },
-    data: { logoDados: dados, logoTipo: tipo, logoAtualizadaEm: new Date() },
+    data:
+      modo === "escuro"
+        ? { logoEscuraDados: dados, logoEscuraTipo: tipo, logoEscuraAtualizadaEm: new Date() }
+        : { logoDados: dados, logoTipo: tipo, logoAtualizadaEm: new Date() },
   });
   return obterMarca();
 }
 
-export async function removerLogo() {
+export async function removerLogo(modo: ModoLogo) {
   await prisma.configuracao.update({
     where: { id: 1 },
-    data: { logoDados: null, logoTipo: null, logoAtualizadaEm: null },
+    data:
+      modo === "escuro"
+        ? { logoEscuraDados: null, logoEscuraTipo: null, logoEscuraAtualizadaEm: null }
+        : { logoDados: null, logoTipo: null, logoAtualizadaEm: null },
   });
   return obterMarca();
 }

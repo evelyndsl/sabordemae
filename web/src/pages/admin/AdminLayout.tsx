@@ -3,6 +3,7 @@ import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react
 import {
   CircleDollarSign,
   ExternalLink,
+  Clock,
   LayoutDashboard,
   LogOut,
   PanelLeftClose,
@@ -22,6 +23,7 @@ const navItems: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/admin/dashboard', label: 'Pedidos', icon: LayoutDashboard },
   { to: '/admin/sabores', label: 'Sabores', icon: Soup },
   { to: '/admin/precos', label: 'Preços e entrega', icon: CircleDollarSign },
+  { to: '/admin/funcionamento', label: 'Funcionamento', icon: Clock },
   { to: '/admin/pix', label: 'Pix e contato', icon: QrCode },
   { to: '/admin/configuracoes', label: 'Configurações', icon: Settings },
 ]
@@ -68,7 +70,7 @@ export default function AdminLayout() {
   return (
     <div className="admin-shell" data-collapsed={collapsed}>
       <aside className="admin-sidebar" aria-label="Barra lateral">
-        <Brand to="/admin/dashboard" showName={!collapsed} />
+        <Brand to="/admin/dashboard" showName={!collapsed} tema="escuro" />
         <nav className="admin-nav" aria-label="Menu do admin">
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} className="admin-nav__link" title={collapsed ? label : undefined}>

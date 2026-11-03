@@ -117,16 +117,16 @@ Observações de produção:
 | Método | Rota | Acesso |
 |---|---|---|
 | GET | `/health` | público |
-| GET | `/sabores`, `/valores`, `/tempo-preparo`, `/taxa-entrega`, `/pix`, `/marca` | público |
-| GET | `/marca/logo` (imagem PNG/SVG da logo; 404 se não houver) | público |
+| GET | `/sabores`, `/valores`, `/tempo-preparo`, `/taxa-entrega`, `/pix`, `/funcionamento`, `/marca` | público |
+| GET | `/marca/logo` (imagem PNG/SVG da logo; `?modo=escuro` para a do modo escuro; 404 se não houver) | público |
 | POST | `/pedido` (limite: 10/min) | público |
 | GET | `/pedido/:codigo` | público |
 | POST | `/auth/login` (limite: 5/min) | público |
 | GET | `/pedidos`, `/admin/sabores` | admin |
 | PUT | `/pedido/:codigo/status`, `/pedido/:codigo/tempo-preparo` | admin |
-| PUT | `/tempo-preparo`, `/taxa-entrega`, `/pix`, `/valores` | admin |
-| PUT | `/marca` (nome e cores), `/marca/logo` (logo em base64) | admin |
-| DELETE | `/pedido/:codigo` (exclusão definitiva), `/marca/logo` | admin |
+| PUT | `/tempo-preparo`, `/taxa-entrega`, `/pix`, `/valores`, `/funcionamento` | admin |
+| PUT | `/marca` (nome e cores), `/marca/logo` (logo em base64; `modo`: `claro` ou `escuro`) | admin |
+| DELETE | `/pedido/:codigo` (exclusão definitiva), `/marca/logo` (`?modo=escuro` remove só a logo do modo escuro) | admin |
 | POST | `/sabores` | admin |
 | PATCH | `/sabores/:id` | admin |
 
@@ -175,6 +175,7 @@ pm.environment.set("codigo", pm.response.json().codigo);
 | 4 | `GET /tempo-preparo` | 200 `{ minimoMin: 30, maximoMin: 60 }` (valores iniciais) |
 | 5 | `GET /taxa-entrega` | 200 `taxaAte49: "7.00"`, `taxaDe50a199: "5.00"`, `entregaGratisAPartirDe: 200` |
 | 6 | `GET /pix` | 200 com `configurada: false` enquanto a chave for o marcador `00000000000` |
+| 6a | `GET /funcionamento` | 200 `aberto: true`, `estabelecimentoFechado: false`, `entregaHoje: true`, horários `null` (sem restrição) |
 
 #### 4.2 Criar pedido — caminhos felizes
 
@@ -253,7 +254,7 @@ Repita sem token, com token inválido (`Bearer abc`) e com token adulterado (alt
 | # | Requisição | Esperado |
 |---|---|---|
 | 45 | `GET /pedidos`, `GET /admin/sabores` | 401 `Não autorizado.` |
-| 46 | `PUT /tempo-preparo`, `/taxa-entrega`, `/pix`, `/valores` | 401 |
+| 46 | `PUT /tempo-preparo`, `/taxa-entrega`, `/pix`, `/valores`, `/funcionamento` | 401 |
 | 47 | `POST /sabores`, `PATCH /sabores/1`, `PUT /pedido/{{codigo}}/status` | 401 |
 
 #### 4.7 Pedidos no painel (admin, com token)
@@ -384,7 +385,26 @@ Repita sem token, com token inválido (`Bearer abc`) e com token adulterado (alt
 | 107 | O mesmo em pedido **com** `horarioAgendado` | 400 |
 | 108 | `PUT /pix` com `titular`, `banco`, `whatsapp`, `antecedenciaAteLimiteHoras`, `antecedenciaAcimaLimiteHoras` | 200; `GET /pix` reflete |
 
-#### 4.12 Outros
+#### 4.12 Funcionamento (horário, fechado e entrega do dia)
+
+`PUT /funcionamento` (admin) recebe sempre o estado completo: `{ horarioAbertura, horarioFechamento, estabelecimentoFechado, entregaHoje }`. Os horários são `"HH:MM"` no horário de Brasília, ou `null` nos dois (sem horário definido).
+
+| # | Cenário | Esperado |
+|---|---|---|
+| 109 | `PUT /funcionamento` `{ "horarioAbertura": "08:00", "horarioFechamento": "18:00", "estabelecimentoFechado": false, "entregaHoje": true }` | 200; `GET /funcionamento` (sem token) reflete e traz `aberto` conforme a hora atual |
+| 110 | Só `horarioAbertura`, ou os dois iguais, ou `"8h"` / `"24:00"` | 400 |
+| 111 | `estabelecimentoFechado: true` (mesmo dentro do horário) | `aberto: false`, `motivoFechado: "FECHADO_MANUAL"`; `POST /pedido` (agora ou agendado) retorna 400 `Estamos fechados...` |
+| 112 | Voltar `estabelecimentoFechado: false` | `aberto` volta a seguir o horário |
+| 113 | Horário que **não** cobre a hora atual | `motivoFechado: "FORA_DO_HORARIO"`; `POST /pedido` sem `horarioAgendado` retorna 400; com `horarioAgendado` dentro do atendimento, 201 |
+| 114 | `horarioAgendado` fora do atendimento (ex.: 19:00 com atendimento 08:00–18:00) | 400 `O horário escolhido está fora do atendimento` |
+| 115 | `entregaHoje: false` | `GET /funcionamento` com `entregaHoje: false` |
+| 116 | Com `entregaHoje: false`: entrega sem `horarioAgendado`, ou agendada para hoje | 400 `Hoje estamos apenas com retirada...` / `Hoje não estamos fazendo entregas...` |
+| 117 | Com `entregaHoje: false`: retirada, ou entrega agendada para outro dia | 201 |
+| 118 | No dia seguinte, sem mexer em nada | `entregaHoje: true` de novo (a chave vale só para o dia em que foi desligada) |
+
+> Ao terminar, volte tudo ao normal (`estabelecimentoFechado: false`, `entregaHoje: true`, horários `null`).
+
+#### 4.13 Outros
 
 | # | Cenário | Esperado |
 |---|---|---|

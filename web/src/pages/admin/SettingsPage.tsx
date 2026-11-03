@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { useBrand } from '@/context/brand'
 import { useSave } from '@/hooks/use-save'
 import { api, logoUrl } from '@/lib/api'
+import type { ModoLogo } from '@/lib/logo'
 import {
   CHAVES_ADMIN,
   CHAVES_PUBLICO,
@@ -43,13 +44,60 @@ function tipoDoArquivo(arquivo: File): 'image/png' | 'image/svg+xml' | null {
   return null
 }
 
+// Uma caixa de envio de logo (modo claro ou escuro): prévia, trocar e remover.
+function LogoBox({ modo }: { modo: ModoLogo }) {
+  const { marca, atualizar } = useBrand()
+  const save = useSave()
+  const inputArquivo = useRef<HTMLInputElement>(null)
+  const escuro = modo === 'escuro'
+  const versao = escuro ? marca.logoEscuraVersao : marca.logoVersao
+
+  async function aoEscolherArquivo(e: ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0]
+    e.target.value = '' // permite escolher o mesmo arquivo de novo
+    if (!arquivo) return
+
+    const tipo = tipoDoArquivo(arquivo)
+    if (!tipo) return save.fail('Use um arquivo PNG ou SVG.')
+    if (arquivo.size > LOGO_MAX_KB * 1024) return save.fail(`A logo deve ter no máximo ${LOGO_MAX_KB} KB.`)
+
+    await save.run(async () => atualizar(await api.enviarLogo(tipo, await lerBase64(arquivo), modo)))
+  }
+
+  return (
+    <div className="logo-box">
+      <div className="logo-box__preview" data-modo={modo} aria-label={escuro ? 'Logo atual (modo escuro)' : 'Logo atual (modo claro)'}>
+        {versao ? <img src={logoUrl(versao, modo)} alt={`Logo de ${marca.nome} (modo ${escuro ? 'escuro' : 'claro'})`} /> : <span>Sem logo</span>}
+      </div>
+      <div className="logo-box__body">
+        <p className="logo-box__title">{escuro ? 'Logo do modo escuro' : 'Logo do modo claro'}</p>
+        <p className="field__hint">
+          {escuro
+            ? `Para fundos escuros: use uma versão clara da logo. Aparece no modo escuro e sempre na barra lateral do painel. Sem ela, usamos a logo do modo claro. PNG ou SVG, até ${LOGO_MAX_KB} KB.`
+            : `Aparece no modo claro (e no escuro, se você não enviar a logo do modo escuro). Fundo transparente funciona melhor. PNG ou SVG, até ${LOGO_MAX_KB} KB.`}
+        </p>
+        <input ref={inputArquivo} type="file" accept="image/png,image/svg+xml,.png,.svg" className="sr-only" onChange={aoEscolherArquivo} aria-label={`Escolher arquivo da logo do modo ${escuro ? 'escuro' : 'claro'}`} />
+        <div className="logo-box__actions">
+          <Button type="button" variant="outline" disabled={save.saving} onClick={() => inputArquivo.current?.click()}>
+            <ImagePlus /> {save.saving ? 'Enviando...' : versao ? 'Trocar logo' : 'Enviar logo'}
+          </Button>
+          {versao && (
+            <Button type="button" variant="ghost" disabled={save.saving} onClick={() => save.run(async () => atualizar(await api.removerLogo(modo)))}>
+              <Trash2 /> Remover logo
+            </Button>
+          )}
+        </div>
+        <FormStatus error={save.error} saved={save.saved} />
+      </div>
+    </div>
+  )
+}
+
 function MarcaSection() {
   const { marca, atualizar } = useBrand()
   const [nome, setNome] = useState(marca.nome)
   const [erroNome, setErroNome] = useState('')
   const nomeSave = useSave()
-  const logoSave = useSave()
-  const inputArquivo = useRef<HTMLInputElement>(null)
 
   async function salvarNome(e: React.FormEvent) {
     e.preventDefault()
@@ -59,22 +107,10 @@ function MarcaSection() {
     await nomeSave.run(async () => atualizar(await api.salvarMarca({ nome: limpo, cores: marca.cores })))
   }
 
-  async function aoEscolherArquivo(e: ChangeEvent<HTMLInputElement>) {
-    const arquivo = e.target.files?.[0]
-    e.target.value = '' // permite escolher o mesmo arquivo de novo
-    if (!arquivo) return
-
-    const tipo = tipoDoArquivo(arquivo)
-    if (!tipo) return logoSave.fail('Use um arquivo PNG ou SVG.')
-    if (arquivo.size > LOGO_MAX_KB * 1024) return logoSave.fail(`A logo deve ter no máximo ${LOGO_MAX_KB} KB.`)
-
-    await logoSave.run(async () => atualizar(await api.enviarLogo(tipo, await lerBase64(arquivo))))
-  }
-
   return (
     <section className="section">
       <h3 className="section__title">Marca</h3>
-      <p className="section__hint">O nome aparece no topo do site, na aba do navegador e nas mensagens. Se você enviar uma logo, ela substitui o ícone e o nome.</p>
+      <p className="section__hint">O nome aparece no topo do site, na aba do navegador e nas mensagens. Se você enviar uma logo, ela substitui o ícone e o nome. Dá para enviar uma logo para o modo claro e outra para o modo escuro.</p>
 
       <form onSubmit={salvarNome} className="stack" noValidate>
         <div className="field">
@@ -88,27 +124,8 @@ function MarcaSection() {
         </div>
       </form>
 
-      <div className="logo-box">
-        <div className="logo-box__preview" aria-label="Logo atual">
-          {marca.logoVersao ? <img src={logoUrl(marca.logoVersao)} alt={`Logo de ${marca.nome}`} /> : <span>Sem logo</span>}
-        </div>
-        <div className="logo-box__body">
-          <p className="logo-box__title">Logo</p>
-          <p className="field__hint">PNG ou SVG, até {LOGO_MAX_KB} KB. Fundo transparente funciona melhor nos dois temas.</p>
-          <input ref={inputArquivo} type="file" accept="image/png,image/svg+xml,.png,.svg" className="sr-only" onChange={aoEscolherArquivo} aria-label="Escolher arquivo da logo" />
-          <div className="logo-box__actions">
-            <Button type="button" variant="outline" disabled={logoSave.saving} onClick={() => inputArquivo.current?.click()}>
-              <ImagePlus /> {logoSave.saving ? 'Enviando...' : marca.logoVersao ? 'Trocar logo' : 'Enviar logo'}
-            </Button>
-            {marca.logoVersao && (
-              <Button type="button" variant="ghost" disabled={logoSave.saving} onClick={() => logoSave.run(async () => atualizar(await api.removerLogo()))}>
-                <Trash2 /> Remover logo
-              </Button>
-            )}
-          </div>
-          <FormStatus error={logoSave.error} saved={logoSave.saved} />
-        </div>
-      </div>
+      <LogoBox modo="claro" />
+      <LogoBox modo="escuro" />
     </section>
   )
 }

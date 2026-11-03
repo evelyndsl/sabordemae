@@ -7,7 +7,7 @@ import type { Marca } from '@/types/types'
 const CACHE_KEY = 'saborDeMae:marca'
 const STYLE_ID = 'marca-tema'
 
-export const MARCA_PADRAO: Marca = { nome: 'Sabor de Mãe', logoVersao: null, cores: null }
+export const MARCA_PADRAO: Marca = { nome: 'Sabor de Mãe', logoVersao: null, logoEscuraVersao: null, cores: null }
 
 function lerCache(): Marca | null {
   try {

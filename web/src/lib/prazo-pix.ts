@@ -22,10 +22,10 @@ export function previaPrazoPix(
   return { imediato: false, horasAntecedencia: horas, pagarAte: pagarAte.toISOString() }
 }
 
-export const MENSAGEM_PIX_IMEDIATO = 'O pedido será iniciado após o pagamento e envio do comprovante por WhatsApp.'
+export const MENSAGEM_PIX_IMEDIATO = 'O pedido só será iniciado depois que você pagar, enviar o comprovante por WhatsApp e o pagamento for confirmado por nós.'
 
 /** Texto do prazo, para a tela de pedido e a de acompanhamento. */
 export function textoPrazoPix(i: InstrucaoPix, formatar: (iso: string) => string) {
   if (i.imediato || !i.pagarAte) return MENSAGEM_PIX_IMEDIATO
-  return `Pague com pelo menos ${i.horasAntecedencia} horas de antecedência do horário escolhido, ou seja, até ${formatar(i.pagarAte)}, e envie o comprovante por WhatsApp. O pedido será iniciado após a confirmação do pagamento.`
+  return `Pague com pelo menos ${i.horasAntecedencia} horas de antecedência do horário escolhido, ou seja, até ${formatar(i.pagarAte)}, e envie o comprovante por WhatsApp. O pedido só será iniciado depois que o pagamento for confirmado por nós.`
 }

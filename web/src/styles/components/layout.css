@@ -51,6 +51,23 @@
   object-fit: contain;
 }
 
+/* Logo clara e escura: cada uma aparece só no seu tema (o <html> recebe .dark no modo escuro). */
+.brand__variante {
+  display: contents;
+}
+
+.brand__variante[data-aparece='escuro'] {
+  display: none;
+}
+
+.dark .brand__variante[data-aparece='escuro'] {
+  display: contents;
+}
+
+.dark .brand__variante[data-aparece='claro'] {
+  display: none;
+}
+
 .brand__name {
   font-size: 1.125rem;
   line-height: 1.75rem;
@@ -189,6 +206,20 @@
     position: sticky;
     top: 0;
     display: flex;
+  }
+
+  & .brand {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Com logo, ela fica centralizada no topo (a barra é escura, então usa a logo do modo escuro). */
+  & .brand[data-logo='true'] {
+    justify-content: center;
+  }
+
+  & .brand[data-logo='true'] .brand__image {
+    height: 2.75rem;
   }
 
   & .brand__logo {

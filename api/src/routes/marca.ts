@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
-import { marcaRespostaSchema } from "../schemas/marca.js";
+import { z } from "zod";
+import { logoQuerySchema, marcaRespostaSchema } from "../schemas/marca.js";
 import { obterLogo, obterMarca } from "../services/marca.js";
 
 export const marcaRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -7,8 +8,9 @@ export const marcaRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get("/marca", { schema: { response: { 200: marcaRespostaSchema } } }, async () => obterMarca());
 
   // Sem schema de resposta: a resposta é binária (imagem), não JSON.
-  app.get("/marca/logo", async (request, reply) => {
-    const logo = await obterLogo();
+  // ?modo=escuro devolve a logo do modo escuro; sem o parâmetro, a logo normal (modo claro).
+  app.get("/marca/logo", { schema: { querystring: logoQuerySchema.extend({ v: z.string().optional() }) } }, async (request, reply) => {
+    const logo = await obterLogo(request.query.modo);
     if (!logo) return reply.status(404).send({ mensagem: "Nenhuma logo cadastrada." });
 
     return (

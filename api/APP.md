@@ -51,6 +51,7 @@ Quero 50 unidades sendo 10 bolinha de queijo, 10 pastel de carne, 10 coxinhas, 1
   - **A partir de 200 unidades (200 ou mais): entrega gratuita.**
 - Para retirada, o cliente poderá escolher um horário disponível para buscar o pedido.
 - O app não terá integração com sistemas de entrega, o cliente será responsável por buscar o pedido ou aguardar a entrega feita pelo estabelecimento.
+- A entrega pode ser desligada só para o dia vigente (ver "Funcionamento").
 
 Esses são os primeiros passos da API do app de delivery. A partir daqui, podemos começar a estruturar o backend utilizando .NET/C#. Podemos criar os seguintes endpoints iniciais:
 
@@ -89,6 +90,15 @@ Exemplos: 10 retirada = R$ 13,00 · 10 entrega = R$ 20,00 · 50 entrega = R$ 44,
 - `GET /pix` (público) devolve `{ tipo, chave, chaveParaCopiar, configurada }`. O front mostra `chaveParaCopiar` (telefone leva `+55`) e deve esconder a opção de Pix enquanto `configurada` for `false`.
 - Valor inicial: tipo CPF e chave `00000000000`, que não é um CPF válido de propósito: é o marcador de "ainda não configurada". O admin define a chave real em `PUT /pix`.
 - O app não confirma pagamento: o cliente copia a chave, paga manualmente e envia o comprovante pelo WhatsApp do estabelecimento.
+- **O pedido com Pix só é iniciado depois do comprovante e da confirmação do pagamento.** Ele fica em `AGUARDANDO_PAGAMENTO` até o admin conferir o comprovante e mudar para `PAGAMENTO_APROVADO`; só então segue para `EM_PRODUCAO`. O cliente é avisado disso na página de pedido (ao escolher Pix) e no acompanhamento.
+
+## Funcionamento (horário, fechado e entrega do dia)
+Tudo no horário de Brasília. `GET /funcionamento` (público) devolve `{ horarioAbertura, horarioFechamento, estabelecimentoFechado, aberto, motivoFechado, entregaHoje }`; o admin altera com `PUT /funcionamento`.
+- **Horário de atendimento:** um intervalo diário (`"HH:MM"`), igual todos os dias. Os dois campos `null` = sem horário definido, sem restrição. A abertura vale e o fechamento não (às 18:00 em ponto já fechou). Se o fechamento for menor que a abertura (18:00 às 02:00), o atendimento passa da meia-noite.
+- **Estabelecimento fechado:** chave do admin que fecha de vez, independente do horário, até ser desligada. Fechado manualmente, **nenhum pedido** é aceito, nem os agendados.
+- **Fora do horário** (sem a chave ligada): `POST /pedido` sem `horarioAgendado` ("assim que ficar pronto") é recusado; o cliente pode **agendar** para um horário dentro do atendimento. Com horário definido, todo `horarioAgendado` precisa cair dentro dele.
+- **Entrega do dia:** o admin desliga a entrega só para hoje (`entregaHoje: false`). Guardamos o dia (`entregaSuspensaEm`), então a chave volta a ligar sozinha à meia-noite. Hoje só retirada: entrega "assim que ficar pronto" ou agendada para hoje é recusada; entrega agendada para outro dia é aceita.
+- Os bloqueios respondem 400 com mensagem em português. O front espelha as regras só para avisar antes de enviar; a decisão é sempre da API.
 
 ## Testes
 `npm test` (Vitest). Usa um banco separado (`DATABASE_TESTS_URL`, por exemplo uma branch do Neon) e recusa rodar se ele for igual ao `DATABASE_URL`. A cada execução o banco de testes recebe as migrations e volta aos dados base, com um admin próprio (`admin_teste`). Regras puras (preço, validação do pedido, chave Pix) não usam o banco; as rotas são chamadas em memória com `app.inject`.
@@ -102,11 +112,12 @@ Exemplos: 10 retirada = R$ 13,00 · 10 entrega = R$ 20,00 · 50 entrega = R$ 44,
 | `GET /pedidos?status=&de=&ate=` | Lista pedidos (com telefone), mais recentes primeiro |
 | `PUT /pedido/{codigo}/status` | Muda o status. Entrega: aguardando, em produção, em rota de entrega, finalizado. Retirada: aguardando, em produção, pronto para retirada, finalizado. O admin pode voltar uma etapa |
 | `PUT /marca` | `{ nome, cores }`. `cores` é `null` (tema padrão) ou `{ publico|admin: { claro|escuro: { fundo, texto, cartao, primaria, destaque, textoSecundario, borda, barraLateral (só admin) } } }`, cada uma em `#RRGGBB` (todas opcionais) |
-| `PUT /marca/logo` | `{ tipo: "image/png" | "image/svg+xml", dados: <base64> }`, até 300 KB. A API confere o conteúdo real (assinatura do PNG; SVG sem scripts, eventos ou elementos externos). A logo fica no banco e é servida em `GET /marca/logo?v=<logoVersao>` com cabeçalhos que impedem execução de conteúdo ativo |
-| `DELETE /marca/logo` | Remove a logo |
+| `PUT /marca/logo` | `{ modo?: "claro" | "escuro", tipo: "image/png" | "image/svg+xml", dados: <base64> }`, até 300 KB (`modo` ausente = "claro"). A logo do modo escuro é opcional: sem ela, o front usa a logo normal no modo escuro. `GET /marca` devolve `logoVersao` e `logoEscuraVersao`. A API confere o conteúdo real (assinatura do PNG; SVG sem scripts, eventos ou elementos externos). A logo fica no banco e é servida em `GET /marca/logo?v=<logoVersao>` (modo escuro: `GET /marca/logo?modo=escuro&v=<logoEscuraVersao>`) com cabeçalhos que impedem execução de conteúdo ativo |
+| `DELETE /marca/logo` | Remove a logo normal; com `?modo=escuro`, remove só a logo do modo escuro |
 | `DELETE /pedido/{codigo}` | Exclui o pedido e seus itens de forma definitiva (204). Não há como desfazer |
 | `PUT /tempo-preparo` | `{ minimoMin, maximoMin }` |
 | `PUT /taxa-entrega` | `{ taxaAte49, taxaDe50a199 }` (em reais, até 2 casas) |
+| `PUT /funcionamento` | `{ horarioAbertura, horarioFechamento, estabelecimentoFechado, entregaHoje }`, sempre o estado completo. Horários `"HH:MM"` ou `null` nos dois |
 | `PUT /pix` | `{ tipo: CPF \| CNPJ \| TELEFONE \| ALEATORIA, chave }`. CPF e CNPJ são validados pelos dígitos verificadores, o telefone exige DDD e a chave aleatória deve ser um UUID |
 | `PUT /valores` | Tabela completa (10 a 100) mais `valorUnidadeAcimaDe100` |
 | `GET /admin/sabores` | Todos os sabores, inclusive desativados |

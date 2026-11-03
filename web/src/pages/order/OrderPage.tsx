@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useFetch } from '@/hooks/use-fetch'
 import { ApiError, api } from '@/lib/api'
+import { erroDeAgendamento, textoHorario } from '@/lib/funcionamento'
 import { formatDateTime, formatPhone, formatPrice, paymentLabels, QUANDO_PRONTO, toLocalInputValue } from '@/lib/format'
 import { calcularPreco, quantidadeValida } from '@/lib/preco'
 import { previaPrazoPix, textoPrazoPix } from '@/lib/prazo-pix'
 import { cn } from '@/lib/utils'
 import { useBrand } from '@/context/brand'
-import type { Catalogo, CriarPedidoBody, FormaPagamento, TipoEntrega } from '@/types/types'
+import type { Catalogo, CriarPedidoBody, Funcionamento, FormaPagamento, TipoEntrega } from '@/types/types'
 
 type Erros = Record<string, string>
 
@@ -22,7 +23,7 @@ const QUICK_QUANTITIES = [10, 20, 30, 50, 100, 200]
 const paymentDescriptions: Record<FormaPagamento, string> = {
   DINHEIRO: 'Pague na entrega ou na retirada.',
   CARTAO: 'Débito ou crédito, na entrega ou na retirada.',
-  PIX: 'Copie a chave e pague pelo seu banco.',
+  PIX: 'Copie a chave e pague pelo seu banco. O pedido só começa após o comprovante e a confirmação do pagamento.',
 }
 
 function TrackOrder() {
@@ -53,7 +54,7 @@ function TrackOrder() {
 }
 
 function OrderForm({ catalogo }: { catalogo: Catalogo }) {
-  const { sabores, valores, tempo, taxas, pix } = catalogo
+  const { sabores, valores, tempo, taxas, pix, funcionamento } = catalogo
   const navigate = useNavigate()
 
   // Nada vem pré-selecionado: o cliente escolhe cada opção (null = ainda não escolheu).
@@ -91,6 +92,23 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
   const faltaParaGratis = taxas.entregaGratisAPartirDe - (qtdOk ? qtd : 0)
 
   const formasPagamento = (['DINHEIRO', 'CARTAO', 'PIX'] as FormaPagamento[]).filter((f) => f !== 'PIX' || pix.configurada)
+
+  // Fora do horário ou sem entrega no dia, "assim que ficar pronto" não vale: o cliente agenda.
+  const horarioAtendimento = textoHorario(funcionamento)
+  const foraDoHorario = funcionamento.motivoFechado === 'FORA_DO_HORARIO'
+  const semEntregaHoje = !funcionamento.entregaHoje
+  const prontoIndisponivel = foraDoHorario || (tipo === 'ENTREGA' && semEntregaHoje)
+  const menorHorario = new Date()
+  if (tipo === 'ENTREGA' && semEntregaHoje) {
+    menorHorario.setDate(menorHorario.getDate() + 1)
+    menorHorario.setHours(0, 0, 0, 0)
+  }
+
+  function escolherTipo(novo: TipoEntrega) {
+    setTipo(novo)
+    // Sem entrega hoje: quem já tinha marcado "assim que ficar pronto" precisa escolher uma data.
+    if (novo === 'ENTREGA' && semEntregaHoje && quando === 'pronto') setQuando('agendar')
+  }
 
   function bump(delta: number) {
     // Campo vazio ou inválido: os botões começam pela quantidade mínima.
@@ -134,12 +152,21 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
     if (!tipo) e.tipoEntrega = 'Escolha entrega ou retirada.'
     if (tipo === 'ENTREGA' && endereco.trim().length < 5) e.endereco = 'Informe o endereço de entrega.'
     if (!quando) e.quando = 'Escolha quando quer receber.'
+    else if (quando === 'pronto' && prontoIndisponivel) {
+      e.quando = foraDoHorario
+        ? `Estamos fora do horário de atendimento (${horarioAtendimento}). Agende para um horário dentro do atendimento.`
+        : 'Hoje não estamos fazendo entregas. Agende para outro dia ou escolha retirada.'
+    }
     if (nome.trim().length < 2) e.nomeCliente = 'Informe seu nome.'
     if (!/^\d{10,11}$/.test(telefone.replace(/\D/g, ''))) e.telefone = 'Informe um telefone com DDD.'
     if (!pagamento) e.formaPagamento = 'Escolha a forma de pagamento.'
     if (quando === 'agendar') {
       if (!horario) e.horarioAgendado = 'Escolha a data e o horário.'
       else if (new Date(horario).getTime() <= Date.now()) e.horarioAgendado = 'O horário escolhido deve ser no futuro.'
+      else {
+        const erro = erroDeAgendamento(funcionamento, tipo, new Date(horario))
+        if (erro) e.horarioAgendado = erro
+      }
     }
     return e
   }
@@ -323,13 +350,14 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
         <section className="section">
           <h2 className="section__title"><span className="section__step">3</span> Entrega ou retirada</h2>
           <div className="option-grid">
-            <button type="button" className="option" aria-pressed={tipo === 'ENTREGA'} onClick={() => setTipo('ENTREGA')}>
+            <button type="button" className="option" aria-pressed={tipo === 'ENTREGA'} onClick={() => escolherTipo('ENTREGA')}>
               <span className="option__title"><Truck className="size-4" /> Entrega</span>
               <span className="option__desc">
                 {taxas.entregaGratisAPartirDe}+ unidades: grátis. Até 49: {formatPrice(taxas.taxaAte49)}. De 50 a {taxas.entregaGratisAPartirDe - 1}: {formatPrice(taxas.taxaDe50a199)}.
+                {semEntregaHoje && <strong className="option__aviso"> Hoje não: só agendando para outro dia.</strong>}
               </span>
             </button>
-            <button type="button" className="option" aria-pressed={tipo === 'RETIRADA'} onClick={() => setTipo('RETIRADA')}>
+            <button type="button" className="option" aria-pressed={tipo === 'RETIRADA'} onClick={() => escolherTipo('RETIRADA')}>
               <span className="option__title"><Store className="size-4" /> Retirada no local</span>
               <span className="option__desc">Sem taxa. Você busca com a gente.</span>
             </button>
@@ -352,9 +380,15 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
 
           <h3 className="mt-5 mb-2 text-sm font-medium">{tipo === 'ENTREGA' ? 'Entregar' : tipo === 'RETIRADA' ? 'Retirar' : 'Receber'} quando?</h3>
           <div className="option-grid">
-            <button type="button" className="option" aria-pressed={quando === 'pronto'} onClick={() => setQuando('pronto')}>
+            <button type="button" className="option" aria-pressed={quando === 'pronto'} disabled={prontoIndisponivel} onClick={() => setQuando('pronto')}>
               <span className="option__title"><Clock className="size-4" /> {QUANDO_PRONTO}</span>
-              <span className="option__desc">Para quando finalizar o preparo ({tempo.minimoMin} a {tempo.maximoMin} min).</span>
+              <span className="option__desc">
+                {foraDoHorario
+                  ? 'Indisponível agora: estamos fora do horário de atendimento.'
+                  : prontoIndisponivel
+                    ? 'Indisponível para entrega hoje. Agende para outro dia.'
+                    : `Para quando finalizar o preparo (${tempo.minimoMin} a ${tempo.maximoMin} min).`}
+              </span>
             </button>
             <button type="button" className="option" aria-pressed={quando === 'agendar'} onClick={() => setQuando('agendar')}>
               <span className="option__title"><CalendarClock className="size-4" /> Data e hora específicas</span>
@@ -365,8 +399,19 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
           {quando === 'agendar' && (
             <div className="field mt-3">
               <Label htmlFor="horario">Data e horário</Label>
-              <Input id="horario" type="datetime-local" value={horario} min={toLocalInputValue(new Date())} onChange={(e) => setHorario(e.target.value)} aria-invalid={!!erros.horarioAgendado} />
-              {erros.horarioAgendado && <p className="field__error">{erros.horarioAgendado}</p>}
+              <Input id="horario" type="datetime-local" value={horario} min={toLocalInputValue(menorHorario)} onChange={(e) => setHorario(e.target.value)} aria-invalid={!!erros.horarioAgendado} />
+              {erros.horarioAgendado ? (
+                <p className="field__error">{erros.horarioAgendado}</p>
+              ) : (
+                (horarioAtendimento || (tipo === 'ENTREGA' && semEntregaHoje)) && (
+                  <p className="field__hint">
+                    {[
+                      horarioAtendimento && `Atendimento ${horarioAtendimento}.`,
+                      tipo === 'ENTREGA' && semEntregaHoje && 'Entregas a partir de amanhã.',
+                    ].filter(Boolean).join(' ')}
+                  </p>
+                )
+              )}
             </div>
           )}
         </section>
@@ -455,6 +500,37 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
   )
 }
 
+// Avisos do topo da página: estabelecimento fechado, fora do horário e dia sem entrega.
+function AvisoFuncionamento({ f }: { f: Funcionamento }) {
+  const horario = textoHorario(f)
+
+  if (f.motivoFechado === 'FECHADO_MANUAL') {
+    return (
+      <div role="status" className="alert alert--error aviso">
+        <p className="aviso__title"><Store className="size-4" /> Estamos fechados no momento</p>
+        <p>Não estamos aceitando pedidos agora. {horario ? `Nosso atendimento é ${horario}. ` : ''}Volte em breve!</p>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {f.motivoFechado === 'FORA_DO_HORARIO' && (
+        <div role="status" className="alert alert--info aviso">
+          <p className="aviso__title"><Clock className="size-4" /> Fora do horário de atendimento</p>
+          <p>Nosso atendimento é {horario}. Você pode fazer o pedido agendando um horário dentro do atendimento.</p>
+        </div>
+      )}
+      {!f.entregaHoje && (
+        <div role="status" className="alert alert--info aviso">
+          <p className="aviso__title"><Truck className="size-4" /> Hoje só temos retirada</p>
+          <p>Para receber em casa, agende a entrega para outro dia.</p>
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function OrderPage() {
   const { marca } = useBrand()
   const catalogo = useFetch(api.catalogo, [])
@@ -466,7 +542,12 @@ export default function OrderPage() {
         <section className="hero">
           <p className="hero__eyebrow">
             <Clock className="size-4" />
-            {catalogo.data ? `Preparo em ${catalogo.data.tempo.minimoMin} a ${catalogo.data.tempo.maximoMin} min` : 'Mini salgados feitos com carinho'}
+            {catalogo.data
+              ? [
+                  `Preparo em ${catalogo.data.tempo.minimoMin} a ${catalogo.data.tempo.maximoMin} min`,
+                  textoHorario(catalogo.data.funcionamento) && `atendimento ${textoHorario(catalogo.data.funcionamento)}`,
+                ].filter(Boolean).join(' · ')
+              : 'Mini salgados feitos com carinho'}
           </p>
           <h1 className="hero__title">{marca.nome}</h1>
           <p className="hero__text">Escolha a quantidade, os sabores e como quer receber. A gente cuida do resto.</p>
@@ -476,7 +557,11 @@ export default function OrderPage() {
         {catalogo.loading && !catalogo.data ? (
           <LoadingState label="Carregando cardápio..." />
         ) : catalogo.data ? (
-          <OrderForm catalogo={catalogo.data} />
+          <>
+            <AvisoFuncionamento f={catalogo.data.funcionamento} />
+            {/* Fechado pelo admin: não há o que pedir até reabrir. */}
+            {catalogo.data.funcionamento.motivoFechado !== 'FECHADO_MANUAL' && <OrderForm catalogo={catalogo.data} />}
+          </>
         ) : (
           <ErrorState error={catalogo.error} onRetry={catalogo.reload} title="Não conseguimos abrir o cardápio" />
         )}

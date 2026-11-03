@@ -1,5 +1,5 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
-import { atualizarMarcaSchema, enviarLogoSchema, marcaRespostaSchema } from "../../schemas/marca.js";
+import { atualizarMarcaSchema, enviarLogoSchema, logoQuerySchema, marcaRespostaSchema } from "../../schemas/marca.js";
 import { atualizarMarca, removerLogo, salvarLogo } from "../../services/marca.js";
 
 export const adminMarcaRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -16,8 +16,13 @@ export const adminMarcaRoutes: FastifyPluginAsyncZod = async (app) => {
       bodyLimit: 1024 * 1024,
       schema: { body: enviarLogoSchema, response: { 200: marcaRespostaSchema } },
     },
-    async (request) => salvarLogo(request.body.tipo, request.body.dados),
+    async (request) => salvarLogo(request.body.modo, request.body.tipo, request.body.dados),
   );
 
-  app.delete("/marca/logo", { schema: { response: { 200: marcaRespostaSchema } } }, async () => removerLogo());
+  // ?modo=escuro remove só a logo do modo escuro; sem o parâmetro, remove a logo normal.
+  app.delete(
+    "/marca/logo",
+    { schema: { querystring: logoQuerySchema, response: { 200: marcaRespostaSchema } } },
+    async (request) => removerLogo(request.query.modo),
+  );
 };

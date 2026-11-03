@@ -1,0 +1,125 @@
+/* Funcionamento: avisos na página de pedido, chaves liga/desliga e resumo no admin. */
+
+/* Avisos de horário, fechamento e dia sem entrega (página de pedido). */
+.aviso {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.aviso__title {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-weight: 600;
+}
+
+/* Opções indisponíveis (ex.: "assim que ficar pronto" fora do horário). */
+.option:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.option__aviso {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* ---------- Admin ---------- */
+
+.funcionamento-status {
+  display: grid;
+  gap: 0.125rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  background: var(--card);
+
+  &[data-aberto='true'] {
+    border-left-color: #2e9b5e;
+  }
+
+  &[data-aberto='false'] {
+    border-left-color: var(--destructive);
+  }
+}
+
+.funcionamento-status__label {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.funcionamento-status__valor {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+}
+
+.funcionamento-status__detalhe {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.switch-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.875rem;
+  border-top: 1px solid var(--border);
+
+  &:first-of-type {
+    margin-top: 0.75rem;
+  }
+}
+
+/* Chave liga/desliga (botão com role="switch"). */
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 1.5rem;
+  margin-top: 0.125rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--muted);
+  cursor: pointer;
+  transition: background-color 150ms;
+
+  &[aria-checked='true'] {
+    border-color: var(--primary);
+    background: var(--primary);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+.switch__thumb {
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 9999px;
+  background: var(--background);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  transition: transform 150ms;
+
+  .switch[aria-checked='true'] & {
+    transform: translateX(1.25rem);
+    background: var(--primary-foreground);
+  }
+}

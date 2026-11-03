@@ -4,6 +4,7 @@ import { BrandProvider } from '@/context/brand'
 import AdminLayout from '@/pages/admin/AdminLayout'
 import DashboardPage from '@/pages/admin/DashboardPage'
 import FlavorsPage from '@/pages/admin/FlavorsPage'
+import FuncionamentoPage from '@/pages/admin/FuncionamentoPage'
 import LoginPage from '@/pages/admin/LoginPage'
 import OrderDetailPage from '@/pages/admin/OrderDetailPage'
 import PixPage from '@/pages/admin/PixPage'
@@ -30,6 +31,7 @@ export default function App() {
               <Route path="pedidos/:codigo" element={<OrderDetailPage />} />
               <Route path="sabores" element={<FlavorsPage />} />
               <Route path="precos" element={<PricingPage />} />
+              <Route path="funcionamento" element={<FuncionamentoPage />} />
               <Route path="pix" element={<PixPage />} />
               <Route path="configuracoes" element={<SettingsPage />} />
             </Route>
