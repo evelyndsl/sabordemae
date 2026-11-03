@@ -82,6 +82,14 @@ export async function criarPedido(input: CriarPedidoInput) {
       })
     : null;
 
+  const precisaTroco = input.formaPagamento === FormaPagamento.DINHEIRO && input.precisaTroco;
+  const trocoParaCentavos = precisaTroco && input.trocoPara ? Math.round(input.trocoPara * 100) : null;
+  if (trocoParaCentavos !== null && trocoParaCentavos <= preco.totalCentavos) {
+    throw new RegraDeNegocioError(
+      `O valor para o troco deve ser maior que o total do pedido (R$ ${paraDecimal(preco.totalCentavos).replace(".", ",")}).`,
+    );
+  }
+
   for (let tentativa = 1; ; tentativa++) {
     try {
       return await prisma.pedido.create({
@@ -92,8 +100,11 @@ export async function criarPedido(input: CriarPedidoInput) {
           tipoEntrega: input.tipoEntrega,
           endereco: ehEntrega ? (input.endereco ?? null) : null,
           pontoReferencia: ehEntrega ? (input.pontoReferencia ?? null) : null,
+          enderecoRetirada: ehEntrega ? null : (config.enderecoRetirada ?? null),
           horarioAgendado: input.horarioAgendado ?? null,
           formaPagamento: input.formaPagamento,
+          precisaTroco,
+          trocoPara: trocoParaCentavos === null ? null : paraDecimal(trocoParaCentavos),
           status: ehPix ? StatusPedido.AGUARDANDO_PAGAMENTO : StatusPedido.AGUARDANDO,
           pixAntecedenciaHoras: prazoPix?.horasAntecedencia ?? null,
           pagarAte: prazoPix?.pagarAte ?? null,
@@ -185,6 +196,6 @@ export function listarPedidos(filtros: { status?: StatusPedido; de?: string; ate
     },
     include: incluirItens,
     orderBy: { criadoEm: "desc" },
-    take: 200,
+    take: 1000, // um mês de pedidos cabe com folga
   });
 }

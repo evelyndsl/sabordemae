@@ -7,7 +7,7 @@ import { StatusBadge } from '@/components/status-badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { useFetch } from '@/hooks/use-fetch'
 import { ApiError, api } from '@/lib/api'
-import { formatDateTime, formatQtdItem, temItemADividir, formatPrice, formatTime, paymentLabels, QUANDO_PRONTO, statusFlow, statusLabels, tipoLabels } from '@/lib/format'
+import { formatDateTime, formatQtdItem, temItemADividir, formatPrice, formatTime, paymentLabels, QUANDO_PRONTO, statusFlow, statusLabels, tipoLabels, textoTroco } from '@/lib/format'
 import { textoPrazoPix } from '@/lib/prazo-pix'
 import { whatsappLink } from '@/lib/whatsapp'
 import type { Pedido, Pix } from '@/types/types'
@@ -86,6 +86,8 @@ export default function TrackingPage() {
   const recemCriado = (location.state as { novo?: boolean } | null)?.novo === true
 
   const pedido = useFetch(() => api.buscarPedido(codigo), [codigo], 20_000)
+  // Pedidos feitos antes de o endereço ser cadastrado não o guardam: usa o endereço atual do estabelecimento.
+  const funcionamento = useFetch(api.funcionamento, [])
   const extras = useFetch(async () => ({ pix: await api.pix(), tempo: await api.tempoPreparo() }), [])
 
   const naoEncontrado = pedido.error instanceof ApiError && pedido.error.status === 404
@@ -176,7 +178,12 @@ export default function TrackingPage() {
                         {p.pontoReferencia && <span className="block font-normal text-muted-foreground">Ref.: {p.pontoReferencia}</span>}
                       </>
                     ) : (
-                      'Retirada no local'
+                      <>
+                        Retirada no local
+                        {(p.enderecoRetirada ?? funcionamento.data?.enderecoRetirada) && (
+                          <span className="block font-normal text-muted-foreground">{p.enderecoRetirada ?? funcionamento.data?.enderecoRetirada}</span>
+                        )}
+                      </>
                     )}
                   </dd>
                 </div>
@@ -186,7 +193,10 @@ export default function TrackingPage() {
                 </div>
                 <div>
                   <dt>Pagamento</dt>
-                  <dd>{paymentLabels[p.formaPagamento]}</dd>
+                  <dd>
+                    {paymentLabels[p.formaPagamento]}
+                    {p.troco && <span className="block font-normal text-muted-foreground">{textoTroco(p.troco)}</span>}
+                  </dd>
                 </div>
                 <div>
                   <dt>Cliente</dt>

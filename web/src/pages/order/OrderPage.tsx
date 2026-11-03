@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarClock, Check, Clock, Minus, Plus, Search, ShoppingBag, Store, Truck } from 'lucide-react'
+import { CalendarClock, Check, Clock, MapPin, Minus, Plus, Search, ShoppingBag, Store, Truck } from 'lucide-react'
 import { ErrorState, LoadingState } from '@/components/state-views'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,6 @@ import { formatDateTime, formatPhone, formatPrice, paymentLabels, QUANDO_PRONTO,
 import { calcularPreco, quantidadeValida } from '@/lib/preco'
 import { previaPrazoPix, textoPrazoPix } from '@/lib/prazo-pix'
 import { cn } from '@/lib/utils'
-import { useBrand } from '@/context/brand'
 import type { Catalogo, CriarPedidoBody, Funcionamento, FormaPagamento, TipoEntrega } from '@/types/types'
 
 type Erros = Record<string, string>
@@ -70,6 +69,8 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
   const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
   const [pagamento, setPagamento] = useState<FormaPagamento | null>(null)
+  const [precisaTroco, setPrecisaTroco] = useState(false)
+  const [trocoText, setTrocoText] = useState('')
   const [erros, setErros] = useState<Erros>({})
   const [erroGeral, setErroGeral] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -139,6 +140,12 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
     setEscolhidos((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
+  // "100" ou "100,50" -> número em reais (0 se inválido).
+  function valorTroco() {
+    const n = Number(trocoText.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, ''))
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0
+  }
+
   function validar(): Erros {
     const e: Erros = {}
     if (!qtdOk) e.quantidade = `Escolha de ${valores.quantidadeMinima} a ${valores.quantidadeMaxima} unidades, de ${valores.passo} em ${valores.passo}.`
@@ -146,7 +153,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
     else if (modoSabores === 'quantidades') {
       if (somaSabores === 0) e.sabores = 'Defina a quantidade de ao menos um sabor.'
       else if (qtdOk && somaSabores !== qtd) e.sabores = `A soma dos sabores (${somaSabores}) deve ser igual a ${qtd}.`
-    } else if (escolhidos.length === 0) {
+    } else if (modoSabores === 'selecao' && escolhidos.length === 0) {
       e.sabores = 'Marque ao menos um sabor.'
     }
     if (!tipo) e.tipoEntrega = 'Escolha entrega ou retirada.'
@@ -160,6 +167,11 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
     if (nome.trim().length < 2) e.nomeCliente = 'Informe seu nome.'
     if (!/^\d{10,11}$/.test(telefone.replace(/\D/g, ''))) e.telefone = 'Informe um telefone com DDD.'
     if (!pagamento) e.formaPagamento = 'Escolha a forma de pagamento.'
+    if (pagamento === 'DINHEIRO' && precisaTroco) {
+      const valor = valorTroco()
+      if (!valor) e.trocoPara = 'Informe para quanto você precisa de troco (ex.: 100).'
+      else if (preco && valor <= preco.total) e.trocoPara = `O valor deve ser maior que o total do pedido (${formatPrice(preco.total)}).`
+    }
     if (quando === 'agendar') {
       if (!horario) e.horarioAgendado = 'Escolha a data e o horário.'
       else if (new Date(horario).getTime() <= Date.now()) e.horarioAgendado = 'O horário escolhido deve ser no futuro.'
@@ -176,7 +188,14 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
     setErroGeral('')
     const e = validar()
     setErros(e)
-    if (Object.keys(e).length || !tipo || !pagamento) return
+    if (Object.keys(e).length || !tipo || !pagamento) {
+      // Leva o cliente até o primeiro campo com problema (o botão fica longe dos campos).
+      if (Object.keys(e).length) {
+        setErroGeral('Confira os campos destacados no formulário.')
+        requestAnimationFrame(() => document.querySelector('.field__error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+      }
+      return
+    }
 
     const body: CriarPedidoBody = {
       nomeCliente: nome.trim(),
@@ -195,6 +214,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
       pontoReferencia: tipo === 'ENTREGA' && pontoReferencia.trim() ? pontoReferencia.trim() : undefined,
       horarioAgendado: quando === 'agendar' ? new Date(horario).toISOString() : undefined,
       formaPagamento: pagamento,
+      ...(pagamento === 'DINHEIRO' && { precisaTroco, trocoPara: precisaTroco ? valorTroco() : undefined }),
     }
 
     setEnviando(true)
@@ -360,6 +380,11 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
             <button type="button" className="option" aria-pressed={tipo === 'RETIRADA'} onClick={() => escolherTipo('RETIRADA')}>
               <span className="option__title"><Store className="size-4" /> Retirada no local</span>
               <span className="option__desc">Sem taxa. Você busca com a gente.</span>
+              {funcionamento.enderecoRetirada && (
+                <span className="option__desc flex items-start gap-1 font-medium text-foreground">
+                  <MapPin className="mt-0.5 size-3.5 shrink-0" /> {funcionamento.enderecoRetirada}
+                </span>
+              )}
             </button>
           </div>
           {erros.tipoEntrega && <p className="field__error mt-2">{erros.tipoEntrega}</p>}
@@ -445,6 +470,40 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
             ))}
           </div>
           {erros.formaPagamento && <p className="field__error mt-2">{erros.formaPagamento}</p>}
+          {pagamento === 'DINHEIRO' && (
+            <div className="mt-4">
+              <h3 className="mb-2 text-sm font-medium">Precisa de troco?</h3>
+              <div className="option-grid">
+                <button type="button" className="option" aria-pressed={!precisaTroco} onClick={() => setPrecisaTroco(false)}>
+                  <span className="option__title">Não</span>
+                  <span className="option__desc">Vou pagar o valor exato.</span>
+                </button>
+                <button type="button" className="option" aria-pressed={precisaTroco} onClick={() => setPrecisaTroco(true)}>
+                  <span className="option__title">Sim</span>
+                  <span className="option__desc">Informe com qual nota vai pagar.</span>
+                </button>
+              </div>
+              {precisaTroco && (
+                <div className="field mt-3">
+                  <Label htmlFor="troco">Troco para quanto?</Label>
+                  <Input
+                    id="troco"
+                    inputMode="decimal"
+                    value={trocoText}
+                    onChange={(ev) => setTrocoText(ev.target.value.replace(/[^\d,.]/g, ''))}
+                    onBlur={() => {
+                      const v = valorTroco()
+                      if (v) setTrocoText(v.toFixed(2).replace('.', ','))
+                    }}
+                    maxLength={10}
+                    placeholder="Ex.: 50 ou 100"
+                    aria-invalid={!!erros.trocoPara}
+                  />
+                  {erros.trocoPara ? <p className="field__error">{erros.trocoPara}</p> : <p className="field__hint">Pode digitar só o número (ex.: 100); os centavos entram automaticamente.</p>}
+                </div>
+              )}
+            </div>
+          )}
           {pagamento === 'PIX' && (
             <div className="alert alert--info mt-3 grid gap-1">
               <p>Depois de enviar o pedido você verá a chave Pix para copiar, o valor e o botão para enviar o comprovante por WhatsApp.</p>
@@ -532,7 +591,6 @@ function AvisoFuncionamento({ f }: { f: Funcionamento }) {
 }
 
 export default function OrderPage() {
-  const { marca } = useBrand()
   const catalogo = useFetch(api.catalogo, [])
 
   return (
@@ -540,17 +598,22 @@ export default function OrderPage() {
       <SiteHeader />
       <main className="page">
         <section className="hero">
+          {catalogo.data && (
+            <p role="status" className="mb-2 flex items-center gap-2 text-lg font-semibold">
+              <span
+                aria-hidden="true"
+                className={`inline-block size-3 rounded-full border-2 border-black ${catalogo.data.funcionamento.aberto ? 'bg-green-500' : 'bg-red-500'}`}
+              />
+              {catalogo.data.funcionamento.aberto ? 'Aberto' : 'Fechado'}
+            </p>
+          )}
           <p className="hero__eyebrow">
             <Clock className="size-4" />
             {catalogo.data
-              ? [
-                  `Preparo em ${catalogo.data.tempo.minimoMin} a ${catalogo.data.tempo.maximoMin} min`,
-                  textoHorario(catalogo.data.funcionamento) && `atendimento ${textoHorario(catalogo.data.funcionamento)}`,
-                ].filter(Boolean).join(' · ')
+              ? `Preparo em ${catalogo.data.tempo.minimoMin} a ${catalogo.data.tempo.maximoMin} min`
               : 'Mini salgados feitos com carinho'}
           </p>
-          <h1 className="hero__title">{marca.nome}</h1>
-          <p className="hero__text">Escolha a quantidade, os sabores e como quer receber. A gente cuida do resto.</p>
+          <p className="hero__text">Escolha a quantidade, os sabores e como quer receber. A gente cuida do resto!</p>
           <TrackOrder />
         </section>
 

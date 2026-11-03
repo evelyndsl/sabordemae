@@ -55,6 +55,10 @@ export const funcionamentoRespostaSchema = z.object({
   // Horário de atendimento diário (HH:MM, Brasília). Nulos = sem horário definido.
   horarioAbertura: z.string().nullable(),
   horarioFechamento: z.string().nullable(),
+  // Dias com atendimento (0 = domingo ... 6 = sábado). Dia fora da lista = fechado o dia todo.
+  diasAtendimento: z.array(z.number().int().min(0).max(6)),
+  // Endereço mostrado a quem escolhe retirada.
+  enderecoRetirada: z.string().nullable(),
   // Chave do admin: fecha o estabelecimento até ser desativada, independente do horário.
   estabelecimentoFechado: z.boolean(),
   // Resultado agora: false se fechado manualmente ou fora do horário.
@@ -143,6 +147,12 @@ export const atualizarFuncionamentoSchema = z
     horarioFechamento: horario.nullable(),
     estabelecimentoFechado: z.boolean(),
     entregaHoje: z.boolean(),
+    // Ausente = não altera. Ao menos um dia (para fechar tudo, use "estabelecimento fechado").
+    diasAtendimento: z
+      .array(z.number().int().min(0).max(6))
+      .min(1, "Selecione ao menos um dia de atendimento.")
+      .max(7)
+      .optional(),
   })
   .superRefine((f, ctx) => {
     if ((f.horarioAbertura === null) !== (f.horarioFechamento === null)) {
@@ -159,6 +169,14 @@ export const atualizarFuncionamentoSchema = z
       });
     }
   });
+
+export const atualizarEnderecoRetiradaSchema = z.object({
+  enderecoRetirada: z
+    .string()
+    .trim()
+    .max(300, "O endereço deve ter no máximo 300 caracteres.")
+    .transform((v) => (v === "" ? null : v)),
+});
 
 export const criarSaborSchema = z.object({ nome: z.string().trim().min(2).max(80) });
 

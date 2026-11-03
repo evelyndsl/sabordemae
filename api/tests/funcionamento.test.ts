@@ -3,10 +3,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { RegraDeNegocioError } from "../src/lib/errors.js";
 import {
   dentroDoHorario,
+  diaDaSemanaEmBrasilia,
   entregaDisponivelNoDia,
   minutosNoDiaEmBrasilia,
   situacao,
   validarPedidoNoFuncionamento,
+  textoDias,
   type DadosFuncionamento,
 } from "../src/services/funcionamento.js";
 import { autenticar, criarApp, encerrar, obterPrisma, salvarConfiguracao } from "./helpers.js";
@@ -16,6 +18,7 @@ const base: DadosFuncionamento = {
   horarioFechamento: "18:00",
   estabelecimentoFechado: false,
   entregaSuspensaEm: null,
+  diasAtendimento: [0, 1, 2, 3, 4, 5, 6],
 };
 
 // Brasília é UTC-3 o ano todo (sem horário de verão).
@@ -106,6 +109,43 @@ describe("validarPedidoNoFuncionamento", () => {
   });
 });
 
+describe("dias de atendimento (regras puras)", () => {
+  // 2026-11-03 é terça; 2026-11-07 é sábado; 2026-11-08 é domingo.
+  const seg_a_sex = { ...base, diasAtendimento: [1, 2, 3, 4, 5] };
+
+  it("dia não selecionado fecha o dia todo", () => {
+    expect(dentroDoHorario(seg_a_sex, em("2026-11-03T12:00:00"))).toBe(true);
+    expect(dentroDoHorario(seg_a_sex, em("2026-11-07T12:00:00"))).toBe(false);
+    expect(dentroDoHorario(seg_a_sex, em("2026-11-08T12:00:00"))).toBe(false);
+  });
+
+  it("sem horário definido, vale o dia inteiro nos dias selecionados", () => {
+    const semHorario = { ...seg_a_sex, horarioAbertura: null, horarioFechamento: null };
+    expect(dentroDoHorario(semHorario, em("2026-11-03T03:00:00"))).toBe(true);
+    expect(dentroDoHorario(semHorario, em("2026-11-07T03:00:00"))).toBe(false);
+  });
+
+  it("atendimento que passa da meia-noite: a madrugada pertence ao dia em que começou", () => {
+    const noite = { ...base, horarioAbertura: "18:00", horarioFechamento: "02:00", diasAtendimento: [5] }; // só sexta
+    expect(dentroDoHorario(noite, em("2026-11-06T22:00:00"))).toBe(true); // sexta 22h
+    expect(dentroDoHorario(noite, em("2026-11-07T01:00:00"))).toBe(true); // sábado 1h (turno de sexta)
+    expect(dentroDoHorario(noite, em("2026-11-07T22:00:00"))).toBe(false); // sábado 22h
+    expect(dentroDoHorario(noite, em("2026-11-06T01:00:00"))).toBe(false); // sexta 1h (turno de quinta)
+  });
+
+  it("situação informa dia fechado e a mensagem cita os dias", () => {
+    expect(situacao(seg_a_sex, em("2026-11-07T12:00:00")).aberto).toBe(false);
+    expect(() => validarPedidoNoFuncionamento(seg_a_sex, { tipoEntrega: "RETIRADA", horarioAgendado: null }, em("2026-11-07T12:00:00"))).toThrow(/seg a sex/);
+  });
+
+  it("texto dos dias", () => {
+    expect(textoDias([0, 1, 2, 3, 4, 5, 6])).toBeNull();
+    expect(textoDias([1, 2, 3, 4, 5])).toBe("seg a sex");
+    expect(textoDias([1, 3, 5])).toBe("seg, qua e sex");
+    expect(textoDias([6, 0])).toBe("dom e sáb");
+  });
+});
+
 describe("API de funcionamento", () => {
   let app: FastifyInstance;
   let headers: { authorization: string };
@@ -167,6 +207,8 @@ describe("API de funcionamento", () => {
     expect(res.json()).toEqual({
       horarioAbertura: null,
       horarioFechamento: null,
+      diasAtendimento: [0, 1, 2, 3, 4, 5, 6],
+      enderecoRetirada: null,
       estabelecimentoFechado: false,
       aberto: true,
       motivoFechado: null,
@@ -205,6 +247,40 @@ describe("API de funcionamento", () => {
     await prisma.configuracao.update({ where: { id: 1 }, data: { entregaSuspensaEm: "2020-01-01" } });
 
     expect((await get()).json()).toMatchObject({ entregaHoje: true });
+  });
+
+  it("dia de hoje desmarcado fecha por horário; marcar de novo reabre", async () => {
+    const hoje = diaDaSemanaEmBrasilia(new Date());
+    const outros = [0, 1, 2, 3, 4, 5, 6].filter((d) => d !== hoje);
+
+    const fechado = await put(estado({ diasAtendimento: outros }));
+    expect(fechado.json()).toMatchObject({ aberto: false, motivoFechado: "FORA_DO_HORARIO", diasAtendimento: outros });
+
+    const aberto = await put(estado({ diasAtendimento: [0, 1, 2, 3, 4, 5, 6] }));
+    expect(aberto.json()).toMatchObject({ aberto: true, motivoFechado: null });
+  });
+
+  it("recusa selecionar nenhum dia ou dia inválido", async () => {
+    expect((await put(estado({ diasAtendimento: [] }))).statusCode).toBe(400);
+    expect((await put(estado({ diasAtendimento: [7] }))).statusCode).toBe(400);
+  });
+
+  it("endereço de retirada: salva, aparece no GET e fica registrado no pedido de retirada", async () => {
+    const salvar = (enderecoRetirada: string) =>
+      app.inject({ method: "PUT", url: "/endereco-retirada", payload: { enderecoRetirada }, headers });
+
+    const res = await salvar("  Rua das Palmeiras, 45 - Centro  ");
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ enderecoRetirada: "Rua das Palmeiras, 45 - Centro" });
+    expect((await get()).json()).toMatchObject({ enderecoRetirada: "Rua das Palmeiras, 45 - Centro" });
+
+    const retirada = await criar({ tipoEntrega: "RETIRADA", horarioAgendado: new Date(Date.now() + 3 * 3600_000) });
+    expect(retirada.enderecoRetirada).toBe("Rua das Palmeiras, 45 - Centro");
+    const entrega = await criar({ tipoEntrega: "ENTREGA", horarioAgendado: new Date(Date.now() + 3 * 3600_000) });
+    expect(entrega.enderecoRetirada).toBeNull();
+
+    // Vazio apaga.
+    expect((await salvar("   ")).json()).toMatchObject({ enderecoRetirada: null });
   });
 
   it.each([

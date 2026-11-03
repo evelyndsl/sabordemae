@@ -3,6 +3,12 @@ import type { FormaPagamento, StatusPedido, TipoEntrega } from '@/types/types'
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 export const formatPrice = (value: number | string) => brl.format(typeof value === 'string' ? parseFloat(value) : value)
 
+/** "Troco para R$ 100,00" ou "Não precisa de troco"; null quando o pagamento não é em dinheiro. */
+export function textoTroco(troco: { precisa: boolean; para: string | null } | null) {
+  if (!troco) return null
+  return troco.precisa && troco.para ? `Troco para ${formatPrice(troco.para)}` : 'Não precisa de troco'
+}
+
 export function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
@@ -12,6 +18,23 @@ export function formatDateTime(iso: string) {
 }
 
 // Data local no formato AAAA-MM-DD (o que a API espera em ?de= e ?ate=).
+export type Periodo = 'dia' | 'semana' | 'mes' | 'todos'
+
+const isoUTC = (d: Date) => d.toISOString().slice(0, 10)
+
+/** Intervalo [de, ate] (AAAA-MM-DD) do período que contém o dia dado. Semana de segunda a domingo. */
+export function intervaloDoPeriodo(periodo: Periodo, diaISO: string): { de?: string; ate?: string } {
+  if (periodo === 'todos' || !diaISO) return {}
+  const [a, m, d] = diaISO.split('-').map(Number)
+  if (periodo === 'dia') return { de: diaISO, ate: diaISO }
+  if (periodo === 'mes') return { de: isoUTC(new Date(Date.UTC(a, m - 1, 1))), ate: isoUTC(new Date(Date.UTC(a, m, 0))) }
+  const dia = new Date(Date.UTC(a, m - 1, d))
+  const desdeSegunda = (dia.getUTCDay() + 6) % 7
+  const segunda = new Date(Date.UTC(a, m - 1, d - desdeSegunda))
+  const domingo = new Date(Date.UTC(a, m - 1, d - desdeSegunda + 6))
+  return { de: isoUTC(segunda), ate: isoUTC(domingo) }
+}
+
 export function todayISO() {
   const d = new Date()
   const pad = (n: number) => String(n).padStart(2, '0')

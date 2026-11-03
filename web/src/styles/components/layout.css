@@ -131,7 +131,7 @@
 }
 
 .hero__text {
-  max-width: 28rem;
+  max-width: 40rem;
   margin-top: 0.5rem;
   color: var(--muted-foreground);
 }

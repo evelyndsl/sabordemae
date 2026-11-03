@@ -60,6 +60,10 @@ export interface Funcionamento {
   /** Horário de atendimento diário (HH:MM, Brasília). null nos dois = sem horário definido. */
   horarioAbertura: string | null
   horarioFechamento: string | null
+  /** Dias com atendimento (0 = domingo ... 6 = sábado). Dia fora da lista = fechado o dia todo. */
+  diasAtendimento: number[]
+  /** Endereço mostrado a quem escolhe retirada. */
+  enderecoRetirada: string | null
   /** Chave do admin: fecha o estabelecimento até ser desativada, independente do horário. */
   estabelecimentoFechado: boolean
   /** Resultado agora (fechado manualmente ou fora do horário = false). */
@@ -74,6 +78,7 @@ export interface SalvarFuncionamentoBody {
   horarioFechamento: string | null
   estabelecimentoFechado: boolean
   entregaHoje: boolean
+  diasAtendimento?: number[]
 }
 
 export interface Catalogo {
@@ -92,12 +97,16 @@ export interface Pedido {
   tipoEntrega: TipoEntrega
   endereco: string | null
   pontoReferencia: string | null
+  /** Retirada: onde buscar (endereço do estabelecimento na hora do pedido). */
+  enderecoRetirada: string | null
   /** Data e hora pedidas pelo cliente; null = "para quando ficar pronto". */
   horarioAgendado: string | null
   /** Só para pedidos sem horário agendado: informado pelo admin. */
   tempoPreparoMin: number | null
   previsaoEm: string | null
   formaPagamento: FormaPagamento
+  /** Só dinheiro: precisa de troco e para quanto (valor em reais, string). */
+  troco: { precisa: boolean; para: string | null } | null
   instrucaoPix: InstrucaoPix | null
   quantidadeTotal: number
   subtotal: string
@@ -126,6 +135,10 @@ export interface CriarPedidoBody {
   /** Omitido = "para quando ficar pronto". */
   horarioAgendado?: string
   formaPagamento: FormaPagamento
+  /** Só dinheiro. */
+  precisaTroco?: boolean
+  /** Valor da nota (em reais), obrigatório quando precisaTroco. */
+  trocoPara?: number
 }
 
 export interface SalvarPixBody {

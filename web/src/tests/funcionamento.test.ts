@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { dentroDoHorario, diaEmBrasilia, erroDeAgendamento, formatarHora, minutosEmBrasilia, textoHorario } from '@/lib/funcionamento'
+import { dentroDoHorario, diaEmBrasilia, erroDeAgendamento, formatarHora, minutosEmBrasilia, textoDias, textoHorario } from '@/lib/funcionamento'
 import type { Funcionamento } from '@/types/types'
 
 const base: Funcionamento = {
   horarioAbertura: '08:00',
   horarioFechamento: '18:00',
+  diasAtendimento: [0, 1, 2, 3, 4, 5, 6],
+  enderecoRetirada: null,
   estabelecimentoFechado: false,
   aberto: true,
   motivoFechado: null,
@@ -52,5 +54,28 @@ describe('funcionamento (cliente)', () => {
     expect(erroDeAgendamento(semEntrega, 'ENTREGA', em('2026-11-03T16:00:00'), agora)).toMatch(/Hoje não estamos fazendo entregas/)
     expect(erroDeAgendamento(semEntrega, 'ENTREGA', em('2026-11-04T10:00:00'), agora)).toBeUndefined()
     expect(erroDeAgendamento(semEntrega, 'RETIRADA', em('2026-11-03T16:00:00'), agora)).toBeUndefined()
+  })
+})
+
+describe('dias de atendimento (cliente)', () => {
+  const segASex = { ...base, diasAtendimento: [1, 2, 3, 4, 5] }
+
+  it('dia desmarcado fecha o dia todo', () => {
+    expect(dentroDoHorario(segASex, em('2026-11-03T12:00:00'))).toBe(true) // terça
+    expect(dentroDoHorario(segASex, em('2026-11-07T12:00:00'))).toBe(false) // sábado
+  })
+
+  it('madrugada de um atendimento noturno pertence ao dia em que começou', () => {
+    const noite = { horarioAbertura: '18:00', horarioFechamento: '02:00', diasAtendimento: [5] }
+    expect(dentroDoHorario(noite, em('2026-11-07T01:00:00'))).toBe(true) // sábado 1h = turno de sexta
+    expect(dentroDoHorario(noite, em('2026-11-06T01:00:00'))).toBe(false)
+  })
+
+  it('texto dos dias e do atendimento', () => {
+    expect(textoDias([0, 1, 2, 3, 4, 5, 6])).toBeNull()
+    expect(textoDias([1, 2, 3, 4, 5])).toBe('seg a sex')
+    expect(textoDias([1, 3, 5])).toBe('seg, qua e sex')
+    expect(textoHorario(segASex)).toBe('das 8h às 18h, seg a sex')
+    expect(textoHorario({ horarioAbertura: null, horarioFechamento: null, diasAtendimento: [1, 2, 3, 4, 5] })).toBe('seg a sex')
   })
 })

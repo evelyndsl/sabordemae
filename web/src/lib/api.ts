@@ -148,6 +148,8 @@ export const api = {
     request<TaxasEntrega>('/taxa-entrega', { method: 'PUT', auth: true, body }),
   salvarTempoPreparo: (body: TempoPreparo) =>
     request<TempoPreparo>('/tempo-preparo', { method: 'PUT', auth: true, body }),
+  salvarEnderecoRetirada: (enderecoRetirada: string) =>
+    request<Funcionamento>('/endereco-retirada', { method: 'PUT', auth: true, body: { enderecoRetirada } }),
   salvarFuncionamento: (body: SalvarFuncionamentoBody) =>
     request<Funcionamento>('/funcionamento', { method: 'PUT', auth: true, body }),
   salvarPix: (body: SalvarPixBody) => request<Pix>('/pix', { method: 'PUT', auth: true, body }),

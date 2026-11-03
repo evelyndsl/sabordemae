@@ -42,8 +42,15 @@ export const criarPedidoSchema = z
       .transform((v) => new Date(v))
       .optional(),
     formaPagamento: z.enum(FormaPagamento),
+    // Só vale com pagamento em dinheiro. trocoPara = valor da nota (em reais), ex.: 100.
+    precisaTroco: z.boolean().default(false),
+    trocoPara: z.number().positive("Informe um valor de troco válido.").max(100000).optional(),
   })
   .superRefine((pedido, ctx) => {
+    if (pedido.formaPagamento === FormaPagamento.DINHEIRO && pedido.precisaTroco && !pedido.trocoPara) {
+      ctx.addIssue({ code: "custom", path: ["trocoPara"], message: "Informe para quanto você precisa de troco." });
+    }
+
     if (pedido.tipoEntrega === TipoEntrega.ENTREGA && !pedido.endereco) {
       ctx.addIssue({ code: "custom", path: ["endereco"], message: "Informe o endereço de entrega." });
     }
@@ -92,12 +99,16 @@ export const pedidoRespostaSchema = z.object({
   tipoEntrega: z.enum(TipoEntrega),
   endereco: z.string().nullable(),
   pontoReferencia: z.string().nullable(),
+  // Retirada: onde buscar (endereço do estabelecimento na hora do pedido). null se não configurado ou se for entrega.
+  enderecoRetirada: z.string().nullable(),
   // Data e hora pedidas pelo cliente; nulo = "para quando ficar pronto".
   horarioAgendado: z.string().nullable(),
   // Só para pedidos sem horário agendado: informado pelo admin quando aprova/inicia o pedido.
   tempoPreparoMin: z.number().nullable(),
   previsaoEm: z.string().nullable(),
   formaPagamento: z.enum(FormaPagamento),
+  // Só dinheiro: precisa de troco e para quanto. null nos demais pedidos.
+  troco: z.object({ precisa: z.boolean(), para: z.string().nullable() }).nullable(),
   // Só Pix: quando o pagamento deve ser feito. null nos demais pedidos.
   instrucaoPix: z
     .object({
@@ -129,10 +140,15 @@ export function paraResposta(p: PedidoComItens): z.infer<typeof pedidoRespostaSc
     tipoEntrega: p.tipoEntrega,
     endereco: p.endereco,
     pontoReferencia: p.pontoReferencia,
+    enderecoRetirada: p.enderecoRetirada,
     horarioAgendado: p.horarioAgendado?.toISOString() ?? null,
     tempoPreparoMin: p.tempoPreparoMin,
     previsaoEm: p.previsaoEm?.toISOString() ?? null,
     formaPagamento: p.formaPagamento,
+    troco:
+      p.formaPagamento === FormaPagamento.DINHEIRO
+        ? { precisa: p.precisaTroco, para: p.trocoPara?.toFixed(2) ?? null }
+        : null,
     instrucaoPix:
       p.formaPagamento === FormaPagamento.PIX
         ? {

@@ -12,7 +12,7 @@ import { useFetch } from '@/hooks/use-fetch'
 import { useSave } from '@/hooks/use-save'
 import { useStatusUpdate } from '@/hooks/use-status-update'
 import { ApiError, api } from '@/lib/api'
-import { formatDateTime, formatQtdItem, temItemADividir, formatPhone, formatPrice, formatTime, paymentLabels, QUANDO_PRONTO, statusFlow, statusLabels, tipoLabels } from '@/lib/format'
+import { formatDateTime, formatQtdItem, temItemADividir, formatPhone, formatPrice, formatTime, paymentLabels, QUANDO_PRONTO, statusFlow, statusLabels, tipoLabels, textoTroco } from '@/lib/format'
 import { textoPrazoPix } from '@/lib/prazo-pix'
 import { whatsappLink } from '@/lib/whatsapp'
 import type { Pedido, PedidoAdmin } from '@/types/types'
@@ -124,6 +124,8 @@ export default function OrderDetailPage() {
   const { marca } = useBrand()
   const { codigo = '' } = useParams()
   const pedido = useFetch(() => carregarPedido(codigo), [codigo], 30_000)
+  // Endereço atual da loja, para pedidos feitos antes de o endereço ser cadastrado.
+  const funcionamento = useFetch(api.funcionamento, [])
   const { update, busy, error } = useStatusUpdate((atualizado: PedidoAdmin) => pedido.mutate(() => atualizado))
 
   const p = pedido.data
@@ -148,6 +150,19 @@ export default function OrderDetailPage() {
   const aguardandoPagamento = p.status === 'AGUARDANDO_PAGAMENTO'
   const mensagem = `Olá, ${p.nomeCliente.split(' ')[0]}! Aqui é do ${marca.nome}, sobre o seu pedido ${p.codigo} (${statusLabels[p.status].toLowerCase()}).`
 
+  // Aviso pronto para enviar ao cliente (abre o WhatsApp com a mensagem escrita; o admin só aperta enviar).
+  const enderecoRetirada = p.enderecoRetirada ?? funcionamento.data?.enderecoRetirada ?? null
+  const aviso =
+    p.status === 'PRONTO_RETIRADA'
+      ? {
+          rotulo: 'Avisar: pronto para retirada',
+          texto: `Seu pedido está pronto para retirada!${enderecoRetirada ? `
+Endereço: ${enderecoRetirada}` : ''}`,
+        }
+      : p.status === 'EM_ROTA_ENTREGA'
+        ? { rotulo: 'Avisar: saiu para entrega', texto: 'Seu pedido saiu para entrega!' }
+        : null
+
   return (
     <div className="admin-content max-w-4xl">
       {back}
@@ -160,9 +175,21 @@ export default function OrderDetailPage() {
           <p className="text-sm text-muted-foreground">Feito em {formatDateTime(p.criadoEm)}</p>
         </div>
         {p.telefone && (
-          <a href={whatsappLink(p.telefone, mensagem)} target="_blank" rel="noopener noreferrer" className={buttonVariants({ className: 'h-10' })}>
-            <MessageCircle /> Chamar no WhatsApp
-          </a>
+          <div className="flex flex-wrap gap-2">
+            {aviso && (
+              <a href={whatsappLink(p.telefone, aviso.texto)} target="_blank" rel="noopener noreferrer" className={buttonVariants({ className: 'h-10' })}>
+                <MessageCircle /> {aviso.rotulo}
+              </a>
+            )}
+            <a
+              href={whatsappLink(p.telefone, mensagem)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants({ variant: aviso ? 'outline' : 'default', className: 'h-10' })}
+            >
+              <MessageCircle /> Chamar no WhatsApp
+            </a>
+          </div>
         )}
       </div>
 
@@ -215,7 +242,10 @@ export default function OrderDetailPage() {
                     {p.pontoReferencia && <span className="block font-normal text-muted-foreground">Ref.: {p.pontoReferencia}</span>}
                   </>
                 ) : (
-                  'Retirada no local'
+                  <>
+                    Retirada no local
+                    {p.enderecoRetirada && <span className="block font-normal text-muted-foreground">{p.enderecoRetirada}</span>}
+                  </>
                 )}
               </dd>
             </div>
@@ -226,7 +256,13 @@ export default function OrderDetailPage() {
                 {!p.horarioAgendado && p.previsaoEm && <span className="font-normal text-muted-foreground"> · previsão {formatTime(p.previsaoEm)}</span>}
               </dd>
             </div>
-            <div><dt>Pagamento</dt><dd>{paymentLabels[p.formaPagamento]}</dd></div>
+            <div>
+              <dt>Pagamento</dt>
+              <dd>
+                {paymentLabels[p.formaPagamento]}
+                {p.troco && <span className="block font-normal text-muted-foreground">{textoTroco(p.troco)}</span>}
+              </dd>
+            </div>
           </dl>
         </section>
 

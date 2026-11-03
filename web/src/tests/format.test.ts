@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatPhone, formatQtdItem, hasMaxTwoDecimals, nextStatus, parseMoney, statusFlow, temItemADividir } from '@/lib/format'
+import { formatPhone, intervaloDoPeriodo, formatQtdItem, hasMaxTwoDecimals, nextStatus, parseMoney, statusFlow, temItemADividir } from '@/lib/format'
 import { whatsappLink } from '@/lib/whatsapp'
 
 describe('statusFlow e nextStatus', () => {
@@ -58,3 +58,25 @@ describe("itens do pedido", () => {
     expect(temItemADividir([{ quantidade: 30 }, { quantidade: 20 }])).toBe(false);
   });
 });
+
+describe('intervaloDoPeriodo (filtros do painel)', () => {
+  it('dia e todos', () => {
+    expect(intervaloDoPeriodo('dia', '2026-11-03')).toEqual({ de: '2026-11-03', ate: '2026-11-03' })
+    expect(intervaloDoPeriodo('todos', '2026-11-03')).toEqual({})
+  })
+
+  it('semana vai de segunda a domingo', () => {
+    expect(intervaloDoPeriodo('semana', '2026-11-03')).toEqual({ de: '2026-11-02', ate: '2026-11-08' }) // terça
+    expect(intervaloDoPeriodo('semana', '2026-11-08')).toEqual({ de: '2026-11-02', ate: '2026-11-08' }) // domingo
+    expect(intervaloDoPeriodo('semana', '2026-11-02')).toEqual({ de: '2026-11-02', ate: '2026-11-08' }) // segunda
+  })
+
+  it('semana atravessa o fim do mês e do ano', () => {
+    expect(intervaloDoPeriodo('semana', '2026-12-31')).toEqual({ de: '2026-12-28', ate: '2027-01-03' })
+  })
+
+  it('mês inteiro, inclusive fevereiro de ano bissexto', () => {
+    expect(intervaloDoPeriodo('mes', '2026-11-15')).toEqual({ de: '2026-11-01', ate: '2026-11-30' })
+    expect(intervaloDoPeriodo('mes', '2028-02-10')).toEqual({ de: '2028-02-01', ate: '2028-02-29' })
+  })
+})

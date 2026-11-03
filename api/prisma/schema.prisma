@@ -80,6 +80,10 @@ model Configuracao {
   horarioFechamento               String?      @db.VarChar(5)
   // Fecha o estabelecimento até o admin desativar, independente do horário.
   estabelecimentoFechado          Boolean      @default(false)
+  // Dias da semana com atendimento (0 = domingo ... 6 = sábado, Brasília). Dia fora da lista = fechado o dia todo.
+  diasAtendimento                 Int[]        @default([0, 1, 2, 3, 4, 5, 6])
+  // Endereço mostrado ao cliente que escolhe retirada (opcional).
+  enderecoRetirada                String?      @db.VarChar(300)
   // Dia (AAAA-MM-DD, Brasília) em que a entrega está desligada. Vale só nesse dia: no dia seguinte volta sozinha.
   entregaSuspensaEm               String?      @db.VarChar(10)
   // Marca e aparência (editáveis no painel). A logo fica no próprio banco (limite de 300 KB).
@@ -107,6 +111,11 @@ model Pedido {
   // Data e hora pedidas pelo cliente (entrega ou retirada). Nulo = "para quando ficar pronto".
   horarioAgendado      DateTime?
   formaPagamento       FormaPagamento
+  // Retirada: endereço do estabelecimento no momento do pedido (se estava configurado).
+  enderecoRetirada     String?        @db.VarChar(300)
+  // Só pagamento em dinheiro: o cliente precisa de troco? E para quanto (nota que ele vai entregar).
+  precisaTroco         Boolean        @default(false)
+  trocoPara            Decimal?       @db.Decimal(10, 2)
   status               StatusPedido   @default(AGUARDANDO)
   quantidadeTotal      Int
   subtotal             Decimal        @db.Decimal(10, 2)

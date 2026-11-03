@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { useStatusUpdate } from '@/hooks/use-status-update'
 import { useFetch } from '@/hooks/use-fetch'
 import { api } from '@/lib/api'
-import { allStatuses, formatDateTime, formatPhone, formatPrice, formatTime, nextStatus, paymentLabels, QUANDO_PRONTO, statusLabels, tipoLabels, todayISO } from '@/lib/format'
+import { allStatuses, formatDateTime, formatPhone, formatPrice, formatTime, intervaloDoPeriodo, nextStatus, paymentLabels, QUANDO_PRONTO, statusLabels, tipoLabels, todayISO, type Periodo } from '@/lib/format'
 import type { PedidoAdmin, StatusPedido } from '@/types/types'
 
 function OrderCard({
@@ -41,7 +41,7 @@ function OrderCard({
           ))}
         </ul>
         <div className="order-card__info">
-          {pedido.tipoEntrega === 'ENTREGA' ? <p><MapPin /> {pedido.endereco}{pedido.pontoReferencia ? ` · Ref.: ${pedido.pontoReferencia}` : ''}</p> : <p><Store /> Retirada no local</p>}
+          {pedido.tipoEntrega === 'ENTREGA' ? <p><MapPin /> {pedido.endereco}{pedido.pontoReferencia ? ` · Ref.: ${pedido.pontoReferencia}` : ''}</p> : <p><Store /> Retirada no local{pedido.enderecoRetirada ? ` · ${pedido.enderecoRetirada}` : ''}</p>}
           <p>
             <Clock />
             {pedido.horarioAgendado
@@ -70,11 +70,16 @@ function OrderCard({
   )
 }
 
+const formatarDia = (iso: string) => iso.split('-').reverse().join('/')
+
 export default function DashboardPage() {
   const [dia, setDia] = useState(todayISO())
   const [filtro, setFiltro] = useState<StatusPedido | 'todos'>('todos')
 
-  const pedidos = useFetch(() => api.pedidosAdmin(dia ? { de: dia, ate: dia } : {}), [dia], 30_000)
+  const [periodo, setPeriodo] = useState<Periodo>('dia')
+  const intervalo = intervaloDoPeriodo(periodo, dia)
+
+  const pedidos = useFetch(() => api.pedidosAdmin(intervalo), [intervalo.de, intervalo.ate], 30_000)
   const { update, busy, error } = useStatusUpdate((atualizado) =>
     pedidos.mutate((lista) => lista.map((p) => (p.codigo === atualizado.codigo ? atualizado : p))),
   )
@@ -83,7 +88,7 @@ export default function DashboardPage() {
   const count = (s: StatusPedido) => lista.filter((p) => p.status === s).length
   const faturamento = lista.filter((p) => p.status === 'FINALIZADO').reduce((sum, p) => sum + parseFloat(p.total), 0)
   const kpis = [
-    { label: dia ? 'Pedidos do dia' : 'Pedidos', value: String(lista.length), icon: ClipboardList },
+    { label: { dia: 'Pedidos do dia', semana: 'Pedidos da semana', mes: 'Pedidos do mês', todos: 'Pedidos' }[periodo], value: String(lista.length), icon: ClipboardList },
     { label: 'Aguardando pagamento', value: String(count('AGUARDANDO_PAGAMENTO')), icon: Hourglass },
     { label: 'Em produção', value: String(count('EM_PRODUCAO')), icon: ChefHat },
     { label: 'Faturamento (finalizados)', value: formatPrice(faturamento), icon: DollarSign },
@@ -108,12 +113,35 @@ export default function DashboardPage() {
         <div className="toolbar">
           <h2 className="toolbar__title">Pedidos</h2>
           <div className="toolbar__date">
-            <Input type="date" value={dia} onChange={(e) => setDia(e.target.value)} aria-label="Dia" className="w-auto" />
-            <button className="chip" aria-pressed={dia === ''} onClick={() => setDia(dia === '' ? todayISO() : '')}>
-              Todos os dias
-            </button>
+            {periodo !== 'todos' && (
+              <Input
+                type="date"
+                value={dia}
+                onChange={(e) => setDia(e.target.value || todayISO())}
+                aria-label={periodo === 'dia' ? 'Dia' : periodo === 'semana' ? 'Dia da semana' : 'Dia do mês'}
+                className="w-auto"
+              />
+            )}
+            {(
+              [
+                ['dia', 'Dia'],
+                ['semana', 'Semanal'],
+                ['mes', 'Mensal'],
+                ['todos', 'Todos os dias'],
+              ] as const
+            ).map(([valor, rotulo]) => (
+              <button key={valor} className="chip" aria-pressed={periodo === valor} onClick={() => setPeriodo(valor)}>
+                {rotulo}
+              </button>
+            ))}
           </div>
         </div>
+
+        {(periodo === 'semana' || periodo === 'mes') && intervalo.de && intervalo.ate && (
+          <p className="text-sm text-muted-foreground">
+            {periodo === 'semana' ? 'Semana' : 'Mês'} de {formatarDia(intervalo.de)} a {formatarDia(intervalo.ate)}
+          </p>
+        )}
 
         <div className="chip-row chip-row--scroll">
           {(['todos', ...allStatuses] as const).map((f) => (

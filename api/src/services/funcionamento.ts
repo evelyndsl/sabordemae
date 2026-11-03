@@ -22,7 +22,36 @@ export type DadosFuncionamento = {
   horarioFechamento: string | null;
   estabelecimentoFechado: boolean;
   entregaSuspensaEm: string | null;
+  // 0 = domingo ... 6 = sábado. Dia fora da lista = fechado o dia todo.
+  diasAtendimento: number[];
+  enderecoRetirada?: string | null;
 };
+
+const formatadorDiaSemana = new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", weekday: "short" });
+const NUMERO_DO_DIA: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+/** Dia da semana no horário de Brasília (0 = domingo ... 6 = sábado). */
+export const diaDaSemanaEmBrasilia = (data: Date) => NUMERO_DO_DIA[formatadorDiaSemana.format(data)]!;
+
+const ABREVIACOES = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+
+/** "seg a sex", "seg, qua e sex"; null quando atende todos os dias. */
+export function textoDias(dias: number[]): string | null {
+  const ordenados = [...new Set(dias)].sort((a, b) => a - b);
+  if (ordenados.length >= 7) return null;
+  if (ordenados.length === 0) return "nenhum dia";
+
+  const grupos: number[][] = [];
+  for (const d of ordenados) {
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo[ultimo.length - 1] === d - 1) ultimo.push(d);
+    else grupos.push([d]);
+  }
+  const partes = grupos.flatMap((g) =>
+    g.length >= 3 ? [`${ABREVIACOES[g[0]!]} a ${ABREVIACOES[g[g.length - 1]!]}`] : g.map((d) => ABREVIACOES[d]!),
+  );
+  return partes.length === 1 ? partes[0]! : `${partes.slice(0, -1).join(", ")} e ${partes[partes.length - 1]}`;
+}
 
 export const paraMinutos = (hhmm: string) => {
   const [h, m] = hhmm.split(":").map(Number);
@@ -43,17 +72,27 @@ export function minutosNoDiaEmBrasilia(data: Date): number {
   return valor("hour") * 60 + valor("minute");
 }
 
-/** Sem horário definido, está sempre dentro. O fechamento é exclusivo (às 18:00 em ponto já fechou). */
+/**
+ * Dentro do atendimento: o dia precisa estar selecionado e, havendo horário, o momento precisa cair nele.
+ * Sem horário definido, vale o dia todo. O fechamento é exclusivo (às 18:00 em ponto já fechou).
+ * Num atendimento que passa da meia-noite, a madrugada pertence ao dia em que o atendimento começou.
+ */
 export function dentroDoHorario(config: DadosFuncionamento, data: Date): boolean {
-  if (!config.horarioAbertura || !config.horarioFechamento) return true;
+  const dias = config.diasAtendimento;
+  const dia = diaDaSemanaEmBrasilia(data);
+
+  if (!config.horarioAbertura || !config.horarioFechamento) return dias.includes(dia);
 
   const abertura = paraMinutos(config.horarioAbertura);
   const fechamento = paraMinutos(config.horarioFechamento);
   const agora = minutosNoDiaEmBrasilia(data);
 
-  return abertura < fechamento
-    ? agora >= abertura && agora < fechamento
-    : agora >= abertura || agora < fechamento; // passa da meia-noite
+  if (abertura < fechamento) return dias.includes(dia) && agora >= abertura && agora < fechamento;
+
+  // Passa da meia-noite.
+  if (agora >= abertura) return dias.includes(dia);
+  if (agora < fechamento) return dias.includes((dia + 6) % 7);
+  return false;
 }
 
 /** A entrega só fica desligada no dia marcado; em qualquer outro dia está disponível. */
@@ -70,6 +109,8 @@ export function situacao(config: DadosFuncionamento, agora: Date) {
   return {
     horarioAbertura: config.horarioAbertura,
     horarioFechamento: config.horarioFechamento,
+    diasAtendimento: [...config.diasAtendimento].sort((a, b) => a - b),
+    enderecoRetirada: config.enderecoRetirada ?? null,
     estabelecimentoFechado: config.estabelecimentoFechado,
     aberto: motivoFechado === null,
     motivoFechado,
@@ -77,8 +118,11 @@ export function situacao(config: DadosFuncionamento, agora: Date) {
   };
 }
 
-const textoHorario = (config: DadosFuncionamento) =>
-  `${config.horarioAbertura} às ${config.horarioFechamento}`;
+const textoHorario = (config: DadosFuncionamento) => {
+  const horario =
+    config.horarioAbertura && config.horarioFechamento ? `${config.horarioAbertura} às ${config.horarioFechamento}` : null;
+  return [horario, textoDias(config.diasAtendimento)].filter(Boolean).join(", ");
+};
 
 /** Lança RegraDeNegocioError (400) se o pedido não puder ser feito agora. */
 export function validarPedidoNoFuncionamento(
@@ -123,15 +167,24 @@ export async function atualizarFuncionamento(dados: {
   horarioFechamento: string | null;
   estabelecimentoFechado: boolean;
   entregaHoje: boolean;
+  diasAtendimento?: number[];
 }) {
   await prisma.configuracao.update({
     where: { id: 1 },
     data: {
       horarioAbertura: dados.horarioAbertura,
       horarioFechamento: dados.horarioFechamento,
+      ...(dados.diasAtendimento && {
+        diasAtendimento: { set: [...new Set(dados.diasAtendimento)].sort((a, b) => a - b) },
+      }),
       estabelecimentoFechado: dados.estabelecimentoFechado,
       entregaSuspensaEm: dados.entregaHoje ? null : diaEmBrasilia(new Date()),
     },
   });
+  return obterFuncionamento();
+}
+
+export async function atualizarEnderecoRetirada(endereco: string | null) {
+  await prisma.configuracao.update({ where: { id: 1 }, data: { enderecoRetirada: endereco } });
   return obterFuncionamento();
 }
