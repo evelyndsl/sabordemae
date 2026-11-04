@@ -96,7 +96,7 @@ export default function TrackingPage() {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader whatsapp={extras.data?.pix.whatsapp} />
       <main className="page page--narrow">
         <Link to="/pedido" className="back-link my-4">
           <ArrowLeft className="size-4" /> Fazer outro pedido

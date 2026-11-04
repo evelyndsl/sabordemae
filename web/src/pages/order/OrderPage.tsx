@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarClock, Check, Clock, MapPin, MapPinCheck, Minus, Plus, Search, ShoppingBag, Store, Truck } from 'lucide-react'
+import { CalendarClock, Check, Clock, Info, MapPin, MapPinCheck, Minus, Plus, Search, ShoppingBag, Store, Truck } from 'lucide-react'
 import { AvisoEntrega } from '@/components/aviso-entrega'
 import { ErrorState, LoadingState } from '@/components/state-views'
 import { SiteHeader } from '@/components/site-header'
@@ -618,7 +618,7 @@ export default function OrderPage() {
   return (
     <>
       <AvisoEntrega />
-      <SiteHeader />
+      <SiteHeader whatsapp={catalogo.data?.pix.whatsapp} />
       <main className="page">
         <section className="hero">
           {catalogo.data && (
@@ -639,8 +639,9 @@ export default function OrderPage() {
           <p className="hero__aviso">
             <MapPinCheck className="size-4 shrink-0" /> Entregas apenas em Paiçandu, PR
           </p>
-          <p className="hero__text">Escolha a quantidade, os sabores e como quer receber. A gente cuida do resto!</p>
+          <p className="hero__text font-semibold">Escolha a quantidade, os sabores e como quer receber. A gente cuida do resto!</p>
           <TrackOrder />
+          <p className="hero__aviso mt-4 mb-0!"><Info className="size-4 shrink-0" /> Se precisar falar conosco, clique no botão de WhatsApp acima.</p>
         </section>
 
         {catalogo.loading && !catalogo.data ? (
