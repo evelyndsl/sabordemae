@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChefHat, ClipboardList, Clock, DollarSign, Eye, Hourglass, MapPin, Phone, Store } from 'lucide-react'
+import { ChefHat, ChevronLeft, ChevronRight, ClipboardList, Clock, DollarSign, Eye, Hourglass, MapPin, Phone, Store } from 'lucide-react'
 import { ErrorState, LoadingState } from '@/components/state-views'
 import { StatusBadge } from '@/components/status-badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useStatusUpdate } from '@/hooks/use-status-update'
 import { useFetch } from '@/hooks/use-fetch'
 import { api } from '@/lib/api'
@@ -70,13 +71,22 @@ function OrderCard({
   )
 }
 
+// Pedidos por página: múltiplos de 12, a partir de 12.
+const TAMANHOS_PAGINA = [12, 24, 36, 48] as const
+
+const itensQuantidade = Object.fromEntries(TAMANHOS_PAGINA.map((n) => [String(n), `${n} pedidos`]))
+const itensStatus: Record<string, string> = { todos: 'Todos os status', ...Object.fromEntries(allStatuses.map((st) => [st, statusLabels[st]])) }
+
 const formatarDia = (iso: string) => iso.split('-').reverse().join('/')
 
 export default function DashboardPage() {
   const [dia, setDia] = useState(todayISO())
   const [filtro, setFiltro] = useState<StatusPedido | 'todos'>('todos')
 
-  const [periodo, setPeriodo] = useState<Periodo>('dia')
+  // Padrão: todos os pedidos, de todos os dias (do mais recente para o mais antigo, como a API entrega).
+  const [periodo, setPeriodo] = useState<Periodo>('todos')
+  const [porPagina, setPorPagina] = useState<number>(TAMANHOS_PAGINA[0])
+  const [pagina, setPagina] = useState(1)
   const intervalo = intervaloDoPeriodo(periodo, dia)
 
   const pedidos = useFetch(() => api.pedidosAdmin(intervalo), [intervalo.de, intervalo.ate], 30_000)
@@ -93,7 +103,11 @@ export default function DashboardPage() {
     { label: 'Em produção', value: String(count('EM_PRODUCAO')), icon: ChefHat },
     { label: 'Faturamento (finalizados)', value: formatPrice(faturamento), icon: DollarSign },
   ]
-  const visiveis = lista.filter((p) => filtro === 'todos' || p.status === filtro)
+  const filtrados = lista.filter((p) => filtro === 'todos' || p.status === filtro)
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / porPagina))
+  // A lista é atualizada em segundo plano e pode encolher: nunca fica numa página que não existe mais.
+  const paginaAtual = Math.min(pagina, totalPaginas)
+  const visiveis = filtrados.slice((paginaAtual - 1) * porPagina, paginaAtual * porPagina)
 
   return (
     <div className="admin-content">
@@ -117,7 +131,7 @@ export default function DashboardPage() {
               <Input
                 type="date"
                 value={dia}
-                onChange={(e) => setDia(e.target.value || todayISO())}
+                onChange={(e) => { setDia(e.target.value || todayISO()); setPagina(1) }}
                 aria-label={periodo === 'dia' ? 'Dia' : periodo === 'semana' ? 'Dia da semana' : 'Dia do mês'}
                 className="w-auto"
               />
@@ -131,7 +145,7 @@ export default function DashboardPage() {
               ] as const
             ).map(([valor, rotulo, sigla]) => (
               // No celular só a sigla (menos elementos e sem quebra de linha); o nome completo continua para leitores de tela.
-              <button key={valor} className="chip" aria-pressed={periodo === valor} aria-label={rotulo} title={rotulo} onClick={() => setPeriodo(valor)}>
+              <button key={valor} className="chip" aria-pressed={periodo === valor} aria-label={rotulo} title={rotulo} onClick={() => { setPeriodo(valor); setPagina(1) }}>
                 <span aria-hidden="true" className="sm:hidden">{sigla}</span>
                 <span aria-hidden="true" className="hidden sm:inline">{rotulo}</span>
               </button>
@@ -145,12 +159,35 @@ export default function DashboardPage() {
           </p>
         )}
 
-        <div className="chip-row chip-row--scroll">
-          {(['todos', ...allStatuses] as const).map((f) => (
-            <button key={f} className="chip" aria-pressed={filtro === f} onClick={() => setFiltro(f)}>
-              {f === 'todos' ? 'Todos' : statusLabels[f]}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={filtro}
+            items={itensStatus}
+            onValueChange={(v) => { if (v) { setFiltro(v as StatusPedido | 'todos'); setPagina(1) } }}
+          >
+            <SelectTrigger aria-label="Filtrar pedidos por status" className="min-w-44 flex-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(itensStatus).map(([valor, rotulo]) => (
+                <SelectItem key={valor} value={valor}>{rotulo}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={String(porPagina)}
+            items={itensQuantidade}
+            onValueChange={(v) => { if (v) { setPorPagina(Number(v)); setPagina(1) } }}
+          >
+            <SelectTrigger aria-label="Quantidade de pedidos por página" className="w-auto">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(itensQuantidade).map(([valor, rotulo]) => (
+                <SelectItem key={valor} value={valor}>{rotulo}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {error && <p role="alert" className="alert alert--error">{error}</p>}
@@ -167,6 +204,20 @@ export default function DashboardPage() {
               <OrderCard key={p.codigo} pedido={p} busy={busy === p.codigo} onAdvance={(s) => update(p.codigo, s)} />
             ))}
           </ul>
+        )}
+
+        {pedidos.data && filtrados.length > porPagina && (
+          <nav aria-label="Paginação dos pedidos" className="flex flex-wrap items-center justify-center gap-3">
+            <Button variant="outline" size="sm" disabled={paginaAtual <= 1} onClick={() => setPagina(paginaAtual - 1)}>
+              <ChevronLeft /> Anterior
+            </Button>
+            <span className="text-sm text-muted-foreground" aria-live="polite">
+              Página {paginaAtual} de {totalPaginas} · {filtrados.length} pedidos
+            </span>
+            <Button variant="outline" size="sm" disabled={paginaAtual >= totalPaginas} onClick={() => setPagina(paginaAtual + 1)}>
+              Próxima <ChevronRight />
+            </Button>
+          </nav>
         )}
       </section>
     </div>

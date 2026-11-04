@@ -9,7 +9,8 @@ function initialDark() {
     const saved = localStorage.getItem(KEY)
     if (saved) return saved === 'dark'
   } catch { /* ignorar */ }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
+  // Padrão: tema claro, mesmo que o sistema esteja no escuro. Só muda se o usuário escolher.
+  return false
 }
 
 // Aplica o tema antes da primeira renderização para evitar "flash".
