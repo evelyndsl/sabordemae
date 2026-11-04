@@ -130,6 +130,8 @@ export interface CriarPedidoBody {
   sabores: { saborId: number; quantidade?: number }[]
   tipoEntrega: TipoEntrega
   endereco?: string
+  /** Obrigatório na entrega: 8 dígitos, sem traço. */
+  cep?: string
   /** Opcional, só na entrega. */
   pontoReferencia?: string
   /** Omitido = "para quando ficar pronto". */

@@ -12,6 +12,7 @@ const pedido = {
   nomeCliente: "Maria da Silva",
   telefone: "11912345678",
   endereco: "Rua Secreta, 1",
+  cep: "87140000",
 } as unknown as PedidoComItens;
 
 describe("aviso de novo pedido (ntfy)", () => {

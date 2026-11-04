@@ -29,6 +29,8 @@ export const criarPedidoSchema = z
     sabores: z.array(itemSaborSchema).max(50).default([]),
     tipoEntrega: z.enum(TipoEntrega),
     endereco: z.string().trim().min(5).max(300).optional(),
+    // Obrigatório na entrega (só dígitos). A cidade é conferida em services/cep.ts.
+    cep: z.string().regex(/^\d{8}$/, "Informe o CEP com 8 números, sem traço.").optional(),
     // Opcional (só vale na entrega). Texto vazio é tratado como "não informado".
     pontoReferencia: z
       .string()
@@ -53,6 +55,10 @@ export const criarPedidoSchema = z
 
     if (pedido.tipoEntrega === TipoEntrega.ENTREGA && !pedido.endereco) {
       ctx.addIssue({ code: "custom", path: ["endereco"], message: "Informe o endereço de entrega." });
+    }
+
+    if (pedido.tipoEntrega === TipoEntrega.ENTREGA && !pedido.cep) {
+      ctx.addIssue({ code: "custom", path: ["cep"], message: "Informe o CEP de entrega." });
     }
 
     if (pedido.horarioAgendado && pedido.horarioAgendado.getTime() <= Date.now()) {

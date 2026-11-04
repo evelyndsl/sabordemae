@@ -8,6 +8,7 @@ const base = {
   formaPagamento: "PIX",
   tipoEntrega: "ENTREGA",
   endereco: "Rua das Flores, 123",
+  cep: "87140000",
   quantidade: 50,
 };
 

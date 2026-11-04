@@ -11,6 +11,7 @@ const entrega = (quantidade: number, extra: object = {}) => ({
   quantidade,
   tipoEntrega: "ENTREGA",
   endereco: "Rua das Flores, 123 - Centro",
+  cep: "87140000",
   ...extra,
 });
 

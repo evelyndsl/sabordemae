@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarClock, Check, Clock, MapPin, Minus, Plus, Search, ShoppingBag, Store, Truck } from 'lucide-react'
+import { CalendarClock, Check, Clock, MapPin, MapPinCheck, Minus, Plus, Search, ShoppingBag, Store, Truck } from 'lucide-react'
 import { ErrorState, LoadingState } from '@/components/state-views'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { useFetch } from '@/hooks/use-fetch'
 import { ApiError, api } from '@/lib/api'
 import { erroDeAgendamento, textoHorario } from '@/lib/funcionamento'
-import { formatDateTime, formatPhone, formatPrice, paymentLabels, QUANDO_PRONTO, toLocalInputValue } from '@/lib/format'
+import { formatCep, formatDateTime, formatPhone, formatPrice, paymentLabels, QUANDO_PRONTO, toLocalInputValue } from '@/lib/format'
 import { calcularPreco, quantidadeValida } from '@/lib/preco'
 import { previaPrazoPix, textoPrazoPix } from '@/lib/prazo-pix'
 import { cn } from '@/lib/utils'
@@ -63,6 +63,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
   const [escolhidos, setEscolhidos] = useState<number[]>([]) // modo "selecao": só os sabores marcados
   const [tipo, setTipo] = useState<TipoEntrega | null>(null)
   const [endereco, setEndereco] = useState('')
+  const [cep, setCep] = useState('') // só dígitos
   const [pontoReferencia, setPontoReferencia] = useState('')
   const [quando, setQuando] = useState<'pronto' | 'agendar' | null>(null)
   const [horario, setHorario] = useState('')
@@ -158,6 +159,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
     }
     if (!tipo) e.tipoEntrega = 'Escolha entrega ou retirada.'
     if (tipo === 'ENTREGA' && endereco.trim().length < 5) e.endereco = 'Informe o endereço de entrega.'
+    if (tipo === 'ENTREGA' && !/^\d{8}$/.test(cep)) e.cep = 'Informe o CEP com 8 números.'
     if (!quando) e.quando = 'Escolha quando quer receber.'
     else if (quando === 'pronto' && prontoIndisponivel) {
       e.quando = foraDoHorario
@@ -211,6 +213,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
             : [],
       tipoEntrega: tipo,
       endereco: tipo === 'ENTREGA' ? endereco.trim() : undefined,
+      cep: tipo === 'ENTREGA' ? cep : undefined,
       pontoReferencia: tipo === 'ENTREGA' && pontoReferencia.trim() ? pontoReferencia.trim() : undefined,
       horarioAgendado: quando === 'agendar' ? new Date(horario).toISOString() : undefined,
       formaPagamento: pagamento,
@@ -393,6 +396,21 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
               <Label htmlFor="endereco">Endereço de entrega</Label>
               <Input id="endereco" value={endereco} onChange={(e) => setEndereco(e.target.value)} autoComplete="street-address" placeholder="Rua, número, bairro" aria-invalid={!!erros.endereco} />
               {erros.endereco && <p className="field__error">{erros.endereco}</p>}
+            </div>
+          )}
+          {tipo === 'ENTREGA' && (
+            <div className="field mt-3">
+              <Label htmlFor="cep">CEP</Label>
+              <Input
+                id="cep"
+                value={formatCep(cep)}
+                onChange={(e) => setCep(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                inputMode="numeric"
+                autoComplete="postal-code"
+                placeholder="87140-000"
+                aria-invalid={!!erros.cep}
+              />
+              {erros.cep && <p className="field__error">{erros.cep}</p>}
             </div>
           )}
           {tipo === 'ENTREGA' && (
@@ -599,7 +617,7 @@ export default function OrderPage() {
       <main className="page">
         <section className="hero">
           {catalogo.data && (
-            <p role="status" className="mb-2 flex items-center gap-2 text-lg font-semibold">
+            <p role="status" className="mb-3 flex items-center gap-2 text-lg font-semibold">
               <span
                 aria-hidden="true"
                 className={`inline-block size-3 rounded-full border-2 border-black ${catalogo.data.funcionamento.aberto ? 'bg-green-500' : 'bg-red-500'}`}
@@ -612,6 +630,9 @@ export default function OrderPage() {
             {catalogo.data
               ? `Preparo em ${catalogo.data.tempo.minimoMin} a ${catalogo.data.tempo.maximoMin} min`
               : 'Mini salgados feitos com carinho'}
+          </p>
+          <p className="hero__aviso">
+            <MapPinCheck className="size-4 shrink-0" /> Entregas apenas em Paiçandu, PR
           </p>
           <p className="hero__text">Escolha a quantidade, os sabores e como quer receber. A gente cuida do resto!</p>
           <TrackOrder />

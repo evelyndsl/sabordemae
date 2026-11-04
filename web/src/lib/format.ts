@@ -128,3 +128,9 @@ export const tipoPixLabels = {
 // Itens do pedido: "20 un." ou, quando o cliente só escolheu o sabor, "a dividir" (a loja divide as unidades).
 export const formatQtdItem = (quantidade: number | null) => (quantidade === null ? 'a dividir' : `${quantidade} un.`)
 export const temItemADividir = (itens: { quantidade: number | null }[]) => itens.some((i) => i.quantidade === null)
+
+/** 87140000 -> 87140-000 (aceita número parcial). */
+export function formatCep(value: string) {
+  const d = value.replace(/\D/g, '').slice(0, 8)
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d
+}
