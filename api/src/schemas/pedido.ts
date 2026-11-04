@@ -29,13 +29,18 @@ export const criarPedidoSchema = z
     sabores: z.array(itemSaborSchema).max(50).default([]),
     tipoEntrega: z.enum(TipoEntrega),
     endereco: z.string().trim().min(5).max(300).optional(),
-    // Obrigatório na entrega (só dígitos). A cidade é conferida em services/cep.ts.
-    cep: z.string().regex(/^\d{8}$/, "Informe o CEP com 8 números, sem traço.").optional(),
     // Opcional (só vale na entrega). Texto vazio é tratado como "não informado".
     pontoReferencia: z
       .string()
       .trim()
       .max(200, "O ponto de referência deve ter no máximo 200 caracteres.")
+      .transform((v) => (v === "" ? undefined : v))
+      .optional(),
+    // Recado opcional para a loja. Texto vazio é tratado como "não informado".
+    observacao: z
+      .string()
+      .trim()
+      .max(500, "A observação deve ter no máximo 500 caracteres.")
       .transform((v) => (v === "" ? undefined : v))
       .optional(),
     // Entrega ou retirada em data e hora específicas. Ausente = "para quando ficar pronto".
@@ -55,10 +60,6 @@ export const criarPedidoSchema = z
 
     if (pedido.tipoEntrega === TipoEntrega.ENTREGA && !pedido.endereco) {
       ctx.addIssue({ code: "custom", path: ["endereco"], message: "Informe o endereço de entrega." });
-    }
-
-    if (pedido.tipoEntrega === TipoEntrega.ENTREGA && !pedido.cep) {
-      ctx.addIssue({ code: "custom", path: ["cep"], message: "Informe o CEP de entrega." });
     }
 
     if (pedido.horarioAgendado && pedido.horarioAgendado.getTime() <= Date.now()) {
@@ -105,6 +106,7 @@ export const pedidoRespostaSchema = z.object({
   tipoEntrega: z.enum(TipoEntrega),
   endereco: z.string().nullable(),
   pontoReferencia: z.string().nullable(),
+  observacao: z.string().nullable(),
   // Retirada: onde buscar (endereço do estabelecimento na hora do pedido). null se não configurado ou se for entrega.
   enderecoRetirada: z.string().nullable(),
   // Data e hora pedidas pelo cliente; nulo = "para quando ficar pronto".
@@ -146,6 +148,7 @@ export function paraResposta(p: PedidoComItens): z.infer<typeof pedidoRespostaSc
     tipoEntrega: p.tipoEntrega,
     endereco: p.endereco,
     pontoReferencia: p.pontoReferencia,
+    observacao: p.observacao,
     enderecoRetirada: p.enderecoRetirada,
     horarioAgendado: p.horarioAgendado?.toISOString() ?? null,
     tempoPreparoMin: p.tempoPreparoMin,

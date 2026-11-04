@@ -376,7 +376,6 @@ describe("sabores", () => {
         quantidade: 50,
         tipoEntrega: "ENTREGA",
         endereco: "Rua das Flores, 123",
-        cep: "87140000",
         sabores: [{ saborId, quantidade: 50 }],
       },
     });

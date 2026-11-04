@@ -70,7 +70,6 @@ describe("criação de pedido", () => {
         quantidade: 50,
         tipoEntrega: "ENTREGA",
         endereco: "Rua das Flores, 123 - Centro",
-        cep: "87140000",
       },
     });
 

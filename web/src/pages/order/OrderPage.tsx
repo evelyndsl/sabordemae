@@ -1,15 +1,17 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CalendarClock, Check, Clock, MapPin, MapPinCheck, Minus, Plus, Search, ShoppingBag, Store, Truck } from 'lucide-react'
+import { AvisoEntrega } from '@/components/aviso-entrega'
 import { ErrorState, LoadingState } from '@/components/state-views'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { useFetch } from '@/hooks/use-fetch'
 import { ApiError, api } from '@/lib/api'
 import { erroDeAgendamento, textoHorario } from '@/lib/funcionamento'
-import { formatCep, formatDateTime, formatPhone, formatPrice, paymentLabels, QUANDO_PRONTO, toLocalInputValue } from '@/lib/format'
+import { formatDateTime, formatPhone, formatPrice, paymentLabels, QUANDO_PRONTO, toLocalInputValue } from '@/lib/format'
 import { calcularPreco, quantidadeValida } from '@/lib/preco'
 import { previaPrazoPix, textoPrazoPix } from '@/lib/prazo-pix'
 import { cn } from '@/lib/utils'
@@ -63,8 +65,8 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
   const [escolhidos, setEscolhidos] = useState<number[]>([]) // modo "selecao": só os sabores marcados
   const [tipo, setTipo] = useState<TipoEntrega | null>(null)
   const [endereco, setEndereco] = useState('')
-  const [cep, setCep] = useState('') // só dígitos
   const [pontoReferencia, setPontoReferencia] = useState('')
+  const [observacao, setObservacao] = useState('')
   const [quando, setQuando] = useState<'pronto' | 'agendar' | null>(null)
   const [horario, setHorario] = useState('')
   const [nome, setNome] = useState('')
@@ -159,7 +161,6 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
     }
     if (!tipo) e.tipoEntrega = 'Escolha entrega ou retirada.'
     if (tipo === 'ENTREGA' && endereco.trim().length < 5) e.endereco = 'Informe o endereço de entrega.'
-    if (tipo === 'ENTREGA' && !/^\d{8}$/.test(cep)) e.cep = 'Informe o CEP com 8 números.'
     if (!quando) e.quando = 'Escolha quando quer receber.'
     else if (quando === 'pronto' && prontoIndisponivel) {
       e.quando = foraDoHorario
@@ -213,8 +214,8 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
             : [],
       tipoEntrega: tipo,
       endereco: tipo === 'ENTREGA' ? endereco.trim() : undefined,
-      cep: tipo === 'ENTREGA' ? cep : undefined,
       pontoReferencia: tipo === 'ENTREGA' && pontoReferencia.trim() ? pontoReferencia.trim() : undefined,
+      observacao: observacao.trim() || undefined,
       horarioAgendado: quando === 'agendar' ? new Date(horario).toISOString() : undefined,
       formaPagamento: pagamento,
       ...(pagamento === 'DINHEIRO' && { precisaTroco, trocoPara: precisaTroco ? valorTroco() : undefined }),
@@ -400,21 +401,6 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
           )}
           {tipo === 'ENTREGA' && (
             <div className="field mt-3">
-              <Label htmlFor="cep">CEP</Label>
-              <Input
-                id="cep"
-                value={formatCep(cep)}
-                onChange={(e) => setCep(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                inputMode="numeric"
-                autoComplete="postal-code"
-                placeholder="87140-000"
-                aria-invalid={!!erros.cep}
-              />
-              {erros.cep && <p className="field__error">{erros.cep}</p>}
-            </div>
-          )}
-          {tipo === 'ENTREGA' && (
-            <div className="field mt-3">
               <Label htmlFor="referencia">Ponto de referência <span className="field__optional">(opcional)</span></Label>
               <Input id="referencia" value={pontoReferencia} onChange={(e) => setPontoReferencia(e.target.value)} maxLength={200} placeholder="Ex.: portão azul, perto da padaria" aria-invalid={!!erros.pontoReferencia} />
               {erros.pontoReferencia && <p className="field__error">{erros.pontoReferencia}</p>}
@@ -534,6 +520,24 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
             </div>
           )}
         </section>
+
+        {/* 6. Observação */}
+        <section className="section">
+          <h2 className="section__title"><span className="section__step">6</span> Observações <span className="field__optional">(opcional)</span></h2>
+          <div className="field">
+            <Label htmlFor="observacao" className="sr-only">Observações</Label>
+            <Textarea
+              id="observacao"
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+              maxLength={500}
+              rows={3}
+              placeholder="Ex.: sem pimenta, tocar a campainha, alergia a camarão..."
+              aria-invalid={!!erros.observacao}
+            />
+            {erros.observacao ? <p className="field__error">{erros.observacao}</p> : <p className="field__hint">{observacao.length}/500</p>}
+          </div>
+        </section>
       </div>
 
       {/* Resumo */}
@@ -613,6 +617,7 @@ export default function OrderPage() {
 
   return (
     <>
+      <AvisoEntrega />
       <SiteHeader />
       <main className="page">
         <section className="hero">

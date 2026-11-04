@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, BadgeCheck, Clock, MapPin, MessageCircle, Phone, Store, Trash2 } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, Clock, MapPin, MessageCircle, MessageSquare, Phone, Store, Trash2 } from 'lucide-react'
 import { FormStatus } from '@/components/form-status'
 import { useBrand } from '@/context/brand'
 import { ErrorState, LoadingState } from '@/components/state-views'
@@ -263,6 +263,12 @@ Endereço: ${enderecoRetirada}` : ''}`,
                 {p.troco && <span className="block font-normal text-muted-foreground">{textoTroco(p.troco)}</span>}
               </dd>
             </div>
+            {p.observacao && (
+              <div>
+                <dt><MessageSquare className="size-3.5" /> Observações</dt>
+                <dd className="whitespace-pre-wrap">{p.observacao}</dd>
+              </div>
+            )}
           </dl>
         </section>
 

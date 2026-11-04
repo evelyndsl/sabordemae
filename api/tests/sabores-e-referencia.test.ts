@@ -4,7 +4,7 @@ import { criarPedidoSchema } from "../src/schemas/pedido.js";
 import { criarApp, encerrar, obterPrisma } from "./helpers.js";
 
 const cliente = { nomeCliente: "Maria Silva", telefone: "(11) 91234-5678", formaPagamento: "DINHEIRO" };
-const entrega = { ...cliente, tipoEntrega: "ENTREGA", endereco: "Rua das Flores, 123", cep: "87140000" };
+const entrega = { ...cliente, tipoEntrega: "ENTREGA", endereco: "Rua das Flores, 123" };
 
 let app: FastifyInstance;
 const codigosCriados: string[] = [];
@@ -84,5 +84,24 @@ describe("ponto de referência da entrega", () => {
     expect(retirada.statusCode).toBe(201);
     expect(retirada.json().pontoReferencia).toBeNull();
     expect(longo.statusCode).toBe(400);
+  });
+});
+
+describe("observação do pedido", () => {
+  it("salva a observação (sem espaços nas pontas) em entrega e retirada", async () => {
+    const e = await criarPedido({ ...entrega, quantidade: 10, observacao: "  Sem pimenta  " });
+    expect(e.statusCode).toBe(201);
+    expect(e.json().observacao).toBe("Sem pimenta");
+    expect((await consultar(e.json().codigo)).json().observacao).toBe("Sem pimenta");
+  });
+
+  it("vazia ou ausente vira nula", async () => {
+    expect((await criarPedido({ ...entrega, quantidade: 10, observacao: "   " })).json().observacao).toBeNull();
+    expect((await criarPedido({ ...entrega, quantidade: 10 })).json().observacao).toBeNull();
+  });
+
+  it("rejeita mais de 500 caracteres", async () => {
+    const res = await criarPedido({ ...entrega, quantidade: 10, observacao: "a".repeat(501) });
+    expect(res.statusCode).toBe(400);
   });
 });

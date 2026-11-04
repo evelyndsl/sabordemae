@@ -3,7 +3,6 @@ import { gerarCodigoPedido } from "../lib/codigo.js";
 import { NaoEncontradoError, RegraDeNegocioError, codigoErroPrisma } from "../lib/errors.js";
 import { prisma } from "../lib/prisma.js";
 import type { CriarPedidoInput } from "../schemas/pedido.js";
-import { validarCepDeEntrega } from "./cep.js";
 import { validarPedidoNoFuncionamento } from "./funcionamento.js";
 import { calcularPreco, paraCentavos } from "./preco.js";
 import { calcularPrazoPix } from "./prazoPix.js";
@@ -44,10 +43,6 @@ export async function criarPedido(input: CriarPedidoInput) {
     { tipoEntrega: input.tipoEntrega, horarioAgendado: input.horarioAgendado ?? null },
     new Date(),
   );
-
-  if (input.tipoEntrega === TipoEntrega.ENTREGA && input.cep) {
-    await validarCepDeEntrega(input.cep);
-  }
 
   if (input.sabores.length > 0) {
     const ids = input.sabores.map((s) => s.saborId);
@@ -105,6 +100,7 @@ export async function criarPedido(input: CriarPedidoInput) {
           tipoEntrega: input.tipoEntrega,
           endereco: ehEntrega ? (input.endereco ?? null) : null,
           pontoReferencia: ehEntrega ? (input.pontoReferencia ?? null) : null,
+          observacao: input.observacao ?? null,
           enderecoRetirada: ehEntrega ? null : (config.enderecoRetirada ?? null),
           horarioAgendado: input.horarioAgendado ?? null,
           formaPagamento: input.formaPagamento,

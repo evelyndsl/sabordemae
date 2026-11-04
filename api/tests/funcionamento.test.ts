@@ -181,7 +181,6 @@ describe("API de funcionamento", () => {
       sabores: [],
       tipoEntrega: dados.tipoEntrega,
       endereco: dados.tipoEntrega === "ENTREGA" ? "Rua das Flores, 123" : undefined,
-      cep: dados.tipoEntrega === "ENTREGA" ? "87140000" : undefined,
       horarioAgendado: dados.horarioAgendado,
     });
   }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, CheckCircle2, Clock, Copy, MapPin, MessageCircle, Store } from 'lucide-react'
+import { ArrowLeft, Check, CheckCircle2, Clock, Copy, MapPin, MessageCircle, MessageSquare, Store } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { ErrorState, LoadingState } from '@/components/state-views'
 import { StatusBadge } from '@/components/status-badge'
@@ -202,6 +202,12 @@ export default function TrackingPage() {
                   <dt>Cliente</dt>
                   <dd>{p.nomeCliente}</dd>
                 </div>
+                {p.observacao && (
+                  <div>
+                    <dt><MessageSquare className="size-3.5" /> Observações</dt>
+                    <dd className="whitespace-pre-wrap">{p.observacao}</dd>
+                  </div>
+                )}
               </dl>
             </section>
 

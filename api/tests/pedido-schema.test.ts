@@ -8,7 +8,6 @@ const base = {
   formaPagamento: "PIX",
   tipoEntrega: "ENTREGA",
   endereco: "Rua das Flores, 123",
-  cep: "87140000",
   quantidade: 50,
 };
 
@@ -86,5 +85,16 @@ describe("criarPedidoSchema", () => {
   it("rejeita forma de pagamento e tipo de entrega desconhecidos", () => {
     expect(mensagens({ ...base, formaPagamento: "BOLETO" }).length).toBeGreaterThan(0);
     expect(mensagens({ ...base, tipoEntrega: "DRONE" }).length).toBeGreaterThan(0);
+  });
+
+  it("observação é opcional: apara espaços e vazio vira ausente", () => {
+    expect(criarPedidoSchema.parse(base).observacao).toBeUndefined();
+    expect(criarPedidoSchema.parse({ ...base, observacao: "   " }).observacao).toBeUndefined();
+    expect(criarPedidoSchema.parse({ ...base, observacao: "  Sem pimenta " }).observacao).toBe("Sem pimenta");
+  });
+
+  it("rejeita observação com mais de 500 caracteres", () => {
+    expect(mensagens({ ...base, observacao: "a".repeat(501) })).toContain("A observação deve ter no máximo 500 caracteres.");
+    expect(criarPedidoSchema.safeParse({ ...base, observacao: "a".repeat(500) }).success).toBe(true);
   });
 });

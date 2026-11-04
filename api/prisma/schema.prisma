@@ -108,6 +108,8 @@ model Pedido {
   endereco             String?        @db.VarChar(300)
   // Opcional, só em entregas: "perto da padaria", "portão azul"...
   pontoReferencia      String?        @db.VarChar(200)
+  // Recado opcional do cliente para a loja (qualquer tipo de pedido).
+  observacao           String?        @db.VarChar(500)
   // Data e hora pedidas pelo cliente (entrega ou retirada). Nulo = "para quando ficar pronto".
   horarioAgendado      DateTime?
   formaPagamento       FormaPagamento

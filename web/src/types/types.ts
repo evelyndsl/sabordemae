@@ -97,6 +97,7 @@ export interface Pedido {
   tipoEntrega: TipoEntrega
   endereco: string | null
   pontoReferencia: string | null
+  observacao: string | null
   /** Retirada: onde buscar (endereço do estabelecimento na hora do pedido). */
   enderecoRetirada: string | null
   /** Data e hora pedidas pelo cliente; null = "para quando ficar pronto". */
@@ -130,10 +131,10 @@ export interface CriarPedidoBody {
   sabores: { saborId: number; quantidade?: number }[]
   tipoEntrega: TipoEntrega
   endereco?: string
-  /** Obrigatório na entrega: 8 dígitos, sem traço. */
-  cep?: string
   /** Opcional, só na entrega. */
   pontoReferencia?: string
+  /** Opcional, até 500 caracteres. */
+  observacao?: string
   /** Omitido = "para quando ficar pronto". */
   horarioAgendado?: string
   formaPagamento: FormaPagamento

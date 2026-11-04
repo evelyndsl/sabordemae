@@ -45,7 +45,6 @@ describe("fluxo completo", () => {
       quantidade: 110,
       tipoEntrega: "ENTREGA",
       endereco: "Rua das Flores, 123",
-      cep: "87140000",
       horarioAgendado: emHoras(30),
       formaPagamento: "PIX",
     });
@@ -131,7 +130,6 @@ describe("regras do pedido pela API", () => {
       quantidade: 10,
       tipoEntrega: "ENTREGA",
       endereco: "Rua das Flores, 123",
-      cep: "87140000",
       horarioAgendado: emHoras(-2),
       formaPagamento: "DINHEIRO",
     });
