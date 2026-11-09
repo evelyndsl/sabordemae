@@ -65,6 +65,8 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
   const [escolhidos, setEscolhidos] = useState<number[]>([]) // modo "selecao": só os sabores marcados
   const [tipo, setTipo] = useState<TipoEntrega | null>(null)
   const [endereco, setEndereco] = useState('')
+  const [numero, setNumero] = useState('')
+  const [bairro, setBairro] = useState('')
   const [pontoReferencia, setPontoReferencia] = useState('')
   const [observacao, setObservacao] = useState('')
   const [quando, setQuando] = useState<'pronto' | 'agendar' | null>(null)
@@ -160,7 +162,11 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
       e.sabores = 'Marque ao menos um sabor.'
     }
     if (!tipo) e.tipoEntrega = 'Escolha entrega ou retirada.'
-    if (tipo === 'ENTREGA' && endereco.trim().length < 5) e.endereco = 'Informe o endereço de entrega.'
+    if (tipo === 'ENTREGA') {
+      if (endereco.trim().length < 5) e.endereco = 'Informe a rua ou avenida de entrega.'
+      if (!numero.trim()) e.numero = 'Informe o número (ou S/N).'
+      if (!bairro.trim()) e.bairro = 'Informe o bairro.'
+    }
     if (!quando) e.quando = 'Escolha quando quer receber.'
     else if (quando === 'pronto' && prontoIndisponivel) {
       e.quando = foraDoHorario
@@ -214,6 +220,8 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
             : [],
       tipoEntrega: tipo,
       endereco: tipo === 'ENTREGA' ? endereco.trim() : undefined,
+      numero: tipo === 'ENTREGA' ? numero.trim() : undefined,
+      bairro: tipo === 'ENTREGA' ? bairro.trim() : undefined,
       pontoReferencia: tipo === 'ENTREGA' && pontoReferencia.trim() ? pontoReferencia.trim() : undefined,
       observacao: observacao.trim() || undefined,
       horarioAgendado: quando === 'agendar' ? new Date(horario).toISOString() : undefined,
@@ -394,15 +402,30 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
           {erros.tipoEntrega && <p className="field__error mt-2">{erros.tipoEntrega}</p>}
           {tipo === 'ENTREGA' && (
             <div className="field mt-4">
-              <Label htmlFor="endereco">Endereço de entrega</Label>
-              <Input id="endereco" value={endereco} onChange={(e) => setEndereco(e.target.value)} autoComplete="street-address" placeholder="Rua, número, bairro" aria-invalid={!!erros.endereco} />
+              <Label htmlFor="endereco">Endereço (rua ou avenida)</Label>
+              <Input id="endereco" value={endereco} onChange={(e) => setEndereco(e.target.value)} maxLength={300} autoComplete="address-line1" placeholder="Ex.: Rua das Flores" aria-invalid={!!erros.endereco} />
               {erros.endereco && <p className="field__error">{erros.endereco}</p>}
+            </div>
+          )}
+          {tipo === 'ENTREGA' && (
+            <div className="field-pair mt-3">
+              <div className="field">
+                <Label htmlFor="numero">Número</Label>
+                <Input id="numero" value={numero} onChange={(e) => setNumero(e.target.value)} maxLength={20} autoComplete="off" placeholder="Ex.: 123" aria-invalid={!!erros.numero} />
+                {erros.numero && <p className="field__error">{erros.numero}</p>}
+              </div>
+              <div className="field">
+                <Label htmlFor="bairro">Bairro</Label>
+                <Input id="bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} maxLength={100} autoComplete="address-level3" placeholder="Ex.: Centro" aria-invalid={!!erros.bairro} />
+                {erros.bairro && <p className="field__error">{erros.bairro}</p>}
+              </div>
             </div>
           )}
           {tipo === 'ENTREGA' && (
             <div className="field mt-3">
               <Label htmlFor="referencia">Ponto de referência <span className="field__optional">(opcional)</span></Label>
               <Input id="referencia" value={pontoReferencia} onChange={(e) => setPontoReferencia(e.target.value)} maxLength={200} placeholder="Ex.: portão azul, perto da padaria" aria-invalid={!!erros.pontoReferencia} />
+              <p className="field__hint">Se o endereço tiver divisões (casa A, B ou C, bloco, apartamento ou fundos), informe aqui qual é a sua. Assim o entregador encontra você sem precisar ligar.</p>
               {erros.pontoReferencia && <p className="field__error">{erros.pontoReferencia}</p>}
             </div>
           )}

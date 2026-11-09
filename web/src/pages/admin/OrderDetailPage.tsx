@@ -12,7 +12,7 @@ import { useFetch } from '@/hooks/use-fetch'
 import { useSave } from '@/hooks/use-save'
 import { useStatusUpdate } from '@/hooks/use-status-update'
 import { ApiError, api } from '@/lib/api'
-import { formatDateTime, formatQtdItem, temItemADividir, formatPhone, formatPrice, formatTime, paymentLabels, QUANDO_PRONTO, statusFlow, statusLabels, tipoLabels, textoTroco } from '@/lib/format'
+import { formatDateTime, formatQtdItem, temItemADividir, formatPhone, formatPrice, formatTime, paymentLabels, QUANDO_PRONTO, statusFlow, statusLabels, tipoLabels, textoEndereco, textoTroco } from '@/lib/format'
 import { textoPrazoPix } from '@/lib/prazo-pix'
 import { whatsappLink } from '@/lib/whatsapp'
 import type { Pedido, PedidoAdmin } from '@/types/types'
@@ -238,7 +238,7 @@ Endereço: ${enderecoRetirada}` : ''}`,
               <dd>
                 {p.tipoEntrega === 'ENTREGA' ? (
                   <>
-                    {p.endereco}
+                    {textoEndereco(p)}
                     {p.pontoReferencia && <span className="block font-normal text-muted-foreground">Ref.: {p.pontoReferencia}</span>}
                   </>
                 ) : (

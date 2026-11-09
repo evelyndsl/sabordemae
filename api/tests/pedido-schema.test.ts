@@ -7,7 +7,7 @@ const base = {
   telefone: "(11) 91234-5678",
   formaPagamento: "PIX",
   tipoEntrega: "ENTREGA",
-  endereco: "Rua das Flores, 123",
+  endereco: "Rua das Flores", numero: "123", bairro: "Centro",
   quantidade: 50,
 };
 
@@ -66,7 +66,7 @@ describe("criarPedidoSchema", () => {
 
   it("entrega e retirada aceitam ficar sem horário (para quando ficar pronto)", () => {
     expect(criarPedidoSchema.safeParse(base).success).toBe(true);
-    expect(criarPedidoSchema.safeParse({ ...base, tipoEntrega: "RETIRADA", endereco: undefined }).success).toBe(true);
+    expect(criarPedidoSchema.safeParse({ ...base, tipoEntrega: "RETIRADA", endereco: undefined, numero: undefined, bairro: undefined }).success).toBe(true);
   });
 
   it("não aceita horário no passado", () => {

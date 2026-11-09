@@ -10,7 +10,7 @@ const entrega = (quantidade: number, extra: object = {}) => ({
   ...cliente,
   quantidade,
   tipoEntrega: "ENTREGA",
-  endereco: "Rua das Flores, 123 - Centro",
+  endereco: "Rua das Flores", numero: "123", bairro: "Centro",
   ...extra,
 });
 

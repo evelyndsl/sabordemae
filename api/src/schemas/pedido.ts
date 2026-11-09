@@ -12,6 +12,16 @@ const itemSaborSchema = z.object({
   quantidade: z.number().int().positive().optional(),
 });
 
+// Texto aparado; vazio vira undefined. O limite de tamanho tem mensagem própria.
+function textoOpcional(max: number) {
+  return z
+    .string()
+    .trim()
+    .max(max, `Use no máximo ${max} caracteres.`)
+    .transform((v) => (v === "" ? undefined : v))
+    .optional();
+}
+
 export const criarPedidoSchema = z
   .object({
     nomeCliente: z.string().trim().min(2, "Informe seu nome.").max(120),
@@ -28,7 +38,10 @@ export const criarPedidoSchema = z
     // Vazio = pedido misto (o cliente não escolheu sabores).
     sabores: z.array(itemSaborSchema).max(50).default([]),
     tipoEntrega: z.enum(TipoEntrega),
-    endereco: z.string().trim().min(5).max(300).optional(),
+    // Entrega: rua/avenida, número e bairro são obrigatórios (validados no superRefine). Vazio = não informado.
+    endereco: textoOpcional(300),
+    numero: textoOpcional(20),
+    bairro: textoOpcional(100),
     // Opcional (só vale na entrega). Texto vazio é tratado como "não informado".
     pontoReferencia: z
       .string()
@@ -58,8 +71,16 @@ export const criarPedidoSchema = z
       ctx.addIssue({ code: "custom", path: ["trocoPara"], message: "Informe para quanto você precisa de troco." });
     }
 
-    if (pedido.tipoEntrega === TipoEntrega.ENTREGA && !pedido.endereco) {
-      ctx.addIssue({ code: "custom", path: ["endereco"], message: "Informe o endereço de entrega." });
+    if (pedido.tipoEntrega === TipoEntrega.ENTREGA) {
+      if (!pedido.endereco || pedido.endereco.length < 5) {
+        ctx.addIssue({ code: "custom", path: ["endereco"], message: "Informe o endereço de entrega." });
+      }
+      if (!pedido.numero) {
+        ctx.addIssue({ code: "custom", path: ["numero"], message: "Informe o número da residência." });
+      }
+      if (!pedido.bairro) {
+        ctx.addIssue({ code: "custom", path: ["bairro"], message: "Informe o bairro." });
+      }
     }
 
     if (pedido.horarioAgendado && pedido.horarioAgendado.getTime() <= Date.now()) {
@@ -105,6 +126,8 @@ export const pedidoRespostaSchema = z.object({
   nomeCliente: z.string(),
   tipoEntrega: z.enum(TipoEntrega),
   endereco: z.string().nullable(),
+  numero: z.string().nullable(),
+  bairro: z.string().nullable(),
   pontoReferencia: z.string().nullable(),
   observacao: z.string().nullable(),
   // Retirada: onde buscar (endereço do estabelecimento na hora do pedido). null se não configurado ou se for entrega.
@@ -147,6 +170,8 @@ export function paraResposta(p: PedidoComItens): z.infer<typeof pedidoRespostaSc
     nomeCliente: p.nomeCliente,
     tipoEntrega: p.tipoEntrega,
     endereco: p.endereco,
+    numero: p.numero,
+    bairro: p.bairro,
     pontoReferencia: p.pontoReferencia,
     observacao: p.observacao,
     enderecoRetirada: p.enderecoRetirada,

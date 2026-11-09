@@ -3,6 +3,12 @@ import type { FormaPagamento, StatusPedido, TipoEntrega } from '@/types/types'
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 export const formatPrice = (value: number | string) => brl.format(typeof value === 'string' ? parseFloat(value) : value)
 
+/** "Rua das Flores, 123 - Centro". Pedidos antigos (sem número/bairro) mostram só o endereço. */
+export function textoEndereco(p: { endereco: string | null; numero?: string | null; bairro?: string | null }) {
+  const rua = [p.endereco, p.numero].filter(Boolean).join(', ')
+  return [rua, p.bairro].filter(Boolean).join(' - ')
+}
+
 /** "Troco para R$ 100,00" ou "Não precisa de troco"; null quando o pagamento não é em dinheiro. */
 export function textoTroco(troco: { precisa: boolean; para: string | null } | null) {
   if (!troco) return null

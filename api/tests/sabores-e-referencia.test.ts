@@ -4,7 +4,7 @@ import { criarPedidoSchema } from "../src/schemas/pedido.js";
 import { criarApp, encerrar, obterPrisma } from "./helpers.js";
 
 const cliente = { nomeCliente: "Maria Silva", telefone: "(11) 91234-5678", formaPagamento: "DINHEIRO" };
-const entrega = { ...cliente, tipoEntrega: "ENTREGA", endereco: "Rua das Flores, 123" };
+const entrega = { ...cliente, tipoEntrega: "ENTREGA", endereco: "Rua das Flores", numero: "123", bairro: "Centro" };
 
 let app: FastifyInstance;
 const codigosCriados: string[] = [];

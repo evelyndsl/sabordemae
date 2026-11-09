@@ -95,7 +95,10 @@ export interface Pedido {
   status: StatusPedido
   nomeCliente: string
   tipoEntrega: TipoEntrega
+  /** Entrega: rua ou avenida. Pedidos antigos podem ter número e bairro dentro dele. */
   endereco: string | null
+  numero: string | null
+  bairro: string | null
   pontoReferencia: string | null
   observacao: string | null
   /** Retirada: onde buscar (endereço do estabelecimento na hora do pedido). */
@@ -130,7 +133,10 @@ export interface CriarPedidoBody {
   /** Com quantidade em todos os itens, ou sem em nenhum (só a escolha dos sabores). */
   sabores: { saborId: number; quantidade?: number }[]
   tipoEntrega: TipoEntrega
+  /** Entrega: rua ou avenida, número e bairro são obrigatórios. */
   endereco?: string
+  numero?: string
+  bairro?: string
   /** Opcional, só na entrega. */
   pontoReferencia?: string
   /** Opcional, até 500 caracteres. */

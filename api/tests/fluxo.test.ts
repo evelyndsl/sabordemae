@@ -44,7 +44,7 @@ describe("fluxo completo", () => {
       ...cliente,
       quantidade: 110,
       tipoEntrega: "ENTREGA",
-      endereco: "Rua das Flores, 123",
+      endereco: "Rua das Flores", numero: "123", bairro: "Centro",
       horarioAgendado: emHoras(30),
       formaPagamento: "PIX",
     });
@@ -129,7 +129,7 @@ describe("regras do pedido pela API", () => {
       ...cliente,
       quantidade: 10,
       tipoEntrega: "ENTREGA",
-      endereco: "Rua das Flores, 123",
+      endereco: "Rua das Flores", numero: "123", bairro: "Centro",
       horarioAgendado: emHoras(-2),
       formaPagamento: "DINHEIRO",
     });

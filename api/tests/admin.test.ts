@@ -375,7 +375,7 @@ describe("sabores", () => {
         formaPagamento: "DINHEIRO",
         quantidade: 50,
         tipoEntrega: "ENTREGA",
-        endereco: "Rua das Flores, 123",
+        endereco: "Rua das Flores", numero: "123", bairro: "Centro",
         sabores: [{ saborId, quantidade: 50 }],
       },
     });
