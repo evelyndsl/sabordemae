@@ -99,6 +99,8 @@ export async function criarPedido(input: CriarPedidoInput) {
           telefone: input.telefone,
           tipoEntrega: input.tipoEntrega,
           endereco: ehEntrega ? (input.endereco ?? null) : null,
+          numero: ehEntrega ? (input.numero ?? null) : null,
+          bairro: ehEntrega ? (input.bairro ?? null) : null,
           pontoReferencia: ehEntrega ? (input.pontoReferencia ?? null) : null,
           observacao: input.observacao ?? null,
           enderecoRetirada: ehEntrega ? null : (config.enderecoRetirada ?? null),

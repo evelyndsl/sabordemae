@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatPhone, intervaloDoPeriodo, formatQtdItem, hasMaxTwoDecimals, nextStatus, parseMoney, statusFlow, temItemADividir } from '@/lib/format'
+import { formatPhone, intervaloDoPeriodo, formatQtdItem, hasMaxTwoDecimals, nextStatus, parseMoney, statusFlow, temItemADividir, textoEndereco } from '@/lib/format'
 import { whatsappLink } from '@/lib/whatsapp'
 
 describe('statusFlow e nextStatus', () => {
@@ -78,5 +78,15 @@ describe('intervaloDoPeriodo (filtros do painel)', () => {
   it('mês inteiro, inclusive fevereiro de ano bissexto', () => {
     expect(intervaloDoPeriodo('mes', '2026-11-15')).toEqual({ de: '2026-11-01', ate: '2026-11-30' })
     expect(intervaloDoPeriodo('mes', '2028-02-10')).toEqual({ de: '2028-02-01', ate: '2028-02-29' })
+  })
+})
+
+describe('textoEndereco', () => {
+  it('junta rua, número e bairro', () => {
+    expect(textoEndereco({ endereco: 'Rua das Flores', numero: '123', bairro: 'Centro' })).toBe('Rua das Flores, 123 - Centro')
+  })
+
+  it('pedidos antigos (sem número e bairro) mostram só o endereço', () => {
+    expect(textoEndereco({ endereco: 'Rua das Flores, 123 - Centro', numero: null, bairro: null })).toBe('Rua das Flores, 123 - Centro')
   })
 })

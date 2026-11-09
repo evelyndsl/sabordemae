@@ -186,7 +186,9 @@ Body base:
   "telefone": "(11) 91234-5678",
   "quantidade": 50,
   "tipoEntrega": "ENTREGA",
-  "endereco": "Rua das Flores, 123",
+  "endereco": "Rua das Flores",
+  "numero": "123",
+  "bairro": "Centro",
   "formaPagamento": "PIX"
 }
 ```
@@ -195,7 +197,7 @@ Body base:
 |---|---|---|---|
 | 7 | Pedido misto, entrega | body base | 201, `status: AGUARDANDO_PAGAMENTO` (Pix; nas demais formas, `AGUARDANDO`), `subtotal 39.00`, `taxaEntrega 5.00`, `total 44.00`, `itens: [{ sabor: "Misto", quantidade: 50 }]`, `codigo` com 8 caracteres |
 | 8 | Com sabores | `"sabores": [{"saborId":1,"quantidade":20},{"saborId":4,"quantidade":30}]` | 201, dois itens com o nome do sabor |
-| 9 | Retirada | `"tipoEntrega":"RETIRADA"`, remover `endereco`, `"horarioAgendado":"<data futura ISO, ex.: 2026-12-01T15:00:00-03:00>"`, `quantidade: 10` | 201, `total 13.00`, `taxaEntrega 0.00` |
+| 9 | Retirada | `"tipoEntrega":"RETIRADA"`, remover `endereco`, `numero` e `bairro`, `"horarioAgendado":"<data futura ISO, ex.: 2026-12-01T15:00:00-03:00>"`, `quantidade: 10` | 201, `total 13.00`, `taxaEntrega 0.00` |
 | 10 | Entrega até 49 un. | `quantidade: 10` | `subtotal 13.00` + `taxa 7.00` = `20.00` |
 | 11 | Acima de 100 un. | retirada, `quantidade: 110` | `total 70.40` (110 × 0,64) |
 | 12 | Faixa 50–199 | entrega, `quantidade: 190` | `total 126.60` (121,60 + 5,00) |
@@ -213,8 +215,13 @@ Body base:
 | 19 | Quantidade abaixo do mínimo | `quantidade: 0` |
 | 20 | Quantidade acima do máximo | `quantidade: 1010` |
 | 21 | Quantidade decimal | `quantidade: 10.5` |
-| 22 | Entrega sem endereço | remover `endereco` |
+| 22 | Entrega sem endereço | remover `endereco` (erro no campo `endereco`: "Informe o endereço de entrega.") |
 | 23 | Endereço curto | `endereco: "Rua"` |
+| 23a | Entrega sem número | remover `numero` ou `numero: "  "` (erro no campo `numero`: "Informe o número da residência.") |
+| 23b | Entrega sem bairro | remover `bairro` ou `bairro: ""` (erro no campo `bairro`: "Informe o bairro.") |
+| 23c | Entrega sem número e sem bairro | os dois em branco: 400 com os dois erros listados |
+| 23d | Número ou bairro longos demais | `numero` com 21 caracteres ou `bairro` com 101 |
+| 23e | Retirada com endereço, número e bairro | 201, mas os três voltam `null` (só valem na entrega) |
 | 24 | Retirada ou entrega sem horário | omitir `horarioAgendado` | 201 (vale "para quando ficar pronto": `horarioAgendado: null`) |
 | 25 | Retirada com horário no passado | `horarioAgendado: "2020-01-01T10:00:00-03:00"` |
 | 26 | Horário sem fuso | `horarioAgendado: "2026-12-01T15:00:00"` |

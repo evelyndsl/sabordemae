@@ -105,7 +105,10 @@ model Pedido {
   nomeCliente          String         @db.VarChar(120)
   telefone             String         @db.VarChar(20)
   tipoEntrega          TipoEntrega
+  // Entrega: rua/avenida, número e bairro (número e bairro são nulos só em pedidos antigos).
   endereco             String?        @db.VarChar(300)
+  numero               String?        @db.VarChar(20)
+  bairro               String?        @db.VarChar(100)
   // Opcional, só em entregas: "perto da padaria", "portão azul"...
   pontoReferencia      String?        @db.VarChar(200)
   // Recado opcional do cliente para a loja (qualquer tipo de pedido).

@@ -180,7 +180,9 @@ describe("API de funcionamento", () => {
       quantidade: 10,
       sabores: [],
       tipoEntrega: dados.tipoEntrega,
-      endereco: dados.tipoEntrega === "ENTREGA" ? "Rua das Flores, 123" : undefined,
+      endereco: dados.tipoEntrega === "ENTREGA" ? "Rua das Flores" : undefined,
+      numero: dados.tipoEntrega === "ENTREGA" ? "123" : undefined,
+      bairro: dados.tipoEntrega === "ENTREGA" ? "Centro" : undefined,
       horarioAgendado: dados.horarioAgendado,
     });
   }

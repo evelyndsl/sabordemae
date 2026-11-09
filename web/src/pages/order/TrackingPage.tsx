@@ -7,7 +7,7 @@ import { StatusBadge } from '@/components/status-badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { useFetch } from '@/hooks/use-fetch'
 import { ApiError, api } from '@/lib/api'
-import { formatDateTime, formatQtdItem, temItemADividir, formatPrice, formatTime, paymentLabels, QUANDO_PRONTO, statusFlow, statusLabels, tipoLabels, textoTroco } from '@/lib/format'
+import { formatDateTime, formatQtdItem, temItemADividir, formatPrice, formatTime, paymentLabels, QUANDO_PRONTO, statusFlow, statusLabels, tipoLabels, textoEndereco, textoTroco } from '@/lib/format'
 import { textoPrazoPix } from '@/lib/prazo-pix'
 import { whatsappLink } from '@/lib/whatsapp'
 import type { Pedido, Pix } from '@/types/types'
@@ -174,7 +174,7 @@ export default function TrackingPage() {
                   <dd>
                     {p.tipoEntrega === 'ENTREGA' ? (
                       <>
-                        {p.endereco}
+                        {textoEndereco(p)}
                         {p.pontoReferencia && <span className="block font-normal text-muted-foreground">Ref.: {p.pontoReferencia}</span>}
                       </>
                     ) : (
