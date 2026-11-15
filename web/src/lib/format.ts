@@ -53,8 +53,23 @@ export function toLocalInputValue(date: Date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+/**
+ * Só dígitos, sem o DDI 55 do Brasil. O 55 sai quando o valor começa com "+" (colado com o +55) ou quando
+ * há dígitos demais para um número nacional (12 ou mais começando em 55). Sem isso, "55" seria tomado
+ * como DDD e o resto do número seria cortado. O DDD 55 de verdade (RS) continua valendo com 10 ou 11 dígitos.
+ */
+export function normalizarTelefone(value: string) {
+  const d = value.replace(/\D/g, '')
+  if (!d.startsWith('55')) return d
+  const comMais = /^[^\d+]*\+/.test(value)
+  return comMais || d.length >= 12 ? d.slice(2) : d
+}
+
+/** Celular brasileiro: DDD + 9 + 8 dígitos. */
+export const telefoneValido = (value: string) => /^[1-9][1-9]9\d{8}$/.test(normalizarTelefone(value))
+
 export function formatPhone(value: string) {
-  const d = value.replace(/\D/g, '').slice(0, 11)
+  const d = normalizarTelefone(value).slice(0, 11)
   if (d.length <= 2) return d
   if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
