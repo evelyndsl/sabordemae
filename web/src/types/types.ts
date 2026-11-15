@@ -184,3 +184,8 @@ export interface Marca {
   /** null = tema padrão. */
   cores: Cores | null
 }
+
+/** Mensagens de erro do formulário de pedido, por campo. */
+export type Erros = Record<string, string>;
+export type Quando = "pronto" | "agendar";
+export type ModoSabores = "misto" | "quantidades" | "selecao";
