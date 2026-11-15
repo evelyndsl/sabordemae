@@ -3,6 +3,14 @@ import { FormaPagamento, StatusPedido, TipoEntrega } from "../generated/prisma/e
 import type { PedidoComItens } from "../services/pedidos.js";
 import { PASSO_QUANTIDADE, QUANTIDADE_MAXIMA, QUANTIDADE_MINIMA } from "../services/preco.js";
 
+const CELULAR = /^[1-9][1-9]9\d{8}$/;
+
+/** Só dígitos; remove o DDI 55 quando o número veio completo (55 + DDD + 9 dígitos). */
+export function normalizarTelefone(valor: string) {
+  const digitos = valor.replace(/\D/g, "");
+  return digitos.length === 13 && digitos.startsWith("55") ? digitos.slice(2) : digitos;
+}
+
 export const SABOR_MISTO = "Misto";
 
 // Com quantidade: o cliente definiu quantas unidades de cada sabor.
@@ -25,10 +33,11 @@ function textoOpcional(max: number) {
 export const criarPedidoSchema = z
   .object({
     nomeCliente: z.string().trim().min(2, "Informe seu nome.").max(120),
+    // Celular brasileiro: DDD + 9 + 8 dígitos. O DDI (55) colado junto é removido.
     telefone: z
       .string()
-      .transform((v) => v.replace(/\D/g, ""))
-      .pipe(z.string().regex(/^\d{10,11}$/, "Informe um telefone com DDD.")),
+      .transform(normalizarTelefone)
+      .pipe(z.string().regex(CELULAR, "Informe um celular com DDD + 9 (ex.: (44) 91234-5678). Não inclua o +55 do Brasil.")),
     quantidade: z
       .number()
       .int()
