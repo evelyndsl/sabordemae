@@ -205,7 +205,7 @@ Body base:
 | 14 | Limite máximo | retirada, `quantidade: 1000` | 201 |
 | 15 | Preço enviado pelo cliente é ignorado | adicionar `"total": 1` | 201 com total calculado pelo servidor |
 | 16 | Formas de pagamento | trocar por `DINHEIRO` e `CARTAO` | 201 nos dois |
-| 17 | Telefone sem máscara | `"telefone":"11912345678"` | 201 (só dígitos são guardados) |
+| 17 | Telefone sem máscara | `"telefone":"11912345678"` | 201 (só dígitos são guardados; celular com DDD e 9 na frente) |
 
 #### 4.3 Criar pedido — validações (todas devem dar 400)
 
@@ -230,7 +230,8 @@ Body base:
 | 29 | Sabor inexistente | `saborId: 9999` (mensagem de sabor indisponível) |
 | 30 | Sabor desativado | desative um sabor (teste 4.8) e use o id dele |
 | 31 | Nome muito curto / ausente | `nomeCliente: "A"` ou remover |
-| 32 | Telefone inválido | `"telefone":"123"` |
+| 32 | Telefone inválido | `"telefone":"123"`, fixo (`"(44) 3123-4567"`) ou sem o 9 (erro: "Informe um celular com DDD e o 9 na frente…") |
+| 32a | Telefone com DDI | `"+55 44 99123-4567"` | 201, guardado como `44991234567` (o 55 é removido) |
 | 33 | Forma de pagamento inválida | `"formaPagamento":"BOLETO"` |
 | 34 | Tipo de entrega inválido | `"tipoEntrega":"DRONE"` |
 | 35 | Body vazio / JSON malformado | `{}` e `{ quebrado` |
