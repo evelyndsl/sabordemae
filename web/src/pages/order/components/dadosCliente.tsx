@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatPhone } from "@/lib/format";
+import { formatPhone, telefoneColado } from "@/lib/format";
 import type { Erros } from "@/types/types";
 
 interface DadosClienteProps {
@@ -45,6 +45,19 @@ const DadosCliente = ({
             inputMode="tel"
             value={telefone}
             onChange={(e) => setTelefone(formatPhone(e.target.value))}
+            onPaste={(e) => {
+              // Só trata a colagem que substitui o campo todo (vazio ou tudo selecionado).
+              const campo = e.currentTarget;
+              const tudo =
+                campo.value === "" ||
+                (campo.selectionStart === 0 &&
+                  campo.selectionEnd === campo.value.length);
+              if (!tudo) return;
+              e.preventDefault();
+              setTelefone(
+                formatPhone(telefoneColado(e.clipboardData.getData("text"))),
+              );
+            }}
             autoComplete="tel"
             placeholder="(11) 99999-9999"
             aria-invalid={!!erros.telefone}

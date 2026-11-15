@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatPhone, intervaloDoPeriodo, formatQtdItem, hasMaxTwoDecimals, nextStatus, parseMoney, statusFlow, temItemADividir, textoEndereco, normalizarTelefone, telefoneValido } from '@/lib/format'
+import { formatPhone, telefoneColado, intervaloDoPeriodo, formatQtdItem, hasMaxTwoDecimals, nextStatus, parseMoney, statusFlow, temItemADividir, textoEndereco, normalizarTelefone, telefoneValido } from '@/lib/format'
 import { whatsappLink } from '@/lib/whatsapp'
 
 describe('statusFlow e nextStatus', () => {
@@ -103,7 +103,22 @@ describe('telefone', () => {
     expect(normalizarTelefone('+5544912345678')).toBe('44912345678')
     expect(normalizarTelefone('  +55 (44) 91234-5678')).toBe('44912345678')
     expect(normalizarTelefone('+55')).toBe('')
-    expect(normalizarTelefone('554491234567')).toBe('4491234567') // 12 dígitos: o 55 só pode ser DDI
+  })
+
+  it('mantém o DDD 55 (RS) enquanto digita, mesmo com dígitos a mais', () => {
+    expect(normalizarTelefone('55912345678')).toBe('55912345678')
+    expect(normalizarTelefone('559123456789')).toBe('559123456789') // o campo corta em 11 depois
+    expect(formatPhone('559123456789')).toBe('(55) 91234-5678')
+  })
+
+  it('telefoneColado tira o +55/55 e acrescenta o 9 que faltou depois do DDD', () => {
+    expect(telefoneColado('+55 44 91234-5678')).toBe('44912345678')
+    expect(telefoneColado('+55 44 1234-5678')).toBe('44912345678') // sem o 9
+    expect(telefoneColado('554412345678')).toBe('44912345678') // 55 sem "+", sem o 9
+    expect(telefoneColado('4412345678')).toBe('44912345678')
+    expect(telefoneColado('55912345678')).toBe('55912345678') // DDD 55 de verdade
+    expect(telefoneColado('+55 55 91234-5678')).toBe('55912345678')
+    expect(telefoneColado('(44) 3123-4567')).toBe('4431234567') // fixo: não mexe
   })
 
   it('formatPhone mostra o número colado com +55 sem o DDI', () => {
