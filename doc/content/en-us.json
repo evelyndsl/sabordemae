@@ -1,0 +1,2464 @@
+{
+  "meta": {
+    "title": "Sabor de Mãe",
+    "version": "1.0.0",
+    "language": "en-us",
+    "languageName": "English",
+    "generatedAt": "2026-11-11",
+    "sourceCommit": "f21e900",
+    "repository": "https://github.com/evelyndsl/sabordemae"
+  },
+  "ui": {
+    "docs": "Documentation",
+    "searchPlaceholder": "Search the docs...",
+    "searchResults": "Search results",
+    "noResults": "No results found.",
+    "onThisPage": "On this page",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "generated": "Generated on",
+    "empty": "No content.",
+    "collapseSidebar": "Collapse menu",
+    "expandSidebar": "Expand menu"
+  },
+  "sections": [
+    {
+      "id": "visao-geral",
+      "group": "Introduction",
+      "title": "Overview",
+      "summary": "A mini savory snacks ordering app for a single shop: customers order on the website and the owner manages everything from a dashboard.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "o-que-e",
+          "text": "What it is"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Sabor de Mãe** is a delivery application for a single shop (no multi-tenancy) that sells mini savory snacks. Customers build an order by choosing a **quantity** (in steps of 10) and, optionally, the **flavors**; pick **delivery** or **pickup**; and pay with cash, card (in person) or **Pix** (they copy the key and send the receipt by WhatsApp). The owner receives orders in a dashboard, updates each order status and configures prices, opening hours, Pix and the brand look."
+        },
+        {
+          "type": "heading",
+          "id": "problema",
+          "text": "Problem it solves"
+        },
+        {
+          "type": "paragraph",
+          "text": "Small food businesses usually take orders by chat, repeating prices and rules by hand. Here the price is **always computed on the server**, opening hours are enforced automatically and customers follow their order with a code, with no account needed."
+        },
+        {
+          "type": "heading",
+          "id": "publico",
+          "text": "Who it is for"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**End customer:** orders at `/pedido` and tracks at `/pedido/:codigo`.",
+            "**Shop owner (admin):** uses the dashboard at `/admin`.",
+            "**Developers:** API in `api/` and front end in `web/`."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "funcionalidades",
+          "text": "Features"
+        },
+        {
+          "type": "cards",
+          "items": [
+            {
+              "title": "Order without an account",
+              "text": "Mixed or per-flavor quantity; lookup by an 8-character code."
+            },
+            {
+              "title": "Server-side pricing",
+              "text": "Price table from 10 to 100 units, per-unit price above that and a delivery fee by tier."
+            },
+            {
+              "title": "Manual Pix",
+              "text": "No bank integration: the customer copies the key and the owner approves the payment."
+            },
+            {
+              "title": "Opening rules",
+              "text": "Daily hours, service days, manual “closed” switch and delivery turned off for a single day."
+            },
+            {
+              "title": "Owner dashboard",
+              "text": "Orders, status, flavors, prices, Pix, opening rules and brand (logo and colors)."
+            },
+            {
+              "title": "New-order alert",
+              "text": "Sound in the dashboard (polls every 20 s) and optional push through ntfy."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "status-projeto",
+          "text": "Status and scope"
+        },
+        {
+          "type": "paragraph",
+          "text": "The project is under active development (working MVP, deployed on Vercel with a Neon database). The original product brief is in `api/APP.md`."
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "title": "About this documentation",
+          "text": "It was generated from commit `f21e900` **plus** the uncommitted changes on branch `update/4-adicionar-verificacao-de-telefone` (mobile phone validation and reorganised API tests)."
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "To be confirmed",
+          "text": "To be confirmed: `api/APP.md` opens by saying the backend would be .NET/C#, but the real implementation is Node.js + Fastify. The rest of the file (business rules) is current; the opening paragraph is historical only."
+        }
+      ]
+    },
+    {
+      "id": "inicio-rapido",
+      "group": "Introduction",
+      "title": "Quick start",
+      "summary": "From clone to a running app: API on `3333` and web on `5173`.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "pre-requisitos",
+          "text": "Prerequisites"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Node.js 24** and npm.",
+            "A **PostgreSQL** database. The project uses [Neon](https://neon.tech) (the free plan is enough).",
+            "To run the API tests: a **second, separate database** (for example, a Neon branch)."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "clonar",
+          "text": "Clone"
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "Terminal",
+          "code": "git clone git@github.com:evelyndsl/sabordemae.git\ncd sabordemae"
+        },
+        {
+          "type": "heading",
+          "id": "api",
+          "text": "1. API (terminal 1)"
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "api/",
+          "code": "cd api\nnpm install               # também gera o cliente do Prisma (postinstall)\ncp .env.example .env      # PowerShell: Copy-Item .env.example .env\n# edite o .env: DATABASE_URL, JWT_SECRET, ADMIN_USER e ADMIN_PASSWORD\nnpm run db:deploy         # aplica as migrations\nnpm run db:seed           # sabores, preços, configuração e usuário admin\nnpm run dev               # http://localhost:3333"
+        },
+        {
+          "type": "paragraph",
+          "text": "Check `GET http://localhost:3333/health`, which must answer `{ \"status\": \"ok\" }`."
+        },
+        {
+          "type": "heading",
+          "id": "web",
+          "text": "2. Web (terminal 2)"
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "web/",
+          "code": "cd web\nnpm install\nnpm run dev               # http://localhost:5173"
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "Use port 5173",
+          "text": "The API CORS only allows the `WEB_URL` origin (default `http://localhost:5173`). If Vite starts on another port, the browser blocks the calls: close the other process or adjust `WEB_URL`."
+        },
+        {
+          "type": "heading",
+          "id": "acessar",
+          "text": "3. Open the app"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Customer: <http://localhost:5173/pedido>",
+            "Owner: <http://localhost:5173/admin/login> (user and password are `ADMIN_USER` and `ADMIN_PASSWORD` from the API `.env`)"
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "First dashboard access",
+          "text": "Open **Pix e contato** and register the WhatsApp number, Pix key, account holder and bank. Until the key is registered, the Pix option stays hidden from customers."
+        }
+      ]
+    },
+    {
+      "id": "stack",
+      "group": "Introduction",
+      "title": "Tech stack",
+      "summary": "Technologies by layer, with the manifest version and why each is used.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "api-stack",
+          "text": "API (`api/`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Technology",
+            "Version",
+            "What it is for"
+          ],
+          "rows": [
+            [
+              "Node.js",
+              "24",
+              "Runtime (also in CI and on Vercel)."
+            ],
+            [
+              "TypeScript",
+              "^6.0.3",
+              "Static typing; `npm run typecheck`."
+            ],
+            [
+              "Fastify",
+              "^5.12.7",
+              "Fast HTTP server with plugins (CORS, JWT, rate limit)."
+            ],
+            [
+              "Zod + fastify-type-provider-zod",
+              "^4.6.7 / ^7.0.0",
+              "Input and output validation with inferred types."
+            ],
+            [
+              "Prisma + @prisma/adapter-pg",
+              "^7.10.1",
+              "ORM and migrations for PostgreSQL."
+            ],
+            [
+              "PostgreSQL (Neon)",
+              "—",
+              "Managed database with a free plan."
+            ],
+            [
+              "@fastify/jwt + bcryptjs",
+              "^10.2.5 / ^3.0.3",
+              "Admin login with a 12 h token and hashed password."
+            ],
+            [
+              "@fastify/rate-limit, @fastify/cors",
+              "^11.2.1 / ^11.3.1",
+              "Request limiting and per-origin CORS."
+            ],
+            [
+              "Vitest",
+              "^5.0.5",
+              "Automated tests."
+            ],
+            [
+              "tsx",
+              "^4.23.15",
+              "Runs TypeScript directly (`dev` and seed)."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "web-stack",
+          "text": "Web (`web/`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Technology",
+            "Version",
+            "What it is for"
+          ],
+          "rows": [
+            [
+              "React",
+              "^19.3.1",
+              "User interface."
+            ],
+            [
+              "TypeScript",
+              "~7.0.2",
+              "Static typing (`tsc -b` in the build)."
+            ],
+            [
+              "Vite",
+              "^8.3.5",
+              "Dev server and build."
+            ],
+            [
+              "React Router",
+              "^7.18.5",
+              "Customer and dashboard routes."
+            ],
+            [
+              "Tailwind CSS",
+              "^4.3.3",
+              "Styles and color tokens."
+            ],
+            [
+              "shadcn/ui (Base UI) + lucide-react",
+              "^4.23.0 / ^1.9.0 / ^1.66.0",
+              "UI components and icons."
+            ],
+            [
+              "Vitest",
+              "^5.0.5",
+              "Tests for the pure front-end rules."
+            ],
+            [
+              "Oxlint",
+              "^1.89.0",
+              "Linting (`npm run lint`)."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "infra-stack",
+          "text": "Infrastructure"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Vercel:** two projects (API and web). The API runs as a serverless function.",
+            "**Neon:** PostgreSQL. Direct string for migrations, `-pooler` string for the serverless API.",
+            "**GitHub Actions:** API and web tests on every push/PR.",
+            "**ntfy** (optional): new-order push on the owner’s phone."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "arquitetura",
+      "group": "Architecture",
+      "title": "Architecture",
+      "summary": "Two independent projects, front end and API, talking only over HTTP/JSON.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "visao",
+          "text": "Big picture"
+        },
+        {
+          "type": "mermaid",
+          "code": "flowchart LR\n  C[\"Customer (browser)\"] -->|HTTPS| W[\"Web: React + Vite (Vercel)\"]\n  L[\"Owner (browser)\"] -->|HTTPS| W\n  W -->|\"JSON + admin JWT\"| A[\"API: Fastify (Vercel serverless)\"]\n  A -->|Prisma| D[(\"PostgreSQL - Neon\")]\n  A -.->|\"optional alert\"| N[\"ntfy.sh\"]\n  C -.->|\"Pix receipt\"| WA[\"Shop WhatsApp\"]",
+          "caption": "Components and integrations. Dashed arrows are optional or manual."
+        },
+        {
+          "type": "heading",
+          "id": "camadas-api",
+          "text": "API layers"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Layer",
+            "Folder",
+            "Responsibility"
+          ],
+          "rows": [
+            [
+              "Entry",
+              "`src/index.ts`, `src/server.ts`",
+              "`index.ts` exports the Vercel serverless handler; `server.ts` does the local `listen`."
+            ],
+            [
+              "Assembly",
+              "`src/buildApp.ts`",
+              "Registers CORS, rate limit, JWT, Zod validation, the error handler and routes."
+            ],
+            [
+              "Routes",
+              "`src/routes/`",
+              "Defines endpoints and schemas. `admin/` applies the authentication hook to everything inside it."
+            ],
+            [
+              "Schemas",
+              "`src/schemas/`",
+              "Zod validation of input and response shapes."
+            ],
+            [
+              "Services",
+              "`src/services/`",
+              "Business rules: pricing, orders, opening rules, Pix deadline, catalog, brand, auth, notification."
+            ],
+            [
+              "Plugins",
+              "`src/plugins/`",
+              "`auth.ts` (JWT verification) and `erros.ts` (maps errors to 400/404/409/500)."
+            ],
+            [
+              "Lib",
+              "`src/lib/`",
+              "Validated env, Prisma client, order code, Pix key and logo validation, business errors."
+            ]
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "title": "Why two entry files?",
+          "text": "Vercel requires the entry file to import `fastify` directly and export a function by default. That is why `src/index.ts` creates the instance and `buildApp.ts` (with no `export default`) holds the configuration. In development, `server.ts` starts the regular server."
+        },
+        {
+          "type": "heading",
+          "id": "camadas-web",
+          "text": "Front-end layers"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`pages/order/` (customer) and `pages/admin/` (dashboard): one page per route.",
+            "`lib/api.ts`: **all** API access goes through here; stores the admin token in `localStorage` and handles 401.",
+            "`hooks/`: `useFetch` (with optional polling), `useSave`, `useStatusUpdate`, `useNewOrderAlerts`.",
+            "`lib/`: rules that mirror the API just to warn the customer before submitting (price, Pix deadline, opening rules).",
+            "`context/`: admin authentication (`auth.tsx`) and brand/theme (`brand.tsx`)."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "estrutura",
+          "text": "Folder structure"
+        },
+        {
+          "type": "code",
+          "language": "text",
+          "code": "sabordemae/\n├── .github/\n│   ├── workflows/            API and web tests (GitHub Actions)\n│   ├── ISSUE_TEMPLATE/       issue template\n│   └── pull_request_template.md\n├── api/\n│   ├── prisma/               schema.prisma, migrations/, seed.ts\n│   ├── src/\n│   │   ├── index.ts          Vercel entry (serverless handler)\n│   │   ├── server.ts         local entry (listen)\n│   │   ├── buildApp.ts       builds Fastify\n│   │   ├── routes/           public, auth and admin/\n│   │   ├── schemas/          Zod\n│   │   ├── services/         business rules\n│   │   ├── plugins/          auth and error handling\n│   │   └── lib/              env, prisma, pix, logo, codigo, errors\n│   ├── tests/                Vitest\n│   └── APP.md                brief and business rules\n├── web/\n│   ├── src/\n│   │   ├── pages/            order/ and admin/\n│   │   ├── components/       app + ui/ (shadcn)\n│   │   ├── context/ hooks/ lib/ types/ tests/\n│   │   └── styles/           Tailwind, tokens and per-area CSS\n│   └── vercel.json           rewrites everything to index.html\n└── doc/                      this documentation"
+        }
+      ]
+    },
+    {
+      "id": "fluxos",
+      "group": "Architecture",
+      "title": "Main flows",
+      "summary": "How an order is born, which statuses it goes through and how the owner is notified.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "criar-pedido",
+          "text": "Creating an order"
+        },
+        {
+          "type": "mermaid",
+          "code": "sequenceDiagram\n  actor Cus as Customer\n  participant Web as Web\n  participant API as API\n  participant DB as PostgreSQL\n  participant Ntfy as ntfy\n  Cus->>Web: opens /pedido\n  Web->>API: GET sabores, valores, taxa-entrega, pix, funcionamento\n  API-->>Web: catalog and rules\n  Cus->>Web: builds and submits the order\n  Web->>API: POST /pedido\n  API->>API: validates body, opening rules, flavors and change\n  API->>API: computes price and Pix deadline\n  API->>DB: saves order and items\n  API->>Ntfy: alert (optional, with timeout)\n  API-->>Web: 201 with code and total\n  Web-->>Cus: redirects to /pedido/CODE",
+          "caption": "The price shown in the front end is only a preview; the official amount comes from the API."
+        },
+        {
+          "type": "heading",
+          "id": "status",
+          "text": "Order status"
+        },
+        {
+          "type": "paragraph",
+          "text": "The path depends on the payment method (Pix has two extra steps) and on the type (delivery goes through “on the way”, pickup through “ready for pickup”). The admin may **go back one step** to fix a wrong click, but cannot use a step that does not exist for that order."
+        },
+        {
+          "type": "mermaid",
+          "code": "flowchart LR\n  subgraph SP[\"Pix\"]\n    AP[\"AGUARDANDO_PAGAMENTO\"] --> PA[\"PAGAMENTO_APROVADO\"] --> EP1[\"EM_PRODUCAO\"]\n  end\n  subgraph SO[\"Cash or card\"]\n    AG[\"AGUARDANDO\"] --> EP2[\"EM_PRODUCAO\"]\n  end\n  EP1 --> S{\"Type\"}\n  EP2 --> S\n  S -->|ENTREGA| ER[\"EM_ROTA_ENTREGA\"] --> F[\"FINALIZADO\"]\n  S -->|RETIRADA| PR[\"PRONTO_RETIRADA\"] --> F"
+        },
+        {
+          "type": "heading",
+          "id": "pix-fluxo",
+          "text": "Paying with Pix"
+        },
+        {
+          "type": "mermaid",
+          "code": "sequenceDiagram\n  actor Cus as Customer\n  participant Web as Web\n  participant Own as Owner\n  Cus->>Web: chooses Pix and finishes the order\n  Web-->>Cus: key to copy and payment deadline\n  Cus->>Cus: pays manually in the bank app\n  Cus->>Own: sends the receipt on WhatsApp\n  Own->>Web: checks it and sets PAGAMENTO_APROVADO\n  Own->>Web: then EM_PRODUCAO and the next steps"
+        },
+        {
+          "type": "heading",
+          "id": "aviso",
+          "text": "New-order alert"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**In the dashboard:** `useNewOrderAlerts` polls `GET /pedidos` every 20 s; the first poll only memorises existing orders, later ones play a sound and show up to 5 alerts for new codes.",
+            "**On the phone (optional):** with `NTFY_TOPIC` set, the API publishes to ntfy when the order is created (3 s timeout; a failure never breaks the order). The message carries no personal data."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "banco-de-dados",
+      "group": "Architecture",
+      "title": "Database",
+      "summary": "PostgreSQL managed by Prisma: 6 tables and 12 migrations.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "er",
+          "text": "Entity-relationship diagram"
+        },
+        {
+          "type": "mermaid",
+          "code": "erDiagram\n  PEDIDO ||--|{ ITEM_PEDIDO : itens\n  SABOR |o--o{ ITEM_PEDIDO : sabor\n  PEDIDO {\n    uuid id PK\n    string codigo UK\n    string nomeCliente\n    string telefone\n    enum tipoEntrega\n    enum formaPagamento\n    enum status\n    int quantidadeTotal\n    decimal total\n    datetime horarioAgendado\n    datetime criadoEm\n  }\n  ITEM_PEDIDO {\n    int id PK\n    uuid pedidoId FK\n    int saborId FK\n    int quantidade\n  }\n  SABOR {\n    int id PK\n    string nome UK\n    boolean ativo\n  }\n  FAIXA_PRECO {\n    int id PK\n    int quantidade UK\n    decimal valor\n  }\n  CONFIGURACAO {\n    int id PK\n    int tempoPreparoMinimoMin\n    decimal taxaEntregaAte49\n    string chavePix\n    string horarioAbertura\n    string nomeMarca\n    json cores\n  }\n  ADMIN_USER {\n    int id PK\n    string usuario UK\n    string senhaHash\n  }"
+        },
+        {
+          "type": "paragraph",
+          "text": "`FAIXA_PRECO`, `CONFIGURACAO` and `ADMIN_USER` have no direct relation to orders: prices and rules are read when the order is created and the result is stored on the order itself."
+        },
+        {
+          "type": "heading",
+          "id": "pedido",
+          "text": "Pedido (order)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Field",
+            "Type",
+            "Notes"
+          ],
+          "rows": [
+            [
+              "`id`, `codigo`",
+              "uuid, varchar(12)",
+              "`codigo` has 8 characters, is unique and is what the customer uses to look the order up."
+            ],
+            [
+              "`nomeCliente`, `telefone`",
+              "varchar",
+              "Phone is digits only (mobile with area code, no 55). Not shown in the public lookup."
+            ],
+            [
+              "`tipoEntrega`",
+              "ENTREGA | RETIRADA",
+              "—"
+            ],
+            [
+              "`endereco`, `numero`, `bairro`, `pontoReferencia`",
+              "varchar",
+              "Delivery only. `numero` and `bairro` are null only on old orders."
+            ],
+            [
+              "`observacao`",
+              "varchar(500)",
+              "Optional customer note, on any order type."
+            ],
+            [
+              "`horarioAgendado`",
+              "timestamp",
+              "Null = “whenever it is ready”."
+            ],
+            [
+              "`formaPagamento`",
+              "DINHEIRO | CARTAO | PIX",
+              "—"
+            ],
+            [
+              "`enderecoRetirada`",
+              "varchar(300)",
+              "Copy of the shop address at order time (pickup)."
+            ],
+            [
+              "`precisaTroco`, `trocoPara`",
+              "boolean, decimal",
+              "Cash payment only."
+            ],
+            [
+              "`status`",
+              "enum StatusPedido",
+              "Starts at `AGUARDANDO_PAGAMENTO` (Pix) or `AGUARDANDO`."
+            ],
+            [
+              "`quantidadeTotal`, `subtotal`, `taxaEntrega`, `total`",
+              "int, decimal(10,2)",
+              "Computed on the server."
+            ],
+            [
+              "`tempoPreparoMin`, `previsaoEm`",
+              "int, timestamp",
+              "Only orders with no scheduled time; set by the admin."
+            ],
+            [
+              "`pixAntecedenciaHoras`, `pagarAte`",
+              "int, timestamp",
+              "Pix only. Both null = pay at order time. The deadline is stored: changing the setting later does not alter old orders."
+            ],
+            [
+              "`criadoEm`",
+              "timestamp",
+              "Composite index `(status, criadoEm)`."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "item-sabor",
+          "text": "ItemPedido and Sabor"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`ItemPedido.saborId` is **null** on a mixed order; `quantidade` is **null** when the customer only picked flavors (the shop splits the units).",
+            "Items are deleted with the order (`onDelete: Cascade`). Flavors are never deleted (`onDelete: Restrict`): they are deactivated with `ativo = false` because old orders reference them."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "config",
+          "text": "Configuracao (single row)"
+        },
+        {
+          "type": "paragraph",
+          "text": "The `Configuracao` table always holds **one row** (`id = 1`) with everything the admin adjusts:"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Group",
+            "Fields"
+          ],
+          "rows": [
+            [
+              "Prep time",
+              "`tempoPreparoMinimoMin`, `tempoPreparoMaximoMin`"
+            ],
+            [
+              "Prices and fees",
+              "`valorUnidadeAcimaDe100`, `taxaEntregaAte49`, `taxaEntregaDe50a199`, `entregaGratisAPartirDe`"
+            ],
+            [
+              "Pix",
+              "`tipoChavePix`, `chavePix`, `titularPix`, `bancoPix`, `whatsappEstabelecimento`, `pixAntecedenciaAteLimiteHoras`, `pixAntecedenciaAcimaLimiteHoras`"
+            ],
+            [
+              "Opening rules",
+              "`horarioAbertura`, `horarioFechamento`, `estabelecimentoFechado`, `diasAtendimento`, `entregaSuspensaEm`, `enderecoRetirada`"
+            ],
+            [
+              "Brand",
+              "`nomeMarca`, `logoDados`, `logoTipo`, `logoAtualizadaEm`, `logoEscuraDados`, `logoEscuraTipo`, `logoEscuraAtualizadaEm`, `cores`"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "enums",
+          "text": "Enums"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Enum",
+            "Values"
+          ],
+          "rows": [
+            [
+              "`TipoEntrega`",
+              "`ENTREGA`, `RETIRADA`"
+            ],
+            [
+              "`FormaPagamento`",
+              "`DINHEIRO`, `CARTAO`, `PIX`"
+            ],
+            [
+              "`TipoChavePix`",
+              "`CPF`, `CNPJ`, `TELEFONE`, `ALEATORIA`"
+            ],
+            [
+              "`StatusPedido`",
+              "`AGUARDANDO_PAGAMENTO`, `PAGAMENTO_APROVADO`, `AGUARDANDO`, `EM_PRODUCAO`, `EM_ROTA_ENTREGA`, `PRONTO_RETIRADA`, `FINALIZADO`"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "migrations",
+          "text": "Migrations"
+        },
+        {
+          "type": "paragraph",
+          "text": "They live in `api/prisma/migrations/` (from `20261027182308_init` to `20261108120000_numero_e_bairro`). In production use `npm run db:deploy`; `npm run db:migrate` creates a **new** migration and is for development only."
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "Seed",
+          "text": "`npm run db:seed` creates the 8 flavors, the 10 price tiers, the configuration and the admin. It **preserves** what the admin already edited; the admin password is always updated from `.env`. With `SEED_SOBRESCREVER=1` (used on the test database) base values go back to the defaults."
+        }
+      ]
+    },
+    {
+      "id": "api",
+      "group": "Reference",
+      "title": "API",
+      "summary": "All the API HTTP routes, with access, body, responses and errors.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "convencoes",
+          "text": "Conventions"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Local base URL: `http://localhost:3333`. JSON request and response bodies (except `GET /marca/logo`, which returns the image).",
+            "Admin routes require `Authorization: Bearer <token>` (token from `POST /auth/login`, valid for 12 h). Missing or invalid token: `401 { \"mensagem\": \"Não autorizado.\" }`.",
+            "Money amounts come as **strings** with 2 decimals (`\"39.00\"`).",
+            "Dates and times are ISO 8601; the date filter and opening hours use Brasília time."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "erros",
+          "text": "Error format"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Status",
+            "When",
+            "Body"
+          ],
+          "rows": [
+            [
+              "400",
+              "Body/params/query validation, or a business rule violated",
+              "`{ \"mensagem\": \"Dados inválidos.\", \"erros\": [{ \"campo\", \"mensagem\" }] }` / `{ \"mensagem\": \"...\" }`"
+            ],
+            [
+              "401",
+              "Missing/invalid token or wrong login",
+              "`{ \"mensagem\": \"...\" }`"
+            ],
+            [
+              "404",
+              "Unknown order, flavor or logo; unknown route",
+              "`{ \"mensagem\": \"...\" }`"
+            ],
+            [
+              "409",
+              "Conflict (e.g. duplicate flavor name)",
+              "`{ \"mensagem\": \"...\" }`"
+            ],
+            [
+              "429",
+              "Rate limit",
+              "`{ \"mensagem\": \"...\" }`"
+            ],
+            [
+              "500",
+              "Internal error (details only in the log)",
+              "`{ \"mensagem\": \"Erro interno. Tente novamente em instantes.\" }`"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "tabela",
+          "text": "Route table"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Method",
+            "Route",
+            "Access",
+            "Description"
+          ],
+          "rows": [
+            [
+              "GET",
+              "`/health`",
+              "public",
+              "Answers `{ \"status\": \"ok\" }`."
+            ],
+            [
+              "GET",
+              "`/sabores`",
+              "public",
+              "Active flavors."
+            ],
+            [
+              "GET",
+              "`/valores`",
+              "public",
+              "Price tiers and the price above 100."
+            ],
+            [
+              "GET",
+              "`/tempo-preparo`",
+              "public",
+              "Minimum and maximum prep time."
+            ],
+            [
+              "GET",
+              "`/taxa-entrega`",
+              "public",
+              "Delivery fees and the free-delivery threshold."
+            ],
+            [
+              "GET",
+              "`/pix`",
+              "public",
+              "Pix key, contact and deadlines."
+            ],
+            [
+              "GET",
+              "`/funcionamento`",
+              "public",
+              "Hours, days, open now and delivery today."
+            ],
+            [
+              "GET",
+              "`/marca`",
+              "public",
+              "Name, logo versions and colors."
+            ],
+            [
+              "GET",
+              "`/marca/logo`",
+              "public",
+              "Logo image (`?modo=escuro`, `?v=`)."
+            ],
+            [
+              "POST",
+              "`/pedido`",
+              "public (10/min)",
+              "Creates an order."
+            ],
+            [
+              "GET",
+              "`/pedido/:codigo`",
+              "public",
+              "Looks up an order (without the phone)."
+            ],
+            [
+              "POST",
+              "`/auth/login`",
+              "public (5/min)",
+              "Returns the JWT."
+            ],
+            [
+              "GET",
+              "`/pedidos`",
+              "admin",
+              "Lists orders (with phone)."
+            ],
+            [
+              "PUT",
+              "`/pedido/:codigo/status`",
+              "admin",
+              "Changes the status."
+            ],
+            [
+              "PUT",
+              "`/pedido/:codigo/tempo-preparo`",
+              "admin",
+              "Sets the prep time of an order with no scheduled time."
+            ],
+            [
+              "DELETE",
+              "`/pedido/:codigo`",
+              "admin",
+              "Permanently deletes the order (204)."
+            ],
+            [
+              "PUT",
+              "`/tempo-preparo`",
+              "admin",
+              "Sets minimum and maximum time."
+            ],
+            [
+              "PUT",
+              "`/taxa-entrega`",
+              "admin",
+              "Sets the fees by tier."
+            ],
+            [
+              "PUT",
+              "`/valores`",
+              "admin",
+              "Replaces the price table."
+            ],
+            [
+              "PUT",
+              "`/funcionamento`",
+              "admin",
+              "Hours, days, closed and delivery today."
+            ],
+            [
+              "PUT",
+              "`/endereco-retirada`",
+              "admin",
+              "Address shown for pickup."
+            ],
+            [
+              "PUT",
+              "`/pix`",
+              "admin",
+              "Pix key, contact and deadlines."
+            ],
+            [
+              "PUT",
+              "`/marca`",
+              "admin",
+              "Name and colors."
+            ],
+            [
+              "PUT / DELETE",
+              "`/marca/logo`",
+              "admin",
+              "Uploads or removes the logo."
+            ],
+            [
+              "GET",
+              "`/admin/sabores`",
+              "admin",
+              "All flavors, including deactivated ones."
+            ],
+            [
+              "POST",
+              "`/sabores`",
+              "admin",
+              "Creates a flavor."
+            ],
+            [
+              "PATCH",
+              "`/sabores/:id`",
+              "admin",
+              "Renames and/or activates/deactivates."
+            ]
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "title": "Source",
+          "text": "The table above was checked against `api/src/routes/`. Two items are missing from the table in `api/README.md`: `PUT /endereco-retirada` and the `diasAtendimento` field of `PUT /funcionamento`."
+        },
+        {
+          "type": "heading",
+          "id": "post-pedido",
+          "text": "POST /pedido"
+        },
+        {
+          "type": "paragraph",
+          "text": "Creates an order. Public, limited to **10 requests per minute per IP**. Any price sent by the client is ignored: everything is computed on the server."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Field",
+            "Type",
+            "Rule"
+          ],
+          "rows": [
+            [
+              "`nomeCliente`",
+              "string",
+              "Required, 2 to 120 characters."
+            ],
+            [
+              "`telefone`",
+              "string",
+              "Required. Brazilian mobile: area code + 9 + 8 digits. Mask and `55` country code (stripped) are accepted. Landline or missing 9 is rejected."
+            ],
+            [
+              "`quantidade`",
+              "int",
+              "Multiple of 10, from 10 to 1000."
+            ],
+            [
+              "`sabores`",
+              "array",
+              "Optional. Empty = mixed. Items `{ saborId, quantidade? }`; see the flavor rules."
+            ],
+            [
+              "`tipoEntrega`",
+              "`ENTREGA` | `RETIRADA`",
+              "Obrigatório / Required"
+            ],
+            [
+              "`endereco`, `numero`, `bairro`",
+              "string",
+              "Required for delivery (street 5–300; number up to 20, “S/N” accepted; district up to 100). Ignored for pickup."
+            ],
+            [
+              "`pontoReferencia`",
+              "string",
+              "Optional, up to 200. Delivery only."
+            ],
+            [
+              "`observacao`",
+              "string",
+              "Optional, up to 500."
+            ],
+            [
+              "`horarioAgendado`",
+              "ISO datetime com fuso",
+              "Optional, in the future. Absent = “whenever it is ready”. Without a time zone (`...T15:00:00`) it is rejected."
+            ],
+            [
+              "`formaPagamento`",
+              "`DINHEIRO` | `CARTAO` | `PIX`",
+              "Obrigatório / Required"
+            ],
+            [
+              "`precisaTroco`, `trocoPara`",
+              "boolean, number",
+              "Cash only. With `precisaTroco`, `trocoPara` is required and must be greater than the total."
+            ]
+          ]
+        },
+        {
+          "type": "code",
+          "language": "json",
+          "title": "Body (fictional example)",
+          "code": "{\n  \"nomeCliente\": \"Maria Silva\",\n  \"telefone\": \"(11) 91234-5678\",\n  \"quantidade\": 50,\n  \"sabores\": [{ \"saborId\": 1, \"quantidade\": 20 }, { \"saborId\": 4, \"quantidade\": 30 }],\n  \"tipoEntrega\": \"ENTREGA\",\n  \"endereco\": \"Rua das Flores\",\n  \"numero\": \"123\",\n  \"bairro\": \"Centro\",\n  \"formaPagamento\": \"PIX\"\n}"
+        },
+        {
+          "type": "code",
+          "language": "json",
+          "title": "201 Created",
+          "code": "{\n  \"codigo\": \"K7M2QX9R\",\n  \"status\": \"AGUARDANDO_PAGAMENTO\",\n  \"nomeCliente\": \"Maria Silva\",\n  \"tipoEntrega\": \"ENTREGA\",\n  \"endereco\": \"Rua das Flores\",\n  \"numero\": \"123\",\n  \"bairro\": \"Centro\",\n  \"pontoReferencia\": null,\n  \"observacao\": null,\n  \"enderecoRetirada\": null,\n  \"horarioAgendado\": null,\n  \"tempoPreparoMin\": null,\n  \"previsaoEm\": null,\n  \"formaPagamento\": \"PIX\",\n  \"troco\": null,\n  \"instrucaoPix\": { \"imediato\": true, \"horasAntecedencia\": null, \"pagarAte\": null },\n  \"quantidadeTotal\": 50,\n  \"subtotal\": \"39.00\",\n  \"taxaEntrega\": \"5.00\",\n  \"total\": \"44.00\",\n  \"criadoEm\": \"2026-11-11T14:00:00.000Z\",\n  \"itens\": [{ \"sabor\": \"Coxinha de frango\", \"quantidade\": 20 }, { \"sabor\": \"Bolinha de queijo\", \"quantidade\": 30 }]\n}"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Status",
+            "When"
+          ],
+          "rows": [
+            [
+              "201",
+              "Order created."
+            ],
+            [
+              "400",
+              "Invalid data; shop closed, outside hours or no delivery that day; unavailable flavor; change amount lower than the total."
+            ],
+            [
+              "429",
+              "More than 10 orders per minute from the same IP."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "get-pedido",
+          "text": "GET /pedido/:codigo"
+        },
+        {
+          "type": "paragraph",
+          "text": "Returns the order (same shape as the `201` above, **without** `telefone`). The code is upper-cased and must have 8 characters."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Status",
+            "When"
+          ],
+          "rows": [
+            [
+              "200",
+              "Found."
+            ],
+            [
+              "400",
+              "Code length other than 8."
+            ],
+            [
+              "404",
+              "`Pedido não encontrado.`"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "post-login",
+          "text": "POST /auth/login"
+        },
+        {
+          "type": "paragraph",
+          "text": "Limited to **5 per minute per IP**. Returns a JWT valid for 12 hours."
+        },
+        {
+          "type": "code",
+          "language": "json",
+          "title": "Body",
+          "code": "{ \"usuario\": \"admin\", \"senha\": \"<sua-senha>\" }"
+        },
+        {
+          "type": "code",
+          "language": "json",
+          "title": "200",
+          "code": "{ \"token\": \"<jwt>\" }"
+        },
+        {
+          "type": "paragraph",
+          "text": "An unknown user and a wrong password give the same `401 Usuário ou senha inválidos.` answer (and response time is equalised) so valid users are not revealed."
+        },
+        {
+          "type": "heading",
+          "id": "get-pedidos",
+          "text": "GET /pedidos (admin)"
+        },
+        {
+          "type": "paragraph",
+          "text": "Lists orders, newest first, **with** `telefone`. Optional query:"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Parameter",
+            "Description"
+          ],
+          "rows": [
+            [
+              "`status`",
+              "A `StatusPedido` value. Any other value = 400."
+            ],
+            [
+              "`de`, `ate`",
+              "Dates `YYYY-MM-DD` in Brasília time (inclusive). Any other format = 400."
+            ]
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "To be confirmed",
+          "text": "To be confirmed: the code caps the list at **1000** orders (`take: 1000` in `services/pedidos.ts`), but the test guide in `api/README.md` says “max. 200”. This documentation follows the code."
+        },
+        {
+          "type": "heading",
+          "id": "put-status",
+          "text": "PUT /pedido/:codigo/status (admin)"
+        },
+        {
+          "type": "code",
+          "language": "json",
+          "title": "Body",
+          "code": "{ \"status\": \"EM_PRODUCAO\" }"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Only accepts steps that exist for that order (see [Main flows](#/fluxos)). `CANCELADO` does not exist.",
+            "Going back a step is allowed; repeating the current status is too.",
+            "`404` if the code does not exist; `400` if the step does not exist for that type/payment."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "put-tempo-pedido",
+          "text": "PUT /pedido/:codigo/tempo-preparo (admin)"
+        },
+        {
+          "type": "code",
+          "language": "json",
+          "title": "Body",
+          "code": "{ \"minutos\": 40 }"
+        },
+        {
+          "type": "paragraph",
+          "text": "`minutos` is an integer from 1 to 1440. Only valid for orders with **no** `horarioAgendado` (otherwise `400`); the response carries `tempoPreparoMin` and `previsaoEm` (now + minutes)."
+        },
+        {
+          "type": "heading",
+          "id": "configs",
+          "text": "Catalog and settings"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Route",
+            "Body (admin) / response"
+          ],
+          "rows": [
+            [
+              "`GET /sabores`",
+              "`[{ \"id\": 1, \"nome\": \"Coxinha de frango\" }]`"
+            ],
+            [
+              "`GET /valores`",
+              "`{ faixas: [{ quantidade, valor }], acimaDe: { quantidade: 100, valorPorUnidade }, quantidadeMinima, quantidadeMaxima, passo }`"
+            ],
+            [
+              "`PUT /valores`",
+              "`{ faixas: [10 items { quantidade, valor }], valorUnidadeAcimaDe100 }`. Requires exactly tiers 10, 20, …, 100; values > 0 with up to 2 decimals."
+            ],
+            [
+              "`GET /tempo-preparo`",
+              "`{ minimoMin, maximoMin }`"
+            ],
+            [
+              "`PUT /tempo-preparo`",
+              "`{ minimoMin, maximoMin }`, integers from 1 to 1440, maximum ≥ minimum."
+            ],
+            [
+              "`GET /taxa-entrega`",
+              "`{ taxaAte49, taxaDe50a199, entregaGratisAPartirDe }`"
+            ],
+            [
+              "`PUT /taxa-entrega`",
+              "`{ taxaAte49, taxaDe50a199 }` in reais, 0 to 1000, up to 2 decimals."
+            ],
+            [
+              "`GET /pix`",
+              "`{ tipo, chave, chaveParaCopiar, configurada, titular, banco, whatsapp, antecedencia: { ateLimiteHoras, acimaLimiteHoras, limiteUnidades } }`"
+            ],
+            [
+              "`PUT /pix`",
+              "`{ tipo, chave, titular?, banco?, whatsapp?, antecedenciaAteLimiteHoras?, antecedenciaAcimaLimiteHoras? }`. The key is validated by type. Absent field is unchanged; empty text clears it."
+            ],
+            [
+              "`GET /funcionamento`",
+              "`{ horarioAbertura, horarioFechamento, diasAtendimento, enderecoRetirada, estabelecimentoFechado, aberto, motivoFechado, entregaHoje }`"
+            ],
+            [
+              "`PUT /funcionamento`",
+              "`{ horarioAbertura, horarioFechamento, estabelecimentoFechado, entregaHoje, diasAtendimento? }`: always the full state. Times `HH:MM` or `null` for both; at least 1 day."
+            ],
+            [
+              "`PUT /endereco-retirada`",
+              "`{ enderecoRetirada }`, up to 300; empty clears it."
+            ],
+            [
+              "`GET /admin/sabores`",
+              "`[{ id, nome, ativo }]`"
+            ],
+            [
+              "`POST /sabores`",
+              "`{ nome }` (2 to 80). `201`; duplicate name = `409`."
+            ],
+            [
+              "`PATCH /sabores/:id`",
+              "`{ nome?, ativo? }` (at least one, otherwise `400`). `404` if the id does not exist."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "marca-api",
+          "text": "Brand and logo"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`GET /marca` → `{ nome, logoVersao, logoEscuraVersao, cores }`. Versions are `null` when there is no logo.",
+            "`PUT /marca` → `{ nome (2–60), cores }`. `cores: null` restores the default theme; each color is `#RRGGBB`, organised as `publico|admin` → `claro|escuro`.",
+            "`PUT /marca/logo` → `{ modo?: \"claro\"|\"escuro\", tipo: \"image/png\"|\"image/svg+xml\", dados: <base64> }`, up to 300 KB. The API checks the real content (PNG signature; SVG with no scripts, events or external elements).",
+            "`DELETE /marca/logo` removes the regular logo; with `?modo=escuro`, only the dark-mode one.",
+            "`GET /marca/logo?v=<version>` returns the image with long cache and headers that prevent active content from running; `404` if there is no logo."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "regras-de-negocio",
+      "group": "Reference",
+      "title": "Business rules",
+      "summary": "The product rules in plain language, each with its source file.",
+      "blocks": [
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "The price is **always** computed on the server; any value sent by the client is ignored. The front end only shows a preview."
+        },
+        {
+          "type": "heading",
+          "id": "quantidade-preco",
+          "text": "Quantity and price"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Rule",
+            "Default value",
+            "Source"
+          ],
+          "rows": [
+            [
+              "Order quantity",
+              "Multiple of 10, from 10 to 1000",
+              "`services/preco.ts`"
+            ],
+            [
+              "Price for 10 to 100 units",
+              "Tier table (R$ 13.00 to R$ 64.00), editable",
+              "`FaixaPreco`"
+            ],
+            [
+              "Price above 100 units",
+              "R$ 0.64 per unit, editable",
+              "`Configuracao.valorUnidadeAcimaDe100`"
+            ],
+            [
+              "Pickup",
+              "No fee",
+              "`services/preco.ts`"
+            ]
+          ]
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Default tier",
+            "Price"
+          ],
+          "rows": [
+            [
+              "10",
+              "R$ 13,00"
+            ],
+            [
+              "20",
+              "R$ 20,00"
+            ],
+            [
+              "30",
+              "R$ 29,00"
+            ],
+            [
+              "40",
+              "R$ 35,00"
+            ],
+            [
+              "50",
+              "R$ 39,00"
+            ],
+            [
+              "60",
+              "R$ 44,00"
+            ],
+            [
+              "70",
+              "R$ 49,00"
+            ],
+            [
+              "80",
+              "R$ 55,00"
+            ],
+            [
+              "90",
+              "R$ 59,00"
+            ],
+            [
+              "100",
+              "R$ 64,00"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "taxa-entrega",
+          "text": "Delivery fee"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Quantity (delivery)",
+            "Default fee"
+          ],
+          "rows": [
+            [
+              "Up to 49 units",
+              "R$ 7,00"
+            ],
+            [
+              "50 to 199 units",
+              "R$ 5,00"
+            ],
+            [
+              "200 or more",
+              "Free"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Both fees are editable (`PUT /taxa-entrega`); the 200 threshold is `entregaGratisAPartirDe`. Examples: 10 pickup = R$ 13.00 · 10 delivery = R$ 20.00 · 50 delivery = R$ 44.00 · 110 pickup = R$ 70.40 · 190 delivery = R$ 126.60 · 200 delivery = R$ 128.00."
+        },
+        {
+          "type": "paragraph",
+          "text": "Calculations use **integer cents** to avoid floating-point rounding errors."
+        },
+        {
+          "type": "heading",
+          "id": "sabores-regra",
+          "text": "Flavors"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Mixed:** empty `sabores`. The response carries a single item `{ sabor: \"Misto\", quantidade }` and, in the database, a null `saborId`.",
+            "**With a quantity per flavor:** the sum must be exactly the order quantity.",
+            "**Flavors only, no quantity:** the shop splits the units; each item comes back with `quantidade: null`.",
+            "Mixing items with and without quantity, repeating a flavor, or using an unknown/deactivated flavor is rejected (400).",
+            "Source: `schemas/pedido.ts`, `services/pedidos.ts`."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "endereco-regra",
+          "text": "Delivery, pickup and address"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Delivery requires `endereco` (5–300), `numero` (up to 20, “S/N” accepted) and `bairro` (up to 100). Blank text counts as not provided.",
+            "For pickup, `endereco`, `numero`, `bairro` and `pontoReferencia` are ignored and stored as `null`. The shop address (if configured) is copied to `enderecoRetirada`.",
+            "Old orders may have the number and district inside `endereco`."
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "title": "Front-end note",
+          "text": "Recent commits mention deliveries only in Paiçandu/PR and the removal of ZIP-code validation. That restriction appears as a notice in the front end (`components/aviso-entrega.tsx`); the API does **not** validate the city."
+        },
+        {
+          "type": "heading",
+          "id": "horario-agendado",
+          "text": "Scheduled time and prep time"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`horarioAgendado` is optional, must carry a time zone and be in the future.",
+            "No time = “whenever it is ready”: the admin sets the order prep time (`PUT /pedido/:codigo/tempo-preparo`) and the response carries `previsaoEm`.",
+            "An order with a scheduled time does not accept a prep time.",
+            "There is also a general minimum/maximum time (`GET /tempo-preparo`, default 30–60 min) shown to customers."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "funcionamento-regra",
+          "text": "Opening rules"
+        },
+        {
+          "type": "paragraph",
+          "text": "Everything uses Brasília time (`America/Sao_Paulo`). Source: `services/funcionamento.ts`."
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Opening hours:** one daily `HH:MM` interval, the same every day. Both fields `null` = no restriction. Opening is inclusive and closing is not (at exactly 18:00 it is already closed). If closing is earlier than opening (18:00 to 02:00), service runs past midnight and the small hours belong to the day it started.",
+            "**Service days:** 0 = Sunday … 6 = Saturday. A day not on the list = closed all day. At least one day.",
+            "**Shop closed:** a manual switch that closes everything regardless of hours until turned off. **No** order is accepted, not even scheduled ones.",
+            "**Outside hours:** an order with no `horarioAgendado` is rejected; the customer may schedule it inside service hours. Every `horarioAgendado` must fall within service hours.",
+            "**Delivery today:** `entregaHoje: false` stores the day in `entregaSuspensaEm`, so the switch turns itself back on at midnight. Pickup only today: immediate delivery or delivery scheduled for today is rejected; delivery scheduled for another day is accepted.",
+            "The front end mirrors the rules (`web/src/lib/funcionamento.ts`) only to warn before submitting; the API always decides."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "pix-regra",
+          "text": "Pix"
+        },
+        {
+          "type": "list",
+          "items": [
+            "The app **does not confirm** payment nor integrate with any bank: the customer copies the key, pays and sends the receipt through the shop’s WhatsApp.",
+            "A Pix order only moves on after the admin checks the receipt and sets `PAGAMENTO_APROVADO`.",
+            "Initial key value: CPF `00000000000`, which is deliberately **not** a valid CPF: it is the “not configured” marker. With `configurada: false` the front end hides Pix.",
+            "Key validation by type: CPF and CNPJ by check digits; phone with area code; random must be a UUID. Phones get `+55` in `chaveParaCopiar`.",
+            "**When to pay** (`instrucaoPix`): order for today or with no time → right away (`imediato: true`). Order scheduled for a later day → at least a lead time before `horarioAgendado`: **2 h up to 100 units and 4 h above 100** (editable). If that limit has already passed, it becomes “pay now”. The deadline is stored on the order."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "troco-regra",
+          "text": "Cash and change"
+        },
+        {
+          "type": "paragraph",
+          "text": "`precisaTroco` and `trocoPara` only apply to cash. With change, `trocoPara` is required and must be **greater than the order total**; otherwise 400."
+        },
+        {
+          "type": "heading",
+          "id": "telefone-regra",
+          "text": "Customer phone"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Brazilian mobile numbers only: area code + 9 + 8 digits (`/^[1-9][1-9]9\\d{8}$/`). Masks are accepted; a pasted `55` country code (13 digits) is stripped; only digits are stored.",
+            "The front end uses the same rule (`web/src/lib/format.ts`). It validates **format** only: there is no confirmation that the customer owns the number.",
+            "The phone never appears in `GET /pedido/:codigo`; only the admin sees it."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "codigo-regra",
+          "text": "Order code"
+        },
+        {
+          "type": "paragraph",
+          "text": "8 characters from the alphabet `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (no I, L, O, 0 or 1, to avoid confusion when read aloud). Generated with `crypto.randomInt`; on collision, up to 5 attempts."
+        },
+        {
+          "type": "heading",
+          "id": "logo-regra",
+          "text": "Logo and brand"
+        },
+        {
+          "type": "paragraph",
+          "text": "PNG or SVG up to 300 KB, stored in the database itself. PNG is checked by signature; SVG is rejected if it has `<script>`, `<foreignObject>`, `iframe/embed/object`, `on...=` attributes, `javascript:` or `data:text/html`. The dark-mode logo is optional."
+        }
+      ]
+    },
+    {
+      "id": "variaveis-de-ambiente",
+      "group": "Reference",
+      "title": "Environment variables",
+      "summary": "What to configure in the API and the front end. The values below are fictional examples.",
+      "blocks": [
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "Never commit secrets",
+          "text": "The API `.env` is in `.gitignore`. Only the `.env.example` files go in the repository."
+        },
+        {
+          "type": "heading",
+          "id": "env-api",
+          "text": "API (`api/.env`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Variable",
+            "Required",
+            "Description",
+            "Example (fictional)"
+          ],
+          "rows": [
+            [
+              "`DATABASE_URL`",
+              "yes",
+              "PostgreSQL connection string. Local and migrations/seed: direct Neon string (no `-pooler`). API on Vercel: `-pooler` string.",
+              "`postgresql://usuario:senha@host/neondb?sslmode=require`"
+            ],
+            [
+              "`JWT_SECRET`",
+              "yes",
+              "Admin token secret, **at least 32 characters** (the API does not start without it).",
+              "generated with `crypto.randomBytes(48)`"
+            ],
+            [
+              "`WEB_URL`",
+              "no",
+              "The single origin allowed by CORS, no trailing slash. **In production, the front-end URL.**",
+              "`http://localhost:5173` (padrão / default)"
+            ],
+            [
+              "`PORT`",
+              "no",
+              "Local port.",
+              "`3333` (padrão / default)"
+            ],
+            [
+              "`NODE_ENV`",
+              "no",
+              "`development`, `production` or `test`. In `test` logging and the ntfy alert are off.",
+              "`development`"
+            ],
+            [
+              "`ADMIN_USER`, `ADMIN_PASSWORD`",
+              "seed only",
+              "Admin login created/updated by `npm run db:seed`.",
+              "`admin` / `<strong-password>`"
+            ],
+            [
+              "`DATABASE_TESTS_URL`",
+              "tests only",
+              "A **separate** database used by `npm test`. Tests refuse to run if it equals `DATABASE_URL`.",
+              "`postgresql://usuario:senha@host/neondb_test?sslmode=require`"
+            ],
+            [
+              "`NTFY_TOPIC`",
+              "no",
+              "ntfy topic for the new-order alert. It works like a password: use a long, random name. Empty = no alert.",
+              "`pedidos-um-nome-longo-e-aleatorio`"
+            ],
+            [
+              "`NTFY_SERVER`",
+              "no",
+              "Only if you host your own ntfy.",
+              "`https://ntfy.sh` (padrão / default)"
+            ],
+            [
+              "`SEED_SOBRESCREVER`",
+              "internal",
+              "With `1`, the seed restores the base values (used by tests).",
+              "`1`"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "`NTFY_TOPIC`, `NTFY_SERVER` and `SEED_SOBRESCREVER` are read straight from `process.env`, outside the validation schema in `src/lib/env.ts` (which validates `NODE_ENV`, `PORT`, `WEB_URL`, `DATABASE_URL` and `JWT_SECRET`)."
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "Generate a JWT_SECRET",
+          "code": "node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\""
+        },
+        {
+          "type": "heading",
+          "id": "env-web",
+          "text": "Front end (`web/.env`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Variable",
+            "Required",
+            "Description",
+            "Example"
+          ],
+          "rows": [
+            [
+              "`VITE_API_URL`",
+              "no",
+              "API URL, no trailing slash.",
+              "`http://localhost:3333` (padrão / default)"
+            ]
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "VITE_* variables are baked into the build",
+          "text": "Changed `VITE_API_URL` on Vercel? Redeploy. And never put secrets here: everything `VITE_*` is visible in the browser."
+        },
+        {
+          "type": "paragraph",
+          "text": "The shop WhatsApp, Pix key, account holder and bank are **not** variables: they are registered in the dashboard (**Pix e contato**) and stored in the database."
+        }
+      ]
+    },
+    {
+      "id": "scripts",
+      "group": "Reference",
+      "title": "Scripts",
+      "summary": "Every npm command, where it runs and when to use it.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "scripts-api",
+          "text": "API (`cd api`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Command",
+            "What it does"
+          ],
+          "rows": [
+            [
+              "`npm run dev`",
+              "`tsx watch src/server.ts`: API with auto-reload at `http://localhost:3333`."
+            ],
+            [
+              "`npm run build`",
+              "`prisma generate && tsc`: generates the Prisma client and compiles to `dist/`."
+            ],
+            [
+              "`npm start`",
+              "`node dist/server.js`: runs the build."
+            ],
+            [
+              "`npm run typecheck`",
+              "`tsc --noEmit`: checks types."
+            ],
+            [
+              "`npm test` / `npm run test:watch`",
+              "Vitest (once / watch). Needs `DATABASE_TESTS_URL`."
+            ],
+            [
+              "`npm run db:deploy`",
+              "`prisma migrate deploy`: applies pending migrations. **This is the command for a fresh clone and for production.**"
+            ],
+            [
+              "`npm run db:migrate`",
+              "`prisma migrate dev`: creates a **new** migration from `schema.prisma` (development only)."
+            ],
+            [
+              "`npm run db:generate`",
+              "Regenerates the Prisma client in `src/generated` (not in git)."
+            ],
+            [
+              "`npm run db:seed`",
+              "Creates/updates flavors, prices, configuration and the admin."
+            ],
+            [
+              "`postinstall`",
+              "Runs `prisma generate` after `npm install`."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "scripts-web",
+          "text": "Front end (`cd web`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Command",
+            "What it does"
+          ],
+          "rows": [
+            [
+              "`npm run dev`",
+              "Vite server with reload at `http://localhost:5173`."
+            ],
+            [
+              "`npm run build`",
+              "`tsc -b && vite build`: checks types and builds `dist/` (same command as the deploy)."
+            ],
+            [
+              "`npm run preview`",
+              "Serves the build locally for checking."
+            ],
+            [
+              "`npm run lint`",
+              "Oxlint."
+            ],
+            [
+              "`npm test` / `npm run test:watch`",
+              "Vitest for the front-end rules; uses no network or database."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "scripts-doc",
+          "text": "Documentation (`cd doc`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Command",
+            "What it does"
+          ],
+          "rows": [
+            [
+              "`npm run dev`",
+              "Docs site at `http://localhost:4321`."
+            ],
+            [
+              "`npm run check`",
+              "Checks that `pt-br.json` and `en-us.json` have the same structure."
+            ],
+            [
+              "`npm run build`",
+              "Builds `doc/dist/`, publishable on static hosting."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "testes",
+      "group": "Development",
+      "title": "Testing",
+      "summary": "Vitest in the API (with a separate test database) and in the front end (pure rules).",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "api-testes",
+          "text": "API"
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "bash",
+          "code": "cd api\nnpm test"
+        },
+        {
+          "type": "list",
+          "items": [
+            "They use the `DATABASE_TESTS_URL` database and **refuse to run** if it equals `DATABASE_URL` (`tests/test-env.ts`).",
+            "Before anything, `tests/global-setup.ts` runs `prisma migrate deploy` and the seed with `SEED_SOBRESCREVER=1`, leaving the database in its base state with a dedicated admin (`admin_teste`).",
+            "`tests/setup.ts` sets `NODE_ENV=test` and a test `JWT_SECRET` before the app is imported.",
+            "Routes are called in memory with `app.inject` (no port opened). Files run sequentially (`fileParallelism: false`) because they share the same database."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Current files in `api/tests/`:"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "File",
+            "Covers"
+          ],
+          "rows": [
+            [
+              "`admin.test.ts`",
+              "Admin route protection, login, order listing and status, prep time, fees, prices, Pix and flavors."
+            ],
+            [
+              "`api.test.ts`",
+              "Server status and order creation."
+            ],
+            [
+              "`cors.test.ts`",
+              "Browser preflight (methods and origin)."
+            ],
+            [
+              "`entrega.test.ts`, `retirada.test.ts`",
+              "Delivery and pickup rules."
+            ],
+            [
+              "`pagamento.test.ts`",
+              "Cash, card, Pix and invalid payment method."
+            ],
+            [
+              "`quantidade.test.ts`",
+              "Quantities above 1000 and fractional ones."
+            ],
+            [
+              "`telefone.test.ts`",
+              "Customer mobile phone validation."
+            ],
+            [
+              "`helpers.ts`",
+              "Shared utilities."
+            ]
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "To be confirmed",
+          "text": "To be confirmed: in the current working copy several API test files (for example `preco`, `prazo-pix`, `funcionamento`, `marca`, `pix`, `rate-limit`, `vercel-handler`) show as **deleted** and were replaced by `entrega`, `retirada`, `quantidade` and `telefone`. Confirm that the reorganisation is intentional; `api/README.md` still describes the earlier coverage (price, Pix deadline, validations)."
+        },
+        {
+          "type": "heading",
+          "id": "web-testes",
+          "text": "Front end"
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "bash",
+          "code": "cd web\nnpm test"
+        },
+        {
+          "type": "paragraph",
+          "text": "They test the pure rules in `src/lib/` (price preview, Pix deadline, opening rules, formatting and masks, logo, theme and new-order detection), in `src/tests/*.test.ts`. They use no network or database (`environment: node`)."
+        },
+        {
+          "type": "heading",
+          "id": "ci",
+          "text": "CI (GitHub Actions)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Workflow",
+            "When",
+            "What runs"
+          ],
+          "rows": [
+            [
+              "`api-tests.yml`",
+              "push to `main` and PRs touching `api/**`",
+              "`npm ci` → `npm run typecheck` → `npm test` (secret `DATABASE_TESTS_URL`; runs are serialised so they do not fight over the database)."
+            ],
+            [
+              "`web-tests.yml`",
+              "push to `main` and PRs touching `web/**`",
+              "`npm ci` → `npm run build` (types + Vite) → `npm test`."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "novos-testes",
+          "text": "Writing new tests"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Pure business rule (price, hours, deadline): test the function directly, with no database.",
+            "Route: use `app.inject` with `buildApp()` and the utilities in `tests/helpers.ts`; remember that data stays in the test database.",
+            "Never point tests at the production database."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "postman",
+          "text": "Manual tests (Postman)"
+        },
+        {
+          "type": "paragraph",
+          "text": "`api/README.md` carries a complete manual test script for Postman (a `delivery-local` environment with `baseUrl`, `token` and `codigo`, scripts that store the token and order code, and more than 100 numbered scenarios)."
+        }
+      ]
+    },
+    {
+      "id": "padroes",
+      "group": "Development",
+      "title": "Project conventions",
+      "summary": "Conventions observed in the code and the git history.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "codigo-padrao",
+          "text": "Code"
+        },
+        {
+          "type": "list",
+          "items": [
+            "TypeScript with ES modules (`\"type\": \"module\"`) in both projects; internal API imports use the `.js` suffix.",
+            "Domain names in **Portuguese** (`pedido`, `sabor`, `funcionamento`) and Portuguese comments explaining the *why*.",
+            "API: all input goes through a Zod schema; business errors are classes (`RegraDeNegocioError` → 400, `NaoEncontradoError` → 404, `ConflitoError` → 409) handled in `plugins/erros.ts`.",
+            "Money in integer cents in calculations; `Decimal(10,2)` in the database; 2-decimal strings in responses.",
+            "Front end: API access only through `lib/api.ts`; pure rules in `lib/` with tests; `@` alias for `src/`.",
+            "Front end: shadcn components in `components/ui/` (`base-nova` style); per-area CSS in `styles/components/`.",
+            "Front-end lint: Oxlint (`react/rules-of-hooks` as an error). No linter is configured in the API."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "commits",
+          "text": "Commits"
+        },
+        {
+          "type": "paragraph",
+          "text": "The history uses *Conventional Commits*-style prefixes, with an optional scope and messages in Portuguese:"
+        },
+        {
+          "type": "code",
+          "language": "text",
+          "title": "Real examples",
+          "code": "feat: campos separados de endereço, número e bairro na entrega\nfix(api): corrige o 500 na Vercel com um handler serverless\nchore: Inclusão de templates para issues e PR\ndocs: remove referências ao WORKFLOW.md"
+        },
+        {
+          "type": "paragraph",
+          "text": "Prefixes seen: `feat`, `fix`, `chore`, `docs` (and `bug`, used once). No `commitlint` or commit hooks are configured."
+        },
+        {
+          "type": "heading",
+          "id": "branches",
+          "text": "Branches"
+        },
+        {
+          "type": "paragraph",
+          "text": "Observed pattern: `type/issue-number-description`, for example `update/1-update-adicionar-novos-campos-de-endereço`, `doc/inclusao-de-templates` and `update/4-adicionar-verificacao-de-telefone`. Changes reach `main` through a Pull Request."
+        }
+      ]
+    },
+    {
+      "id": "contribuindo",
+      "group": "Development",
+      "title": "Contributing",
+      "summary": "From issue to Pull Request, using the repository templates.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "fluxo-pr",
+          "text": "Workflow"
+        },
+        {
+          "type": "mermaid",
+          "code": "flowchart LR\n  I[\"Open an issue (template)\"] --> B[\"Create branch type/N-description\"]\n  B --> C[\"Code and test locally\"]\n  C --> P[\"Open a Pull Request (template)\"]\n  P --> CI{\"CI green?\"}\n  CI -->|yes| M[\"Merge into main\"]\n  CI -->|no| C"
+        },
+        {
+          "type": "heading",
+          "id": "modelos",
+          "text": "Templates"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Issue** (`.github/ISSUE_TEMPLATE/issues.md`): title `[Feature] ...`, description, a “what must be done” checklist and notes.",
+            "**Pull Request** (`.github/pull_request_template.md`): what changed and why, `Ticket:`, “what was done”, “how to test” and “screenshots and notes”."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "checklist",
+          "text": "Pre-PR checklist"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`cd api && npm run typecheck && npm test`",
+            "`cd web && npm run build && npm test` (and `npm run lint`)",
+            "Changed `schema.prisma`? Create the migration with `npm run db:migrate` and include it in the PR.",
+            "Changed a business rule? Update `api/APP.md`, the matching `README` and this documentation (`doc/content/*.json`, both languages, then `npm run check`).",
+            "No secrets in code or screenshots."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deploy",
+      "group": "Operations",
+      "title": "Deploy",
+      "summary": "Two Vercel projects (API and web) and one Neon database.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "ambientes",
+          "text": "Environments"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Environment",
+            "Where",
+            "Notes"
+          ],
+          "rows": [
+            [
+              "Local",
+              "API `:3333`, web `:5173`, Neon database",
+              "Direct Neon string."
+            ],
+            [
+              "Production",
+              "Vercel (API and web) + Neon",
+              "The API uses the `-pooler` string."
+            ],
+            [
+              "Tests",
+              "Separate database (`DATABASE_TESTS_URL`)",
+              "Local and GitHub Actions."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "deploy-api",
+          "text": "Deploying the API"
+        },
+        {
+          "type": "list",
+          "ordered": true,
+          "items": [
+            "Create a Vercel project pointing to the repository with **Root Directory = `api`**. There is no `vercel.json`: Vercel uses `src/index.ts`, which exports the handler.",
+            "Set `DATABASE_URL` (`-pooler` string), `JWT_SECRET` and `WEB_URL` (production front-end URL). Optional: `NTFY_TOPIC`.",
+            "Apply migrations and seed to the production database — Vercel does **not** do this:"
+          ]
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "bash",
+          "code": "DATABASE_URL=\"<string direta do Neon>\" npm run db:deploy\nDATABASE_URL=\"<string direta do Neon>\" ADMIN_USER=\"<usuario>\" ADMIN_PASSWORD=\"<senha forte>\" npm run db:seed"
+        },
+        {
+          "type": "code",
+          "language": "powershell",
+          "title": "PowerShell",
+          "code": "$env:DATABASE_URL=\"<string direta do Neon>\"; npm run db:deploy\n$env:ADMIN_USER=\"<usuario>\"; $env:ADMIN_PASSWORD=\"<senha forte>\"; npm run db:seed"
+        },
+        {
+          "type": "paragraph",
+          "text": "Finally, test `GET <api-url>/health`."
+        },
+        {
+          "type": "heading",
+          "id": "deploy-web",
+          "text": "Deploying the front end"
+        },
+        {
+          "type": "list",
+          "ordered": true,
+          "items": [
+            "Create a Vercel project with **Root Directory = `web`** (Vite is detected automatically).",
+            "Set `VITE_API_URL` to the production API URL, no trailing slash.",
+            "`web/vercel.json` rewrites any route to `/index.html`; without it, reloading `/pedido/CODE` or `/admin/dashboard` would give a 404.",
+            "Confirm that `WEB_URL` in the API is exactly this front-end URL."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "prod-obs",
+          "text": "Production notes"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Migration before code:** always apply the migration **before** publishing code that depends on it.",
+            "**Approximate rate limit:** the limit (`/pedido`: 10/min, `/auth/login`: 5/min) lives in each instance’s memory; on serverless it is approximate.",
+            "**Single-origin CORS:** Vercel preview URLs (another domain) do not work with the production API.",
+            "**`trustProxy`:** on, so rate limiting uses the real IP from `x-forwarded-for` behind Vercel."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "rollback",
+          "text": "Rollback"
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "To be confirmed",
+          "text": "To be confirmed: the repository does not document a rollback procedure. On Vercel a previous deployment can be promoted; Prisma migrations, however, have no automatic “down” and require a corrective new migration."
+        }
+      ]
+    },
+    {
+      "id": "seguranca",
+      "group": "Operations",
+      "title": "Security",
+      "summary": "How the admin is protected and how personal data is handled.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "auth",
+          "text": "Authentication and authorization"
+        },
+        {
+          "type": "list",
+          "items": [
+            "A single kind of authenticated user: the **admin** (`AdminUser` table), created by the seed. Password hashed with **bcrypt** (cost 12).",
+            "`POST /auth/login` returns a 12 h **JWT**. Every route inside `routes/admin/` goes through an `onRequest` hook that verifies the token: no admin route is left public by mistake.",
+            "Unknown user and wrong password get the same answer and the same time cost (dummy hash) so users are not revealed.",
+            "In the front end the token lives in `localStorage` (`saborDeMae:token`); any `401` on an admin route logs out and returns to the login."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "protecoes",
+          "text": "API protections"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Protection",
+            "Detail"
+          ],
+          "rows": [
+            [
+              "CORS",
+              "A single origin (`WEB_URL`); methods `GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS`."
+            ],
+            [
+              "Rate limit",
+              "`POST /pedido`: 10/min; `POST /auth/login`: 5/min (per IP, in memory)."
+            ],
+            [
+              "Validation",
+              "All body/query/params go through Zod; price is always recomputed on the server."
+            ],
+            [
+              "Logo",
+              "Size, PNG signature and SVG with no active content; served with `nosniff` and a restrictive `Content-Security-Policy`."
+            ],
+            [
+              "Errors",
+              "500 errors return a generic message; details only go to the log."
+            ],
+            [
+              "Secrets",
+              "`JWT_SECRET` with at least 32 characters, validated at startup; `.env` kept out of git."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "dados-pessoais",
+          "text": "Personal data"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Customers provide name, phone and (for delivery) address. This data is stored in the `Pedido` table.",
+            "`GET /pedido/:codigo` is public to anyone with the code, but it does **not** return the phone. Only the admin sees the contact.",
+            "The ntfy alert carries **no** personal data (only code, quantity, type and total) because the topic on the public server is open to anyone who knows its name.",
+            "The admin can permanently delete an order (`DELETE /pedido/:codigo`)."
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "To be confirmed",
+          "text": "To be confirmed: the repository has no privacy policy, order retention period or `SECURITY.md` with a channel for reporting vulnerabilities. Agree these with the project owner (likely relevant under Brazil’s LGPD)."
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "title": "Phone verification",
+          "text": "Branch `update/4-adicionar-verificacao-de-telefone` validates the **format** of the mobile number. It does not send an SMS/WhatsApp code to confirm the number belongs to the customer."
+        }
+      ]
+    },
+    {
+      "id": "troubleshooting",
+      "group": "Operations",
+      "title": "Troubleshooting",
+      "summary": "Common problems and how to fix them.",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Symptom",
+            "Likely cause",
+            "Fix"
+          ],
+          "rows": [
+            [
+              "API will not start: “Variáveis de ambiente inválidas”",
+              "`JWT_SECRET` shorter than 32 characters, empty `DATABASE_URL` or a `WEB_URL` that is not a URL.",
+              "Fix `api/.env` (see [Environment variables](#/variaveis-de-ambiente))."
+            ],
+            [
+              "Front end: “Não foi possível conectar ao servidor”",
+              "The API is not running or `VITE_API_URL` is wrong.",
+              "Start the API (`npm run dev`) and check `GET /health`."
+            ],
+            [
+              "CORS error in the browser",
+              "The front end is on an origin different from `WEB_URL` (port other than 5173, a Vercel preview URL, a trailing slash).",
+              "Use port 5173 or set `WEB_URL` to the exact front-end origin."
+            ],
+            [
+              "Cannot find module `src/generated/prisma`",
+              "The Prisma client was not generated (the folder is in `.gitignore`).",
+              "`npm run db:generate` (or `npm install`, which runs `postinstall`)."
+            ],
+            [
+              "Admin login returns 401",
+              "The seed did not run or the password changed in `.env` without re-running the seed.",
+              "Run `npm run db:seed` (it always updates the admin password)."
+            ],
+            [
+              "Unexpected 429",
+              "Per-IP, per-minute rate limit.",
+              "Wait 1 minute."
+            ],
+            [
+              "`npm test` refuses to run",
+              "`DATABASE_TESTS_URL` missing or equal to `DATABASE_URL`.",
+              "Create a separate test database/branch and set the variable."
+            ],
+            [
+              "The Pix option does not show up for customers",
+              "The key is still the `00000000000` marker (`configurada: false`).",
+              "In the dashboard, open **Pix e contato** and register the key."
+            ],
+            [
+              "500 on Vercel right after deploying",
+              "The function failed to start (missing variables, migration not applied or wrong entry file).",
+              "Check the variables, apply `db:deploy` and read the function log. The entry must be `src/index.ts`."
+            ],
+            [
+              "Opening `/pedido/CODE` directly gives a 404 on Vercel",
+              "The rewrite to `index.html` is missing.",
+              "Keep `web/vercel.json`."
+            ],
+            [
+              "I changed `VITE_API_URL` and nothing changed",
+              "`VITE_*` variables are baked into the build.",
+              "Redeploy."
+            ],
+            [
+              "No new-order sound in the dashboard",
+              "Browsers only unlock audio after an interaction, or the sound is switched off.",
+              "Click anywhere on the page and check the sound button."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "decisoes",
+      "group": "Operations",
+      "title": "Architecture decisions",
+      "summary": "Why the project is the way it is (short records, inferred from the code and comments).",
+      "blocks": [
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "To be confirmed",
+          "text": "The decisions below were inferred from code comments and git history; review the reasoning with whoever made them."
+        },
+        {
+          "type": "heading",
+          "id": "adr-preco",
+          "text": "ADR 1 — Price always computed on the server"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Context:** the front end shows a preview, but a customer could tamper with the request.",
+            "**Decision:** the API ignores any value sent and recomputes subtotal, fee and total (in integer cents).",
+            "**Consequence:** the price rule exists in two places (API and `web/src/lib/preco.ts`); the API is the source of truth."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-pix",
+          "text": "ADR 2 — Manual Pix, no bank integration"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Context:** a small shop with no payment gateway.",
+            "**Decision:** the customer copies the key and sends the receipt on WhatsApp; the admin approves (`PAGAMENTO_APROVADO`).",
+            "**Consequence:** no gateway cost and no webhooks, but confirmation is manual."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-serverless",
+          "text": "ADR 3 — API as a Vercel serverless function"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Context:** simple, cheap deploys; the history shows a 500 fixed with a serverless handler.",
+            "**Decision:** `src/index.ts` exports a handler that creates Fastify once per container; `server.ts` handles local use.",
+            "**Consequence:** in-memory rate limiting is approximate; migrations do not run on deploy; the Neon pooler is recommended."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-config",
+          "text": "ADR 4 — Configuration in a single database row"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Context:** there is a single shop and the owner edits prices, hours, Pix and brand from the dashboard.",
+            "**Decision:** a `Configuracao` table with `id = 1`, plus `FaixaPreco` for the price table.",
+            "**Consequence:** no multi-tenancy; changes need no redeploy. The seed preserves what the admin already edited."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-logo",
+          "text": "ADR 5 — Logo stored in the database and uploaded as base64"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Context:** serverless has no persistent disk and an upload plugin adds complexity.",
+            "**Decision:** PNG/SVG up to 300 KB sent as base64 JSON and stored in `Bytes`, served at `/marca/logo?v=<version>` with immutable caching.",
+            "**Consequence:** content validated on the server; each new logo changes the URL and busts the cache."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-sem-conta",
+          "text": "ADR 6 — Customers without an account"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Context:** the brief asks for a simple delivery-app flow with no customer login.",
+            "**Decision:** customers track their order with an 8-character code.",
+            "**Consequence:** anyone with the code sees the order (without the phone); there is no per-customer history."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-ntfy",
+          "text": "ADR 7 — ntfy alert without personal data"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Context:** the owner must learn about new orders even outside the dashboard.",
+            "**Decision:** optional push via ntfy with a 3 s timeout and never throwing; message only with code, quantity, type and total.",
+            "**Consequence:** the topic name works like a password."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "glossario",
+      "group": "Operations",
+      "title": "Glossary",
+      "summary": "Domain terms, kept in Portuguese as in the code.",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Term",
+            "Meaning"
+          ],
+          "rows": [
+            [
+              "Pedido",
+              "A purchase made by the customer: quantity, flavors, delivery/pickup, payment."
+            ],
+            [
+              "Código",
+              "The 8-character order identifier used to follow its progress."
+            ],
+            [
+              "Sabor",
+              "A kind of mini snack (e.g. coxinha, kibe). Can be activated or deactivated, never deleted."
+            ],
+            [
+              "Misto",
+              "An order with no flavors chosen; the shop decides."
+            ],
+            [
+              "Faixa de preço",
+              "A fixed price for 10, 20, … 100 units."
+            ],
+            [
+              "Entrega / Retirada",
+              "Bring to the customer’s address / the customer collects on site."
+            ],
+            [
+              "Horário agendado",
+              "Date and time requested by the customer. Absent = “whenever it is ready”."
+            ],
+            [
+              "Pix",
+              "Brazilian instant payment method. Here it is manual: the customer pays and sends the receipt."
+            ],
+            [
+              "Comprovante",
+              "Proof of payment, sent to the shop WhatsApp."
+            ],
+            [
+              "Troco",
+              "Money returned when the customer pays cash with a note larger than the total."
+            ],
+            [
+              "Estabelecimento fechado",
+              "The admin’s manual switch that rejects all orders."
+            ],
+            [
+              "Entrega de hoje",
+              "A switch that turns delivery off for the current day only."
+            ],
+            [
+              "Admin / Lojista",
+              "The shop owner, who uses the `/admin` dashboard."
+            ],
+            [
+              "Neon",
+              "The managed PostgreSQL service used by the project."
+            ],
+            [
+              "ntfy",
+              "A topic-based push notification service (optional)."
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

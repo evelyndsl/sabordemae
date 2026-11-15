@@ -1,0 +1,2464 @@
+{
+  "meta": {
+    "title": "Sabor de Mãe",
+    "version": "1.0.0",
+    "language": "pt-br",
+    "languageName": "Português",
+    "generatedAt": "2026-11-11",
+    "sourceCommit": "f21e900",
+    "repository": "https://github.com/evelyndsl/sabordemae"
+  },
+  "ui": {
+    "docs": "Documentação",
+    "searchPlaceholder": "Buscar na documentação...",
+    "searchResults": "Resultados da busca",
+    "noResults": "Nenhum resultado encontrado.",
+    "onThisPage": "Nesta página",
+    "copy": "Copiar",
+    "copied": "Copiado!",
+    "generated": "Gerado em",
+    "empty": "Nenhum conteúdo.",
+    "collapseSidebar": "Recolher menu",
+    "expandSidebar": "Expandir menu"
+  },
+  "sections": [
+    {
+      "id": "visao-geral",
+      "group": "Introdução",
+      "title": "Visão geral",
+      "summary": "App de pedidos de mini salgados para uma única loja: o cliente pede pelo site e o lojista acompanha tudo em um painel.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "o-que-e",
+          "text": "O que é"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Sabor de Mãe** é uma aplicação de delivery para uma única loja (sem multi-tenant) que vende mini salgados. O cliente monta o pedido escolhendo a **quantidade** (de 10 em 10) e, se quiser, os **sabores**; escolhe **entrega** ou **retirada**; e paga em dinheiro, cartão (presencialmente) ou **Pix** (copia a chave e envia o comprovante por WhatsApp). O lojista recebe os pedidos em um painel, muda o status de cada um e configura preços, horários, Pix e a aparência da marca."
+        },
+        {
+          "type": "heading",
+          "id": "problema",
+          "text": "Problema que resolve"
+        },
+        {
+          "type": "paragraph",
+          "text": "Pequenos negócios de comida costumam receber pedidos por mensagem, com preços e regras repetidos à mão. Aqui o preço é **sempre calculado no servidor**, os horários de atendimento são aplicados automaticamente e o cliente acompanha o pedido por um código, sem precisar de conta."
+        },
+        {
+          "type": "heading",
+          "id": "publico",
+          "text": "Para quem é"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Cliente final:** pede em `/pedido` e acompanha em `/pedido/:codigo`.",
+            "**Lojista (admin):** usa o painel em `/admin`.",
+            "**Quem desenvolve:** API em `api/` e front em `web/`."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "funcionalidades",
+          "text": "Funcionalidades"
+        },
+        {
+          "type": "cards",
+          "items": [
+            {
+              "title": "Pedido sem conta",
+              "text": "Quantidade mista ou por sabor; consulta pelo código de 8 caracteres."
+            },
+            {
+              "title": "Preço no servidor",
+              "text": "Tabela de faixas de 10 a 100 unidades, preço por unidade acima disso e taxa de entrega por faixa."
+            },
+            {
+              "title": "Pix manual",
+              "text": "Sem integração bancária: o cliente copia a chave e o lojista aprova o pagamento."
+            },
+            {
+              "title": "Funcionamento",
+              "text": "Horário diário, dias de atendimento, “fechado” manual e entrega desligada só por um dia."
+            },
+            {
+              "title": "Painel do lojista",
+              "text": "Pedidos, status, sabores, preços, Pix, funcionamento e marca (logo e cores)."
+            },
+            {
+              "title": "Aviso de novo pedido",
+              "text": "Som no painel (consulta a cada 20 s) e push opcional pelo ntfy."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "status-projeto",
+          "text": "Status e escopo"
+        },
+        {
+          "type": "paragraph",
+          "text": "O projeto está em desenvolvimento ativo (MVP funcional, com deploy na Vercel e banco no Neon). O brief original do produto está em `api/APP.md`."
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "title": "Sobre esta documentação",
+          "text": "Foi gerada a partir do commit `f21e900` **mais** as alterações ainda não commitadas da branch `update/4-adicionar-verificacao-de-telefone` (validação de celular e reorganização dos testes da API)."
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "A confirmar",
+          "text": "A confirmar: `api/APP.md` começa dizendo que o backend seria em .NET/C#, mas a implementação real é Node.js + Fastify. O restante do arquivo (regras de negócio) está atualizado; o parágrafo inicial é só histórico."
+        }
+      ]
+    },
+    {
+      "id": "inicio-rapido",
+      "group": "Introdução",
+      "title": "Início rápido",
+      "summary": "Do clone ao app rodando: API em `3333` e web em `5173`.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "pre-requisitos",
+          "text": "Pré-requisitos"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Node.js 24** e npm.",
+            "Um banco **PostgreSQL**. O projeto usa o [Neon](https://neon.tech) (plano gratuito basta).",
+            "Para rodar os testes da API: um **segundo banco**, separado (por exemplo, uma branch do Neon)."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "clonar",
+          "text": "Clonar"
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "Terminal",
+          "code": "git clone git@github.com:evelyndsl/sabordemae.git\ncd sabordemae"
+        },
+        {
+          "type": "heading",
+          "id": "api",
+          "text": "1. API (terminal 1)"
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "api/",
+          "code": "cd api\nnpm install               # também gera o cliente do Prisma (postinstall)\ncp .env.example .env      # PowerShell: Copy-Item .env.example .env\n# edite o .env: DATABASE_URL, JWT_SECRET, ADMIN_USER e ADMIN_PASSWORD\nnpm run db:deploy         # aplica as migrations\nnpm run db:seed           # sabores, preços, configuração e usuário admin\nnpm run dev               # http://localhost:3333"
+        },
+        {
+          "type": "paragraph",
+          "text": "Confira em `GET http://localhost:3333/health`, que deve responder `{ \"status\": \"ok\" }`."
+        },
+        {
+          "type": "heading",
+          "id": "web",
+          "text": "2. Web (terminal 2)"
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "web/",
+          "code": "cd web\nnpm install\nnpm run dev               # http://localhost:5173"
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "Use a porta 5173",
+          "text": "O CORS da API só libera a origem `WEB_URL` (padrão `http://localhost:5173`). Se o Vite subir em outra porta, o navegador bloqueia as chamadas: feche o outro processo ou ajuste `WEB_URL`."
+        },
+        {
+          "type": "heading",
+          "id": "acessar",
+          "text": "3. Acessar"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Cliente: <http://localhost:5173/pedido>",
+            "Lojista: <http://localhost:5173/admin/login> (usuário e senha são `ADMIN_USER` e `ADMIN_PASSWORD` do `.env` da API)"
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "Primeiro acesso ao painel",
+          "text": "Abra **Pix e contato** e cadastre WhatsApp, chave Pix, favorecido e banco. Enquanto a chave não for cadastrada, a opção Pix fica escondida para os clientes."
+        }
+      ]
+    },
+    {
+      "id": "stack",
+      "group": "Introdução",
+      "title": "Stack",
+      "summary": "Tecnologias por camada, com a versão do manifesto e o motivo de uso.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "api-stack",
+          "text": "API (`api/`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Tecnologia",
+            "Versão",
+            "Para que serve"
+          ],
+          "rows": [
+            [
+              "Node.js",
+              "24",
+              "Runtime (também no CI e na Vercel)."
+            ],
+            [
+              "TypeScript",
+              "^6.0.3",
+              "Tipagem estática; `npm run typecheck`."
+            ],
+            [
+              "Fastify",
+              "^5.12.7",
+              "Servidor HTTP rápido, com plugins (CORS, JWT, rate limit)."
+            ],
+            [
+              "Zod + fastify-type-provider-zod",
+              "^4.6.7 / ^7.0.0",
+              "Validação de entrada e saída com tipos inferidos."
+            ],
+            [
+              "Prisma + @prisma/adapter-pg",
+              "^7.10.1",
+              "ORM e migrations para PostgreSQL."
+            ],
+            [
+              "PostgreSQL (Neon)",
+              "—",
+              "Banco de dados gerenciado, com plano gratuito."
+            ],
+            [
+              "@fastify/jwt + bcryptjs",
+              "^10.2.5 / ^3.0.3",
+              "Login do admin com token de 12 h e senha com hash."
+            ],
+            [
+              "@fastify/rate-limit, @fastify/cors",
+              "^11.2.1 / ^11.3.1",
+              "Limite de requisições e CORS por origem."
+            ],
+            [
+              "Vitest",
+              "^5.0.5",
+              "Testes automatizados."
+            ],
+            [
+              "tsx",
+              "^4.23.15",
+              "Roda TypeScript direto (`dev` e seed)."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "web-stack",
+          "text": "Web (`web/`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Tecnologia",
+            "Versão",
+            "Para que serve"
+          ],
+          "rows": [
+            [
+              "React",
+              "^19.3.1",
+              "Interface."
+            ],
+            [
+              "TypeScript",
+              "~7.0.2",
+              "Tipagem estática (`tsc -b` no build)."
+            ],
+            [
+              "Vite",
+              "^8.3.5",
+              "Servidor de desenvolvimento e build."
+            ],
+            [
+              "React Router",
+              "^7.18.5",
+              "Rotas do cliente e do painel."
+            ],
+            [
+              "Tailwind CSS",
+              "^4.3.3",
+              "Estilos e tokens de cor."
+            ],
+            [
+              "shadcn/ui (Base UI) + lucide-react",
+              "^4.23.0 / ^1.9.0 / ^1.66.0",
+              "Componentes de interface e ícones."
+            ],
+            [
+              "Vitest",
+              "^5.0.5",
+              "Testes das regras puras do front."
+            ],
+            [
+              "Oxlint",
+              "^1.89.0",
+              "Lint (`npm run lint`)."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "infra-stack",
+          "text": "Infraestrutura"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Vercel:** dois projetos (API e web). A API roda como função serverless.",
+            "**Neon:** PostgreSQL. String direta para migrations, string `-pooler` para a API serverless.",
+            "**GitHub Actions:** testes da API e do web a cada push/PR.",
+            "**ntfy** (opcional): push de novo pedido no celular do lojista."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "arquitetura",
+      "group": "Arquitetura",
+      "title": "Arquitetura",
+      "summary": "Dois projetos independentes, front e API, que conversam só por HTTP/JSON.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "visao",
+          "text": "Visão geral"
+        },
+        {
+          "type": "mermaid",
+          "code": "flowchart LR\n  C[\"Cliente (navegador)\"] -->|HTTPS| W[\"Web: React + Vite (Vercel)\"]\n  L[\"Lojista (navegador)\"] -->|HTTPS| W\n  W -->|\"JSON + JWT do admin\"| A[\"API: Fastify (Vercel serverless)\"]\n  A -->|Prisma| D[(\"PostgreSQL - Neon\")]\n  A -.->|\"aviso opcional\"| N[\"ntfy.sh\"]\n  C -.->|\"comprovante Pix\"| WA[\"WhatsApp da loja\"]",
+          "caption": "Componentes e integrações. As setas tracejadas são opcionais ou manuais."
+        },
+        {
+          "type": "heading",
+          "id": "camadas-api",
+          "text": "Camadas da API"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Camada",
+            "Pasta",
+            "Responsabilidade"
+          ],
+          "rows": [
+            [
+              "Entrada",
+              "`src/index.ts`, `src/server.ts`",
+              "`index.ts` exporta o handler serverless da Vercel; `server.ts` faz o `listen` local."
+            ],
+            [
+              "Montagem",
+              "`src/buildApp.ts`",
+              "Registra CORS, rate limit, JWT, validação Zod, tratador de erros e rotas."
+            ],
+            [
+              "Rotas",
+              "`src/routes/`",
+              "Define endpoints e schemas. `admin/` aplica o hook de autenticação a tudo dentro dele."
+            ],
+            [
+              "Schemas",
+              "`src/schemas/`",
+              "Validação (Zod) de entrada e formato das respostas."
+            ],
+            [
+              "Serviços",
+              "`src/services/`",
+              "Regras de negócio: preço, pedidos, funcionamento, prazo do Pix, catálogo, marca, auth, notificação."
+            ],
+            [
+              "Plugins",
+              "`src/plugins/`",
+              "`auth.ts` (verificação do JWT) e `erros.ts` (mapeia erros para 400/404/409/500)."
+            ],
+            [
+              "Lib",
+              "`src/lib/`",
+              "Env validado, cliente Prisma, código do pedido, validação de chave Pix e de logo, erros de negócio."
+            ]
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "title": "Por que dois arquivos de entrada?",
+          "text": "A Vercel exige que o arquivo de entrada importe o `fastify` diretamente e exporte uma função por padrão. Por isso `src/index.ts` cria a instância e `buildApp.ts` (sem `export default`) concentra a configuração. Em desenvolvimento, `server.ts` sobe o servidor normal."
+        },
+        {
+          "type": "heading",
+          "id": "camadas-web",
+          "text": "Camadas do front"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`pages/order/` (cliente) e `pages/admin/` (painel): uma página por rota.",
+            "`lib/api.ts`: **todo** acesso à API passa por aqui; guarda o token do admin no `localStorage` e trata 401.",
+            "`hooks/`: `useFetch` (com polling opcional), `useSave`, `useStatusUpdate`, `useNewOrderAlerts`.",
+            "`lib/`: regras que espelham a API só para avisar o cliente antes de enviar (preço, prazo do Pix, funcionamento).",
+            "`context/`: autenticação do admin (`auth.tsx`) e marca/tema (`brand.tsx`)."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "estrutura",
+          "text": "Estrutura de pastas"
+        },
+        {
+          "type": "code",
+          "language": "text",
+          "code": "sabordemae/\n├── .github/\n│   ├── workflows/            testes da API e do web (GitHub Actions)\n│   ├── ISSUE_TEMPLATE/       modelo de issue\n│   └── pull_request_template.md\n├── api/\n│   ├── prisma/               schema.prisma, migrations/, seed.ts\n│   ├── src/\n│   │   ├── index.ts          entrada da Vercel (handler serverless)\n│   │   ├── server.ts         entrada local (listen)\n│   │   ├── buildApp.ts       monta o Fastify\n│   │   ├── routes/           públicas, auth e admin/\n│   │   ├── schemas/          Zod\n│   │   ├── services/         regras de negócio\n│   │   ├── plugins/          auth e tratamento de erros\n│   │   └── lib/              env, prisma, pix, logo, codigo, errors\n│   ├── tests/                Vitest\n│   └── APP.md                brief e regras de negócio\n├── web/\n│   ├── src/\n│   │   ├── pages/            order/ e admin/\n│   │   ├── components/       app + ui/ (shadcn)\n│   │   ├── context/ hooks/ lib/ types/ tests/\n│   │   └── styles/           Tailwind, tokens e CSS por área\n│   └── vercel.json           reescreve tudo para index.html\n└── doc/                      esta documentação"
+        }
+      ]
+    },
+    {
+      "id": "fluxos",
+      "group": "Arquitetura",
+      "title": "Fluxos principais",
+      "summary": "Como um pedido nasce, quais status ele percorre e como o lojista é avisado.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "criar-pedido",
+          "text": "Criar um pedido"
+        },
+        {
+          "type": "mermaid",
+          "code": "sequenceDiagram\n  actor Cli as Cliente\n  participant Web as Web\n  participant API as API\n  participant DB as PostgreSQL\n  participant Ntfy as ntfy\n  Cli->>Web: abre /pedido\n  Web->>API: GET sabores, valores, taxa-entrega, pix, funcionamento\n  API-->>Web: catálogo e regras\n  Cli->>Web: monta e envia o pedido\n  Web->>API: POST /pedido\n  API->>API: valida body, funcionamento, sabores e troco\n  API->>API: calcula preço e prazo do Pix\n  API->>DB: grava pedido e itens\n  API->>Ntfy: aviso (opcional, com tempo limite)\n  API-->>Web: 201 com código e total\n  Web-->>Cli: redireciona para /pedido/CODIGO",
+          "caption": "O preço mostrado no front é só uma prévia; o valor oficial vem da API."
+        },
+        {
+          "type": "heading",
+          "id": "status",
+          "text": "Status do pedido"
+        },
+        {
+          "type": "paragraph",
+          "text": "O caminho depende da forma de pagamento (Pix tem duas etapas a mais) e do tipo (entrega passa por “em rota”, retirada por “pronto para retirada”). O admin pode **voltar uma etapa** para corrigir um clique errado, mas não usar uma etapa que não existe para aquele pedido."
+        },
+        {
+          "type": "mermaid",
+          "code": "flowchart LR\n  subgraph SP[\"Pix\"]\n    AP[\"AGUARDANDO_PAGAMENTO\"] --> PA[\"PAGAMENTO_APROVADO\"] --> EP1[\"EM_PRODUCAO\"]\n  end\n  subgraph SO[\"Dinheiro ou cartão\"]\n    AG[\"AGUARDANDO\"] --> EP2[\"EM_PRODUCAO\"]\n  end\n  EP1 --> S{\"Tipo\"}\n  EP2 --> S\n  S -->|ENTREGA| ER[\"EM_ROTA_ENTREGA\"] --> F[\"FINALIZADO\"]\n  S -->|RETIRADA| PR[\"PRONTO_RETIRADA\"] --> F"
+        },
+        {
+          "type": "heading",
+          "id": "pix-fluxo",
+          "text": "Pagamento via Pix"
+        },
+        {
+          "type": "mermaid",
+          "code": "sequenceDiagram\n  actor Cli as Cliente\n  participant Web as Web\n  participant Adm as Lojista\n  Cli->>Web: escolhe Pix e finaliza o pedido\n  Web-->>Cli: chave para copiar e prazo de pagamento\n  Cli->>Cli: paga manualmente no app do banco\n  Cli->>Adm: envia o comprovante pelo WhatsApp\n  Adm->>Web: confere e muda para PAGAMENTO_APROVADO\n  Adm->>Web: depois EM_PRODUCAO e seguintes"
+        },
+        {
+          "type": "heading",
+          "id": "aviso",
+          "text": "Aviso de novo pedido"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**No painel:** `useNewOrderAlerts` consulta `GET /pedidos` a cada 20 s; a primeira consulta só memoriza os pedidos existentes, as seguintes tocam um som e mostram até 5 avisos para códigos novos.",
+            "**No celular (opcional):** com `NTFY_TOPIC` definido, a API publica no ntfy ao criar o pedido (tempo limite de 3 s; falha nunca derruba o pedido). A mensagem não leva dados pessoais."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "banco-de-dados",
+      "group": "Arquitetura",
+      "title": "Banco de dados",
+      "summary": "PostgreSQL gerenciado pelo Prisma: 6 tabelas e 12 migrations.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "er",
+          "text": "Diagrama entidade-relacionamento"
+        },
+        {
+          "type": "mermaid",
+          "code": "erDiagram\n  PEDIDO ||--|{ ITEM_PEDIDO : itens\n  SABOR |o--o{ ITEM_PEDIDO : sabor\n  PEDIDO {\n    uuid id PK\n    string codigo UK\n    string nomeCliente\n    string telefone\n    enum tipoEntrega\n    enum formaPagamento\n    enum status\n    int quantidadeTotal\n    decimal total\n    datetime horarioAgendado\n    datetime criadoEm\n  }\n  ITEM_PEDIDO {\n    int id PK\n    uuid pedidoId FK\n    int saborId FK\n    int quantidade\n  }\n  SABOR {\n    int id PK\n    string nome UK\n    boolean ativo\n  }\n  FAIXA_PRECO {\n    int id PK\n    int quantidade UK\n    decimal valor\n  }\n  CONFIGURACAO {\n    int id PK\n    int tempoPreparoMinimoMin\n    decimal taxaEntregaAte49\n    string chavePix\n    string horarioAbertura\n    string nomeMarca\n    json cores\n  }\n  ADMIN_USER {\n    int id PK\n    string usuario UK\n    string senhaHash\n  }"
+        },
+        {
+          "type": "paragraph",
+          "text": "`FAIXA_PRECO`, `CONFIGURACAO` e `ADMIN_USER` não têm relação direta com os pedidos: o preço e as regras são lidos na hora de criar o pedido e o resultado é gravado no próprio pedido."
+        },
+        {
+          "type": "heading",
+          "id": "pedido",
+          "text": "Pedido"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Campo",
+            "Tipo",
+            "Observação"
+          ],
+          "rows": [
+            [
+              "`id`, `codigo`",
+              "uuid, varchar(12)",
+              "`codigo` tem 8 caracteres, é único e é o que o cliente usa para consultar."
+            ],
+            [
+              "`nomeCliente`, `telefone`",
+              "varchar",
+              "Telefone só com dígitos (celular com DDD, sem o 55). Não aparece na consulta pública."
+            ],
+            [
+              "`tipoEntrega`",
+              "ENTREGA | RETIRADA",
+              "—"
+            ],
+            [
+              "`endereco`, `numero`, `bairro`, `pontoReferencia`",
+              "varchar",
+              "Só em entregas. `numero` e `bairro` são nulos apenas em pedidos antigos."
+            ],
+            [
+              "`observacao`",
+              "varchar(500)",
+              "Recado opcional do cliente, em qualquer tipo de pedido."
+            ],
+            [
+              "`horarioAgendado`",
+              "timestamp",
+              "Nulo = “para quando ficar pronto”."
+            ],
+            [
+              "`formaPagamento`",
+              "DINHEIRO | CARTAO | PIX",
+              "—"
+            ],
+            [
+              "`enderecoRetirada`",
+              "varchar(300)",
+              "Cópia do endereço da loja no momento do pedido (retirada)."
+            ],
+            [
+              "`precisaTroco`, `trocoPara`",
+              "boolean, decimal",
+              "Só pagamento em dinheiro."
+            ],
+            [
+              "`status`",
+              "enum StatusPedido",
+              "Inicia em `AGUARDANDO_PAGAMENTO` (Pix) ou `AGUARDANDO`."
+            ],
+            [
+              "`quantidadeTotal`, `subtotal`, `taxaEntrega`, `total`",
+              "int, decimal(10,2)",
+              "Calculados no servidor."
+            ],
+            [
+              "`tempoPreparoMin`, `previsaoEm`",
+              "int, timestamp",
+              "Só pedidos sem horário agendado; definidos pelo admin."
+            ],
+            [
+              "`pixAntecedenciaHoras`, `pagarAte`",
+              "int, timestamp",
+              "Só Pix. Ambos nulos = pagar no ato do pedido. O prazo fica gravado: mudar a configuração depois não altera pedidos antigos."
+            ],
+            [
+              "`criadoEm`",
+              "timestamp",
+              "Índice composto `(status, criadoEm)`."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "item-sabor",
+          "text": "ItemPedido e Sabor"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`ItemPedido.saborId` é **nulo** em pedido misto; `quantidade` é **nula** quando o cliente só escolheu os sabores (a loja divide as unidades).",
+            "Itens são apagados junto com o pedido (`onDelete: Cascade`). Sabores nunca são apagados (`onDelete: Restrict`): são desativados com `ativo = false`, pois pedidos antigos os referenciam."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "config",
+          "text": "Configuracao (linha única)"
+        },
+        {
+          "type": "paragraph",
+          "text": "A tabela `Configuracao` tem sempre **uma linha** (`id = 1`) com tudo o que o admin ajusta:"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Grupo",
+            "Campos"
+          ],
+          "rows": [
+            [
+              "Tempo de preparo",
+              "`tempoPreparoMinimoMin`, `tempoPreparoMaximoMin`"
+            ],
+            [
+              "Preços e taxas",
+              "`valorUnidadeAcimaDe100`, `taxaEntregaAte49`, `taxaEntregaDe50a199`, `entregaGratisAPartirDe`"
+            ],
+            [
+              "Pix",
+              "`tipoChavePix`, `chavePix`, `titularPix`, `bancoPix`, `whatsappEstabelecimento`, `pixAntecedenciaAteLimiteHoras`, `pixAntecedenciaAcimaLimiteHoras`"
+            ],
+            [
+              "Funcionamento",
+              "`horarioAbertura`, `horarioFechamento`, `estabelecimentoFechado`, `diasAtendimento`, `entregaSuspensaEm`, `enderecoRetirada`"
+            ],
+            [
+              "Marca",
+              "`nomeMarca`, `logoDados`, `logoTipo`, `logoAtualizadaEm`, `logoEscuraDados`, `logoEscuraTipo`, `logoEscuraAtualizadaEm`, `cores`"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "enums",
+          "text": "Enums"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Enum",
+            "Valores"
+          ],
+          "rows": [
+            [
+              "`TipoEntrega`",
+              "`ENTREGA`, `RETIRADA`"
+            ],
+            [
+              "`FormaPagamento`",
+              "`DINHEIRO`, `CARTAO`, `PIX`"
+            ],
+            [
+              "`TipoChavePix`",
+              "`CPF`, `CNPJ`, `TELEFONE`, `ALEATORIA`"
+            ],
+            [
+              "`StatusPedido`",
+              "`AGUARDANDO_PAGAMENTO`, `PAGAMENTO_APROVADO`, `AGUARDANDO`, `EM_PRODUCAO`, `EM_ROTA_ENTREGA`, `PRONTO_RETIRADA`, `FINALIZADO`"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "migrations",
+          "text": "Migrations"
+        },
+        {
+          "type": "paragraph",
+          "text": "Ficam em `api/prisma/migrations/` (de `20261027182308_init` a `20261108120000_numero_e_bairro`). Em produção use `npm run db:deploy`; `npm run db:migrate` cria uma **nova** migration e só serve em desenvolvimento."
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "Seed",
+          "text": "`npm run db:seed` cria os 8 sabores, as 10 faixas de preço, a configuração e o admin. Ele **preserva** o que o admin já editou; a senha do admin é sempre atualizada com a do `.env`. Com `SEED_SOBRESCREVER=1` (usado no banco de testes) os valores base voltam ao padrão."
+        }
+      ]
+    },
+    {
+      "id": "api",
+      "group": "Referência",
+      "title": "API",
+      "summary": "Todas as rotas HTTP da API, com acesso, corpo, respostas e erros.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "convencoes",
+          "text": "Convenções"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Base local: `http://localhost:3333`. Corpo e respostas em JSON (exceto `GET /marca/logo`, que devolve a imagem).",
+            "Rotas de admin exigem `Authorization: Bearer <token>` (token de `POST /auth/login`, válido por 12 h). Sem token ou com token inválido: `401 { \"mensagem\": \"Não autorizado.\" }`.",
+            "Valores em reais vêm como **string** com 2 casas (`\"39.00\"`).",
+            "Datas e horas em ISO 8601; o filtro de datas e os horários de funcionamento valem no horário de Brasília."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "erros",
+          "text": "Formato de erros"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Status",
+            "Quando",
+            "Corpo"
+          ],
+          "rows": [
+            [
+              "400",
+              "Validação do body/params/query, ou regra de negócio violada",
+              "`{ \"mensagem\": \"Dados inválidos.\", \"erros\": [{ \"campo\", \"mensagem\" }] }` / `{ \"mensagem\": \"...\" }`"
+            ],
+            [
+              "401",
+              "Token ausente/inválido ou login errado",
+              "`{ \"mensagem\": \"...\" }`"
+            ],
+            [
+              "404",
+              "Pedido, sabor ou logo inexistente; rota inexistente",
+              "`{ \"mensagem\": \"...\" }`"
+            ],
+            [
+              "409",
+              "Conflito (ex.: nome de sabor repetido)",
+              "`{ \"mensagem\": \"...\" }`"
+            ],
+            [
+              "429",
+              "Rate limit",
+              "`{ \"mensagem\": \"...\" }`"
+            ],
+            [
+              "500",
+              "Erro interno (detalhes só no log)",
+              "`{ \"mensagem\": \"Erro interno. Tente novamente em instantes.\" }`"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "tabela",
+          "text": "Tabela de rotas"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Método",
+            "Rota",
+            "Acesso",
+            "Descrição"
+          ],
+          "rows": [
+            [
+              "GET",
+              "`/health`",
+              "público",
+              "Responde `{ \"status\": \"ok\" }`."
+            ],
+            [
+              "GET",
+              "`/sabores`",
+              "público",
+              "Sabores ativos."
+            ],
+            [
+              "GET",
+              "`/valores`",
+              "público",
+              "Faixas de preço e preço acima de 100."
+            ],
+            [
+              "GET",
+              "`/tempo-preparo`",
+              "público",
+              "Tempo mínimo e máximo de preparo."
+            ],
+            [
+              "GET",
+              "`/taxa-entrega`",
+              "público",
+              "Taxas de entrega e limite de entrega grátis."
+            ],
+            [
+              "GET",
+              "`/pix`",
+              "público",
+              "Chave Pix, contato e prazos."
+            ],
+            [
+              "GET",
+              "`/funcionamento`",
+              "público",
+              "Horário, dias, aberto agora e entrega de hoje."
+            ],
+            [
+              "GET",
+              "`/marca`",
+              "público",
+              "Nome, versões das logos e cores."
+            ],
+            [
+              "GET",
+              "`/marca/logo`",
+              "público",
+              "Imagem da logo (`?modo=escuro`, `?v=`)."
+            ],
+            [
+              "POST",
+              "`/pedido`",
+              "público (10/min)",
+              "Cria um pedido."
+            ],
+            [
+              "GET",
+              "`/pedido/:codigo`",
+              "público",
+              "Consulta um pedido (sem telefone)."
+            ],
+            [
+              "POST",
+              "`/auth/login`",
+              "público (5/min)",
+              "Devolve o token JWT."
+            ],
+            [
+              "GET",
+              "`/pedidos`",
+              "admin",
+              "Lista pedidos (com telefone)."
+            ],
+            [
+              "PUT",
+              "`/pedido/:codigo/status`",
+              "admin",
+              "Muda o status."
+            ],
+            [
+              "PUT",
+              "`/pedido/:codigo/tempo-preparo`",
+              "admin",
+              "Define o tempo de preparo de um pedido sem horário."
+            ],
+            [
+              "DELETE",
+              "`/pedido/:codigo`",
+              "admin",
+              "Exclui o pedido definitivamente (204)."
+            ],
+            [
+              "PUT",
+              "`/tempo-preparo`",
+              "admin",
+              "Define o tempo mínimo e máximo."
+            ],
+            [
+              "PUT",
+              "`/taxa-entrega`",
+              "admin",
+              "Define as taxas por faixa."
+            ],
+            [
+              "PUT",
+              "`/valores`",
+              "admin",
+              "Substitui a tabela de preços."
+            ],
+            [
+              "PUT",
+              "`/funcionamento`",
+              "admin",
+              "Horário, dias, fechado e entrega de hoje."
+            ],
+            [
+              "PUT",
+              "`/endereco-retirada`",
+              "admin",
+              "Endereço mostrado para retirada."
+            ],
+            [
+              "PUT",
+              "`/pix`",
+              "admin",
+              "Chave Pix, contato e prazos."
+            ],
+            [
+              "PUT",
+              "`/marca`",
+              "admin",
+              "Nome e cores."
+            ],
+            [
+              "PUT / DELETE",
+              "`/marca/logo`",
+              "admin",
+              "Envia ou remove a logo."
+            ],
+            [
+              "GET",
+              "`/admin/sabores`",
+              "admin",
+              "Todos os sabores, inclusive desativados."
+            ],
+            [
+              "POST",
+              "`/sabores`",
+              "admin",
+              "Cria sabor."
+            ],
+            [
+              "PATCH",
+              "`/sabores/:id`",
+              "admin",
+              "Renomeia e/ou ativa/desativa."
+            ]
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "title": "Origem",
+          "text": "A tabela acima foi conferida contra `api/src/routes/`. Duas rotas não aparecem na tabela do `api/README.md`: `PUT /endereco-retirada` e o campo `diasAtendimento` de `PUT /funcionamento`."
+        },
+        {
+          "type": "heading",
+          "id": "post-pedido",
+          "text": "POST /pedido"
+        },
+        {
+          "type": "paragraph",
+          "text": "Cria um pedido. Público, com limite de **10 requisições por minuto por IP**. O preço enviado pelo cliente é ignorado: tudo é calculado no servidor."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Campo",
+            "Tipo",
+            "Regra"
+          ],
+          "rows": [
+            [
+              "`nomeCliente`",
+              "string",
+              "Obrigatório, 2 a 120 caracteres."
+            ],
+            [
+              "`telefone`",
+              "string",
+              "Obrigatório. Celular brasileiro: DDD + 9 + 8 dígitos. Aceita máscara e DDI `55` (removido). Fixo ou sem o 9 é recusado."
+            ],
+            [
+              "`quantidade`",
+              "int",
+              "Múltiplo de 10, de 10 a 1000."
+            ],
+            [
+              "`sabores`",
+              "array",
+              "Opcional. Vazio = misto. Itens `{ saborId, quantidade? }`; ver regras de sabores."
+            ],
+            [
+              "`tipoEntrega`",
+              "`ENTREGA` | `RETIRADA`",
+              "Obrigatório / Required"
+            ],
+            [
+              "`endereco`, `numero`, `bairro`",
+              "string",
+              "Obrigatórios na entrega (rua 5–300; número até 20, aceita “S/N”; bairro até 100). Ignorados na retirada."
+            ],
+            [
+              "`pontoReferencia`",
+              "string",
+              "Opcional, até 200. Só vale na entrega."
+            ],
+            [
+              "`observacao`",
+              "string",
+              "Opcional, até 500."
+            ],
+            [
+              "`horarioAgendado`",
+              "ISO datetime com fuso",
+              "Opcional, no futuro. Ausente = “para quando ficar pronto”. Sem fuso (`...T15:00:00`) é recusado."
+            ],
+            [
+              "`formaPagamento`",
+              "`DINHEIRO` | `CARTAO` | `PIX`",
+              "Obrigatório / Required"
+            ],
+            [
+              "`precisaTroco`, `trocoPara`",
+              "boolean, number",
+              "Só em dinheiro. Com `precisaTroco`, `trocoPara` é obrigatório e deve ser maior que o total."
+            ]
+          ]
+        },
+        {
+          "type": "code",
+          "language": "json",
+          "title": "Body (exemplo fictício)",
+          "code": "{\n  \"nomeCliente\": \"Maria Silva\",\n  \"telefone\": \"(11) 91234-5678\",\n  \"quantidade\": 50,\n  \"sabores\": [{ \"saborId\": 1, \"quantidade\": 20 }, { \"saborId\": 4, \"quantidade\": 30 }],\n  \"tipoEntrega\": \"ENTREGA\",\n  \"endereco\": \"Rua das Flores\",\n  \"numero\": \"123\",\n  \"bairro\": \"Centro\",\n  \"formaPagamento\": \"PIX\"\n}"
+        },
+        {
+          "type": "code",
+          "language": "json",
+          "title": "201 Created",
+          "code": "{\n  \"codigo\": \"K7M2QX9R\",\n  \"status\": \"AGUARDANDO_PAGAMENTO\",\n  \"nomeCliente\": \"Maria Silva\",\n  \"tipoEntrega\": \"ENTREGA\",\n  \"endereco\": \"Rua das Flores\",\n  \"numero\": \"123\",\n  \"bairro\": \"Centro\",\n  \"pontoReferencia\": null,\n  \"observacao\": null,\n  \"enderecoRetirada\": null,\n  \"horarioAgendado\": null,\n  \"tempoPreparoMin\": null,\n  \"previsaoEm\": null,\n  \"formaPagamento\": \"PIX\",\n  \"troco\": null,\n  \"instrucaoPix\": { \"imediato\": true, \"horasAntecedencia\": null, \"pagarAte\": null },\n  \"quantidadeTotal\": 50,\n  \"subtotal\": \"39.00\",\n  \"taxaEntrega\": \"5.00\",\n  \"total\": \"44.00\",\n  \"criadoEm\": \"2026-11-11T14:00:00.000Z\",\n  \"itens\": [{ \"sabor\": \"Coxinha de frango\", \"quantidade\": 20 }, { \"sabor\": \"Bolinha de queijo\", \"quantidade\": 30 }]\n}"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Status",
+            "Quando"
+          ],
+          "rows": [
+            [
+              "201",
+              "Pedido criado."
+            ],
+            [
+              "400",
+              "Dados inválidos; estabelecimento fechado, fora do horário ou sem entrega no dia; sabor indisponível; troco menor que o total."
+            ],
+            [
+              "429",
+              "Mais de 10 pedidos por minuto do mesmo IP."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "get-pedido",
+          "text": "GET /pedido/:codigo"
+        },
+        {
+          "type": "paragraph",
+          "text": "Devolve o pedido (mesmo formato do `201` acima, **sem** `telefone`). O código é normalizado para maiúsculas e deve ter 8 caracteres."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Status",
+            "Quando"
+          ],
+          "rows": [
+            [
+              "200",
+              "Encontrado."
+            ],
+            [
+              "400",
+              "Código com tamanho diferente de 8."
+            ],
+            [
+              "404",
+              "`Pedido não encontrado.`"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "post-login",
+          "text": "POST /auth/login"
+        },
+        {
+          "type": "paragraph",
+          "text": "Limite de **5 por minuto por IP**. Devolve um JWT válido por 12 horas."
+        },
+        {
+          "type": "code",
+          "language": "json",
+          "title": "Body",
+          "code": "{ \"usuario\": \"admin\", \"senha\": \"<sua-senha>\" }"
+        },
+        {
+          "type": "code",
+          "language": "json",
+          "title": "200",
+          "code": "{ \"token\": \"<jwt>\" }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Usuário inexistente e senha errada dão a mesma resposta `401 Usuário ou senha inválidos.` (e o tempo de resposta é equalizado), para não revelar quais usuários existem."
+        },
+        {
+          "type": "heading",
+          "id": "get-pedidos",
+          "text": "GET /pedidos (admin)"
+        },
+        {
+          "type": "paragraph",
+          "text": "Lista pedidos, do mais recente para o mais antigo, **com** `telefone`. Query opcional:"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Parâmetro",
+            "Descrição"
+          ],
+          "rows": [
+            [
+              "`status`",
+              "Um valor de `StatusPedido`. Outro valor = 400."
+            ],
+            [
+              "`de`, `ate`",
+              "Datas `AAAA-MM-DD` no horário de Brasília (inclusivas). Outro formato = 400."
+            ]
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "A confirmar",
+          "text": "A confirmar: o código limita a lista a **1000** pedidos (`take: 1000` em `services/pedidos.ts`), mas o guia de testes do `api/README.md` diz “máx. 200”. Esta documentação segue o código."
+        },
+        {
+          "type": "heading",
+          "id": "put-status",
+          "text": "PUT /pedido/:codigo/status (admin)"
+        },
+        {
+          "type": "code",
+          "language": "json",
+          "title": "Body",
+          "code": "{ \"status\": \"EM_PRODUCAO\" }"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Aceita só etapas que existem para aquele pedido (ver [Fluxos principais](#/fluxos)). `CANCELADO` não existe.",
+            "Voltar uma etapa é permitido; repetir o status atual também.",
+            "`404` se o código não existir; `400` se a etapa não existe para o tipo/pagamento."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "put-tempo-pedido",
+          "text": "PUT /pedido/:codigo/tempo-preparo (admin)"
+        },
+        {
+          "type": "code",
+          "language": "json",
+          "title": "Body",
+          "code": "{ \"minutos\": 40 }"
+        },
+        {
+          "type": "paragraph",
+          "text": "`minutos` é inteiro de 1 a 1440. Só vale para pedidos **sem** `horarioAgendado` (senão `400`); a resposta traz `tempoPreparoMin` e `previsaoEm` (agora + minutos)."
+        },
+        {
+          "type": "heading",
+          "id": "configs",
+          "text": "Catálogo e configurações"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Rota",
+            "Corpo (admin) / resposta"
+          ],
+          "rows": [
+            [
+              "`GET /sabores`",
+              "`[{ \"id\": 1, \"nome\": \"Coxinha de frango\" }]`"
+            ],
+            [
+              "`GET /valores`",
+              "`{ faixas: [{ quantidade, valor }], acimaDe: { quantidade: 100, valorPorUnidade }, quantidadeMinima, quantidadeMaxima, passo }`"
+            ],
+            [
+              "`PUT /valores`",
+              "`{ faixas: [10 itens { quantidade, valor }], valorUnidadeAcimaDe100 }`. Exige exatamente as faixas 10, 20, …, 100; valores > 0 com até 2 casas."
+            ],
+            [
+              "`GET /tempo-preparo`",
+              "`{ minimoMin, maximoMin }`"
+            ],
+            [
+              "`PUT /tempo-preparo`",
+              "`{ minimoMin, maximoMin }`, inteiros de 1 a 1440, máximo ≥ mínimo."
+            ],
+            [
+              "`GET /taxa-entrega`",
+              "`{ taxaAte49, taxaDe50a199, entregaGratisAPartirDe }`"
+            ],
+            [
+              "`PUT /taxa-entrega`",
+              "`{ taxaAte49, taxaDe50a199 }` em reais, 0 a 1000, até 2 casas."
+            ],
+            [
+              "`GET /pix`",
+              "`{ tipo, chave, chaveParaCopiar, configurada, titular, banco, whatsapp, antecedencia: { ateLimiteHoras, acimaLimiteHoras, limiteUnidades } }`"
+            ],
+            [
+              "`PUT /pix`",
+              "`{ tipo, chave, titular?, banco?, whatsapp?, antecedenciaAteLimiteHoras?, antecedenciaAcimaLimiteHoras? }`. A chave é validada pelo tipo. Campo ausente não muda; texto vazio apaga."
+            ],
+            [
+              "`GET /funcionamento`",
+              "`{ horarioAbertura, horarioFechamento, diasAtendimento, enderecoRetirada, estabelecimentoFechado, aberto, motivoFechado, entregaHoje }`"
+            ],
+            [
+              "`PUT /funcionamento`",
+              "`{ horarioAbertura, horarioFechamento, estabelecimentoFechado, entregaHoje, diasAtendimento? }`: sempre o estado completo. Horários `HH:MM` ou `null` nos dois; ao menos 1 dia."
+            ],
+            [
+              "`PUT /endereco-retirada`",
+              "`{ enderecoRetirada }`, até 300; vazio apaga."
+            ],
+            [
+              "`GET /admin/sabores`",
+              "`[{ id, nome, ativo }]`"
+            ],
+            [
+              "`POST /sabores`",
+              "`{ nome }` (2 a 80). `201`; nome repetido = `409`."
+            ],
+            [
+              "`PATCH /sabores/:id`",
+              "`{ nome?, ativo? }` (ao menos um; senão `400`). `404` se o id não existir."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "marca-api",
+          "text": "Marca e logo"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`GET /marca` → `{ nome, logoVersao, logoEscuraVersao, cores }`. As versões são `null` quando não há logo.",
+            "`PUT /marca` → `{ nome (2–60), cores }`. `cores: null` restaura o tema padrão; cada cor é `#RRGGBB`, organizada em `publico|admin` → `claro|escuro`.",
+            "`PUT /marca/logo` → `{ modo?: \"claro\"|\"escuro\", tipo: \"image/png\"|\"image/svg+xml\", dados: <base64> }`, até 300 KB. A API confere o conteúdo real (assinatura do PNG; SVG sem scripts, eventos ou elementos externos).",
+            "`DELETE /marca/logo` remove a logo normal; com `?modo=escuro`, só a do modo escuro.",
+            "`GET /marca/logo?v=<versão>` devolve a imagem com cache longo e cabeçalhos que impedem execução de conteúdo ativo; `404` se não houver logo."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "regras-de-negocio",
+      "group": "Referência",
+      "title": "Regras de negócio",
+      "summary": "As regras do produto em linguagem simples, cada uma com o arquivo de origem.",
+      "blocks": [
+        {
+          "type": "callout",
+          "variant": "info",
+          "text": "O preço é **sempre** calculado no servidor; o valor enviado pelo cliente é ignorado. O front só mostra uma prévia."
+        },
+        {
+          "type": "heading",
+          "id": "quantidade-preco",
+          "text": "Quantidade e preço"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Regra",
+            "Valor padrão",
+            "Origem"
+          ],
+          "rows": [
+            [
+              "Quantidade do pedido",
+              "Múltiplo de 10, de 10 a 1000",
+              "`services/preco.ts`"
+            ],
+            [
+              "Preço de 10 a 100 un.",
+              "Tabela de faixas (R$ 13,00 a R$ 64,00), editável",
+              "`FaixaPreco`"
+            ],
+            [
+              "Preço acima de 100 un.",
+              "R$ 0,64 por unidade, editável",
+              "`Configuracao.valorUnidadeAcimaDe100`"
+            ],
+            [
+              "Retirada",
+              "Sem taxa",
+              "`services/preco.ts`"
+            ]
+          ]
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Faixa (tabela padrão)",
+            "Valor"
+          ],
+          "rows": [
+            [
+              "10",
+              "R$ 13,00"
+            ],
+            [
+              "20",
+              "R$ 20,00"
+            ],
+            [
+              "30",
+              "R$ 29,00"
+            ],
+            [
+              "40",
+              "R$ 35,00"
+            ],
+            [
+              "50",
+              "R$ 39,00"
+            ],
+            [
+              "60",
+              "R$ 44,00"
+            ],
+            [
+              "70",
+              "R$ 49,00"
+            ],
+            [
+              "80",
+              "R$ 55,00"
+            ],
+            [
+              "90",
+              "R$ 59,00"
+            ],
+            [
+              "100",
+              "R$ 64,00"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "taxa-entrega",
+          "text": "Taxa de entrega"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Quantidade (entrega)",
+            "Taxa padrão"
+          ],
+          "rows": [
+            [
+              "Até 49 unidades",
+              "R$ 7,00"
+            ],
+            [
+              "De 50 a 199 unidades",
+              "R$ 5,00"
+            ],
+            [
+              "200 ou mais",
+              "Grátis"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "As duas taxas são editáveis (`PUT /taxa-entrega`); o limite de 200 está em `entregaGratisAPartirDe`. Exemplos: 10 retirada = R$ 13,00 · 10 entrega = R$ 20,00 · 50 entrega = R$ 44,00 · 110 retirada = R$ 70,40 · 190 entrega = R$ 126,60 · 200 entrega = R$ 128,00."
+        },
+        {
+          "type": "paragraph",
+          "text": "Os cálculos usam **centavos inteiros** para evitar erros de arredondamento de ponto flutuante."
+        },
+        {
+          "type": "heading",
+          "id": "sabores-regra",
+          "text": "Sabores"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Misto:** `sabores` vazio. A resposta traz um único item `{ sabor: \"Misto\", quantidade }` e, no banco, `saborId` nulo.",
+            "**Com quantidade por sabor:** a soma deve ser exatamente a quantidade do pedido.",
+            "**Só os sabores, sem quantidade:** a loja divide as unidades; cada item volta com `quantidade: null`.",
+            "Misturar itens com e sem quantidade, repetir um sabor, ou usar sabor inexistente/desativado é recusado (400).",
+            "Origem: `schemas/pedido.ts`, `services/pedidos.ts`."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "endereco-regra",
+          "text": "Entrega, retirada e endereço"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Entrega exige `endereco` (5–300), `numero` (até 20, aceita “S/N”) e `bairro` (até 100). Texto em branco conta como não informado.",
+            "Em retirada, `endereco`, `numero`, `bairro` e `pontoReferencia` são ignorados e gravados como `null`. O endereço da loja (se configurado) é copiado para `enderecoRetirada`.",
+            "Pedidos antigos podem ter número e bairro dentro de `endereco`."
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "title": "Nota sobre o front",
+          "text": "Os commits recentes mencionam entregas apenas em Paiçandu/PR e a remoção da validação de CEP. Essa restrição aparece como aviso no front (`components/aviso-entrega.tsx`); a API **não** valida a cidade."
+        },
+        {
+          "type": "heading",
+          "id": "horario-agendado",
+          "text": "Horário agendado e tempo de preparo"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`horarioAgendado` é opcional, precisa ter fuso e estar no futuro.",
+            "Sem horário = “para quando ficar pronto”: o admin informa o tempo de preparo do pedido (`PUT /pedido/:codigo/tempo-preparo`) e a resposta traz `previsaoEm`.",
+            "Pedido com horário agendado não aceita tempo de preparo.",
+            "Além disso existe um tempo mínimo/máximo geral (`GET /tempo-preparo`, padrão 30–60 min) mostrado ao cliente."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "funcionamento-regra",
+          "text": "Funcionamento"
+        },
+        {
+          "type": "paragraph",
+          "text": "Tudo no horário de Brasília (`America/Sao_Paulo`). Origem: `services/funcionamento.ts`."
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Horário de atendimento:** um intervalo diário `HH:MM`, igual todos os dias. Os dois campos `null` = sem restrição. A abertura vale e o fechamento não (às 18:00 em ponto já fechou). Se o fechamento for menor que a abertura (18:00 às 02:00), o atendimento passa da meia-noite e a madrugada pertence ao dia em que começou.",
+            "**Dias de atendimento:** 0 = domingo … 6 = sábado. Dia fora da lista = fechado o dia todo. Ao menos um dia.",
+            "**Estabelecimento fechado:** chave manual que fecha de vez, independente do horário, até ser desligada. **Nenhum** pedido é aceito, nem os agendados.",
+            "**Fora do horário:** pedido sem `horarioAgendado` é recusado; o cliente pode agendar para dentro do atendimento. Todo `horarioAgendado` precisa cair dentro do atendimento.",
+            "**Entrega do dia:** `entregaHoje: false` guarda o dia em `entregaSuspensaEm`, então a chave volta a ligar sozinha à meia-noite. Hoje só retirada: entrega imediata ou agendada para hoje é recusada; entrega agendada para outro dia é aceita.",
+            "O front espelha as regras (`web/src/lib/funcionamento.ts`) só para avisar antes de enviar; a decisão é sempre da API."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "pix-regra",
+          "text": "Pix"
+        },
+        {
+          "type": "list",
+          "items": [
+            "O app **não confirma** pagamento nem integra com banco: o cliente copia a chave, paga e envia o comprovante pelo WhatsApp da loja.",
+            "O pedido com Pix só segue depois que o admin confere o comprovante e muda para `PAGAMENTO_APROVADO`.",
+            "Valor inicial da chave: CPF `00000000000`, que **não** é um CPF válido de propósito: é o marcador de “não configurada”. Com `configurada: false` o front esconde o Pix.",
+            "Validação da chave por tipo: CPF e CNPJ pelos dígitos verificadores; telefone com DDD; aleatória deve ser UUID. Telefone ganha `+55` em `chaveParaCopiar`.",
+            "**Quando pagar** (`instrucaoPix`): pedido para hoje ou sem horário → no ato (`imediato: true`). Pedido agendado para um dia seguinte → com antecedência mínima do `horarioAgendado`: **2 h até 100 un. e 4 h acima de 100** (editável). Se esse limite já passou, vale “pagar agora”. O prazo é gravado no pedido."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "troco-regra",
+          "text": "Dinheiro e troco"
+        },
+        {
+          "type": "paragraph",
+          "text": "`precisaTroco` e `trocoPara` só valem em dinheiro. Com troco, `trocoPara` é obrigatório e precisa ser **maior que o total** do pedido; caso contrário, 400."
+        },
+        {
+          "type": "heading",
+          "id": "telefone-regra",
+          "text": "Telefone do cliente"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Só celular brasileiro: DDD + 9 + 8 dígitos (`/^[1-9][1-9]9\\d{8}$/`). Máscara é aceita; o DDI `55` colado junto (13 dígitos) é removido; só dígitos são gravados.",
+            "O front usa a mesma regra (`web/src/lib/format.ts`). A validação é de **formato**: não há confirmação de posse do número.",
+            "O telefone nunca aparece em `GET /pedido/:codigo`; só o admin o vê."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "codigo-regra",
+          "text": "Código do pedido"
+        },
+        {
+          "type": "paragraph",
+          "text": "8 caracteres do alfabeto `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (sem I, L, O, 0 e 1, para não confundir ao ditar). Gerado com `crypto.randomInt`; em caso de colisão, até 5 tentativas."
+        },
+        {
+          "type": "heading",
+          "id": "logo-regra",
+          "text": "Logo e marca"
+        },
+        {
+          "type": "paragraph",
+          "text": "PNG ou SVG de até 300 KB, guardados no próprio banco. O PNG é conferido pela assinatura; o SVG é recusado se tiver `<script>`, `<foreignObject>`, `iframe/embed/object`, atributos `on...=`, `javascript:` ou `data:text/html`. Logo do modo escuro é opcional."
+        }
+      ]
+    },
+    {
+      "id": "variaveis-de-ambiente",
+      "group": "Referência",
+      "title": "Variáveis de ambiente",
+      "summary": "O que configurar na API e no front. Os valores abaixo são exemplos fictícios.",
+      "blocks": [
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "Nunca versione segredos",
+          "text": "O `.env` da API está no `.gitignore`. Só os arquivos `.env.example` vão para o repositório."
+        },
+        {
+          "type": "heading",
+          "id": "env-api",
+          "text": "API (`api/.env`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Variável",
+            "Obrigatória",
+            "Descrição",
+            "Exemplo (fictício)"
+          ],
+          "rows": [
+            [
+              "`DATABASE_URL`",
+              "sim",
+              "Connection string do PostgreSQL. Local e migrations/seed: string direta do Neon (sem `-pooler`). API na Vercel: string com `-pooler`.",
+              "`postgresql://usuario:senha@host/neondb?sslmode=require`"
+            ],
+            [
+              "`JWT_SECRET`",
+              "sim",
+              "Segredo do token do admin, **mínimo de 32 caracteres** (a API não inicia sem isso).",
+              "gerado com `crypto.randomBytes(48)`"
+            ],
+            [
+              "`WEB_URL`",
+              "não",
+              "Única origem liberada no CORS, sem barra no final. **Em produção, a URL do front.**",
+              "`http://localhost:5173` (padrão / default)"
+            ],
+            [
+              "`PORT`",
+              "não",
+              "Porta local.",
+              "`3333` (padrão / default)"
+            ],
+            [
+              "`NODE_ENV`",
+              "não",
+              "`development`, `production` ou `test`. Em `test` o log e o aviso ntfy ficam desligados.",
+              "`development`"
+            ],
+            [
+              "`ADMIN_USER`, `ADMIN_PASSWORD`",
+              "só no seed",
+              "Login do admin criado/atualizado por `npm run db:seed`.",
+              "`admin` / `<senha-forte>`"
+            ],
+            [
+              "`DATABASE_TESTS_URL`",
+              "só nos testes",
+              "Banco **separado** usado por `npm test`. Os testes recusam rodar se for igual a `DATABASE_URL`.",
+              "`postgresql://usuario:senha@host/neondb_test?sslmode=require`"
+            ],
+            [
+              "`NTFY_TOPIC`",
+              "não",
+              "Tópico do ntfy para o aviso de novo pedido. Funciona como senha: use um nome longo e aleatório. Vazio = sem aviso.",
+              "`pedidos-um-nome-longo-e-aleatorio`"
+            ],
+            [
+              "`NTFY_SERVER`",
+              "não",
+              "Só se hospedar o seu próprio ntfy.",
+              "`https://ntfy.sh` (padrão / default)"
+            ],
+            [
+              "`SEED_SOBRESCREVER`",
+              "uso interno",
+              "Com `1`, o seed restaura os valores base (usado pelos testes).",
+              "`1`"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "`NTFY_TOPIC`, `NTFY_SERVER` e `SEED_SOBRESCREVER` são lidos direto de `process.env`, fora do schema de validação em `src/lib/env.ts` (que valida `NODE_ENV`, `PORT`, `WEB_URL`, `DATABASE_URL` e `JWT_SECRET`)."
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "Gerar um JWT_SECRET",
+          "code": "node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\""
+        },
+        {
+          "type": "heading",
+          "id": "env-web",
+          "text": "Front (`web/.env`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Variável",
+            "Obrigatória",
+            "Descrição",
+            "Exemplo"
+          ],
+          "rows": [
+            [
+              "`VITE_API_URL`",
+              "não",
+              "URL da API, sem barra no final.",
+              "`http://localhost:3333` (padrão / default)"
+            ]
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "Variáveis VITE_* entram no build",
+          "text": "Mudou `VITE_API_URL` na Vercel? Faça um novo deploy. E nunca coloque segredos aqui: tudo que é `VITE_*` fica visível no navegador."
+        },
+        {
+          "type": "paragraph",
+          "text": "WhatsApp da loja, chave Pix, favorecido e banco **não** são variáveis: são cadastrados no painel (**Pix e contato**) e ficam no banco."
+        }
+      ]
+    },
+    {
+      "id": "scripts",
+      "group": "Referência",
+      "title": "Scripts",
+      "summary": "Cada comando npm, onde roda e quando usar.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "scripts-api",
+          "text": "API (`cd api`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Comando",
+            "O que faz"
+          ],
+          "rows": [
+            [
+              "`npm run dev`",
+              "`tsx watch src/server.ts`: API com recarga automática em `http://localhost:3333`."
+            ],
+            [
+              "`npm run build`",
+              "`prisma generate && tsc`: gera o cliente do Prisma e compila para `dist/`."
+            ],
+            [
+              "`npm start`",
+              "`node dist/server.js`: roda o build."
+            ],
+            [
+              "`npm run typecheck`",
+              "`tsc --noEmit`: confere os tipos."
+            ],
+            [
+              "`npm test` / `npm run test:watch`",
+              "Vitest (uma vez / em observação). Precisa de `DATABASE_TESTS_URL`."
+            ],
+            [
+              "`npm run db:deploy`",
+              "`prisma migrate deploy`: aplica migrations pendentes. **É o comando para clonar o projeto e para produção.**"
+            ],
+            [
+              "`npm run db:migrate`",
+              "`prisma migrate dev`: cria uma **nova** migration a partir do `schema.prisma` (só em desenvolvimento)."
+            ],
+            [
+              "`npm run db:generate`",
+              "Regenera o cliente do Prisma em `src/generated` (fora do git)."
+            ],
+            [
+              "`npm run db:seed`",
+              "Cria/atualiza sabores, preços, configuração e o admin."
+            ],
+            [
+              "`postinstall`",
+              "Roda `prisma generate` depois do `npm install`."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "scripts-web",
+          "text": "Front (`cd web`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Comando",
+            "O que faz"
+          ],
+          "rows": [
+            [
+              "`npm run dev`",
+              "Servidor Vite com recarga em `http://localhost:5173`."
+            ],
+            [
+              "`npm run build`",
+              "`tsc -b && vite build`: confere tipos e gera `dist/` (mesmo comando do deploy)."
+            ],
+            [
+              "`npm run preview`",
+              "Serve o build localmente para conferir."
+            ],
+            [
+              "`npm run lint`",
+              "Oxlint."
+            ],
+            [
+              "`npm test` / `npm run test:watch`",
+              "Vitest das regras do front; não usa rede nem banco."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "scripts-doc",
+          "text": "Documentação (`cd doc`)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Comando",
+            "O que faz"
+          ],
+          "rows": [
+            [
+              "`npm run dev`",
+              "Site de docs em `http://localhost:4321`."
+            ],
+            [
+              "`npm run check`",
+              "Confere se `pt-br.json` e `en-us.json` têm a mesma estrutura."
+            ],
+            [
+              "`npm run build`",
+              "Gera `doc/dist/`, publicável em hospedagem estática."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "testes",
+      "group": "Desenvolvimento",
+      "title": "Testes",
+      "summary": "Vitest na API (com banco de testes separado) e no front (regras puras).",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "api-testes",
+          "text": "API"
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "bash",
+          "code": "cd api\nnpm test"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Usam o banco de `DATABASE_TESTS_URL` e **se recusam a rodar** se ele for igual ao `DATABASE_URL` (`tests/test-env.ts`).",
+            "Antes de tudo, `tests/global-setup.ts` roda `prisma migrate deploy` e o seed com `SEED_SOBRESCREVER=1`, deixando o banco no estado base com um admin próprio (`admin_teste`).",
+            "`tests/setup.ts` fixa `NODE_ENV=test` e um `JWT_SECRET` de teste antes de importar a aplicação.",
+            "As rotas são chamadas em memória com `app.inject` (sem abrir porta). Os arquivos rodam em sequência (`fileParallelism: false`), pois dividem o mesmo banco."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Arquivos atuais em `api/tests/`:"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Arquivo",
+            "Cobre"
+          ],
+          "rows": [
+            [
+              "`admin.test.ts`",
+              "Proteção das rotas de admin, login, listagem e status de pedidos, tempo de preparo, taxas, valores, Pix e sabores."
+            ],
+            [
+              "`api.test.ts`",
+              "Status do servidor e criação de pedido."
+            ],
+            [
+              "`cors.test.ts`",
+              "Preflight do navegador (métodos e origem)."
+            ],
+            [
+              "`entrega.test.ts`, `retirada.test.ts`",
+              "Regras de entrega e de retirada."
+            ],
+            [
+              "`pagamento.test.ts`",
+              "Dinheiro, cartão, Pix e forma de pagamento inválida."
+            ],
+            [
+              "`quantidade.test.ts`",
+              "Quantidades acima de 1000 e quebradas."
+            ],
+            [
+              "`telefone.test.ts`",
+              "Validação do celular do cliente."
+            ],
+            [
+              "`helpers.ts`",
+              "Utilitários compartilhados."
+            ]
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "A confirmar",
+          "text": "A confirmar: na cópia de trabalho atual vários arquivos de teste da API (por exemplo `preco`, `prazo-pix`, `funcionamento`, `marca`, `pix`, `rate-limit`, `vercel-handler`) aparecem como **apagados** e foram substituídos por `entrega`, `retirada`, `quantidade` e `telefone`. Confirme se a reorganização é intencional; o `api/README.md` ainda descreve a cobertura anterior (preço, prazo do Pix, validações)."
+        },
+        {
+          "type": "heading",
+          "id": "web-testes",
+          "text": "Front"
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "bash",
+          "code": "cd web\nnpm test"
+        },
+        {
+          "type": "paragraph",
+          "text": "Testam as regras puras de `src/lib/` (prévia de preço, prazo do Pix, funcionamento, formatação e máscaras, logo, tema e detecção de novos pedidos), em `src/tests/*.test.ts`. Não usam rede nem banco (`environment: node`)."
+        },
+        {
+          "type": "heading",
+          "id": "ci",
+          "text": "CI (GitHub Actions)"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Workflow",
+            "Quando",
+            "O que roda"
+          ],
+          "rows": [
+            [
+              "`api-tests.yml`",
+              "push em `main` e PRs que mexam em `api/**`",
+              "`npm ci` → `npm run typecheck` → `npm test` (secret `DATABASE_TESTS_URL`; execuções em série para não disputar o banco)."
+            ],
+            [
+              "`web-tests.yml`",
+              "push em `main` e PRs que mexam em `web/**`",
+              "`npm ci` → `npm run build` (tipos + Vite) → `npm test`."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "novos-testes",
+          "text": "Escrevendo novos testes"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Regra de negócio pura (preço, horário, prazo): teste a função direto, sem banco.",
+            "Rota: use `app.inject` com `buildApp()` e os utilitários de `tests/helpers.ts`; lembre que os dados ficam no banco de testes.",
+            "Nunca aponte os testes para o banco de produção."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "postman",
+          "text": "Testes manuais (Postman)"
+        },
+        {
+          "type": "paragraph",
+          "text": "O `api/README.md` traz um roteiro completo de testes manuais no Postman (ambiente `delivery-local` com `baseUrl`, `token` e `codigo`, scripts que guardam o token e o código do pedido, e mais de 100 cenários numerados)."
+        }
+      ]
+    },
+    {
+      "id": "padroes",
+      "group": "Desenvolvimento",
+      "title": "Padrões do projeto",
+      "summary": "Convenções observadas no código e no histórico do git.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "codigo-padrao",
+          "text": "Código"
+        },
+        {
+          "type": "list",
+          "items": [
+            "TypeScript em módulos ES (`\"type\": \"module\"`) nos dois projetos; imports internos da API com sufixo `.js`.",
+            "Nomes de domínio em **português** (`pedido`, `sabor`, `funcionamento`) e comentários em português explicando o *porquê*.",
+            "API: toda entrada passa por um schema Zod; erros de negócio são classes (`RegraDeNegocioError` → 400, `NaoEncontradoError` → 404, `ConflitoError` → 409) tratadas em `plugins/erros.ts`.",
+            "Dinheiro em centavos inteiros nos cálculos; `Decimal(10,2)` no banco; string com 2 casas nas respostas.",
+            "Front: acesso à API só por `lib/api.ts`; regras puras em `lib/` com testes; alias `@` para `src/`.",
+            "Front: componentes shadcn em `components/ui/` (estilo `base-nova`); CSS por área em `styles/components/`.",
+            "Lint do front: Oxlint (`react/rules-of-hooks` como erro). Não há linter configurado na API."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "commits",
+          "text": "Commits"
+        },
+        {
+          "type": "paragraph",
+          "text": "O histórico usa prefixos no estilo *Conventional Commits*, com escopo opcional e mensagens em português:"
+        },
+        {
+          "type": "code",
+          "language": "text",
+          "title": "Exemplos reais",
+          "code": "feat: campos separados de endereço, número e bairro na entrega\nfix(api): corrige o 500 na Vercel com um handler serverless\nchore: Inclusão de templates para issues e PR\ndocs: remove referências ao WORKFLOW.md"
+        },
+        {
+          "type": "paragraph",
+          "text": "Prefixos vistos: `feat`, `fix`, `chore`, `docs` (e `bug`, usado uma vez). Não há `commitlint` nem hooks de commit configurados."
+        },
+        {
+          "type": "heading",
+          "id": "branches",
+          "text": "Branches"
+        },
+        {
+          "type": "paragraph",
+          "text": "Padrão observado: `tipo/número-da-issue-descrição`, por exemplo `update/1-update-adicionar-novos-campos-de-endereço`, `doc/inclusao-de-templates` e `update/4-adicionar-verificacao-de-telefone`. As alterações entram na `main` por Pull Request."
+        }
+      ]
+    },
+    {
+      "id": "contribuindo",
+      "group": "Desenvolvimento",
+      "title": "Contribuindo",
+      "summary": "Do issue ao Pull Request, com os modelos do repositório.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "fluxo-pr",
+          "text": "Fluxo"
+        },
+        {
+          "type": "mermaid",
+          "code": "flowchart LR\n  I[\"Abrir issue (modelo)\"] --> B[\"Criar branch tipo/N-descricao\"]\n  B --> C[\"Codar e testar localmente\"]\n  C --> P[\"Abrir Pull Request (modelo)\"]\n  P --> CI{\"CI verde?\"}\n  CI -->|sim| M[\"Merge na main\"]\n  CI -->|não| C"
+        },
+        {
+          "type": "heading",
+          "id": "modelos",
+          "text": "Modelos"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Issue** (`.github/ISSUE_TEMPLATE/issues.md`): título `[Feature] ...`, descrição, lista “O que deve ser feito” e observações.",
+            "**Pull Request** (`.github/pull_request_template.md`): o que mudou e por quê, `Ticket:`, “O que foi feito”, “Como testar” e “Prints e observações”."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "checklist",
+          "text": "Checklist antes do PR"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`cd api && npm run typecheck && npm test`",
+            "`cd web && npm run build && npm test` (e `npm run lint`)",
+            "Mudou o `schema.prisma`? Crie a migration com `npm run db:migrate` e inclua-a no PR.",
+            "Mudou uma regra de negócio? Atualize `api/APP.md`, o `README` correspondente e esta documentação (`doc/content/*.json`, nos dois idiomas, e `npm run check`).",
+            "Sem segredos no código ou nos prints."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deploy",
+      "group": "Operação",
+      "title": "Deploy",
+      "summary": "Dois projetos na Vercel (API e web) e um banco no Neon.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "ambientes",
+          "text": "Ambientes"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Ambiente",
+            "Onde",
+            "Notas"
+          ],
+          "rows": [
+            [
+              "Local",
+              "API `:3333`, web `:5173`, banco Neon",
+              "String direta do Neon."
+            ],
+            [
+              "Produção",
+              "Vercel (API e web) + Neon",
+              "A API usa a string `-pooler`."
+            ],
+            [
+              "Testes",
+              "Banco separado (`DATABASE_TESTS_URL`)",
+              "Local e GitHub Actions."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "deploy-api",
+          "text": "Publicar a API"
+        },
+        {
+          "type": "list",
+          "ordered": true,
+          "items": [
+            "Crie um projeto na Vercel apontando para o repositório com **Root Directory = `api`**. Não há `vercel.json`: a Vercel usa `src/index.ts`, que exporta o handler.",
+            "Defina `DATABASE_URL` (string `-pooler`), `JWT_SECRET` e `WEB_URL` (URL do front em produção). Opcional: `NTFY_TOPIC`.",
+            "Aplique migrations e seed no banco de produção — a Vercel **não** faz isso:"
+          ]
+        },
+        {
+          "type": "code",
+          "language": "bash",
+          "title": "bash",
+          "code": "DATABASE_URL=\"<string direta do Neon>\" npm run db:deploy\nDATABASE_URL=\"<string direta do Neon>\" ADMIN_USER=\"<usuario>\" ADMIN_PASSWORD=\"<senha forte>\" npm run db:seed"
+        },
+        {
+          "type": "code",
+          "language": "powershell",
+          "title": "PowerShell",
+          "code": "$env:DATABASE_URL=\"<string direta do Neon>\"; npm run db:deploy\n$env:ADMIN_USER=\"<usuario>\"; $env:ADMIN_PASSWORD=\"<senha forte>\"; npm run db:seed"
+        },
+        {
+          "type": "paragraph",
+          "text": "Por fim, teste `GET <url-da-api>/health`."
+        },
+        {
+          "type": "heading",
+          "id": "deploy-web",
+          "text": "Publicar o front"
+        },
+        {
+          "type": "list",
+          "ordered": true,
+          "items": [
+            "Crie um projeto na Vercel com **Root Directory = `web`** (o Vite é detectado sozinho).",
+            "Defina `VITE_API_URL` com a URL da API em produção, sem barra no final.",
+            "O `web/vercel.json` reescreve qualquer rota para `/index.html`; sem ele, recarregar `/pedido/CODIGO` ou `/admin/dashboard` daria 404.",
+            "Confirme que `WEB_URL` na API é exatamente a URL deste front."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "prod-obs",
+          "text": "Observações de produção"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Migration antes do código:** sempre aplique a migration **antes** de publicar um código que dependa dela.",
+            "**Rate limit aproximado:** o limite (`/pedido`: 10/min, `/auth/login`: 5/min) fica na memória de cada instância; em serverless ele é aproximado.",
+            "**CORS de uma origem:** URLs de preview da Vercel (outro domínio) não funcionam com a API de produção.",
+            "**`trustProxy`:** ligado, para o rate limit usar o IP real do `x-forwarded-for` atrás da Vercel."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "rollback",
+          "text": "Rollback"
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "A confirmar",
+          "text": "A confirmar: o repositório não documenta um procedimento de rollback. Na Vercel é possível promover um deploy anterior; migrations do Prisma, porém, não têm “voltar” automático e exigem uma nova migration corretiva."
+        }
+      ]
+    },
+    {
+      "id": "seguranca",
+      "group": "Operação",
+      "title": "Segurança",
+      "summary": "Como o admin é protegido e como os dados pessoais são tratados.",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "auth",
+          "text": "Autenticação e autorização"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Um único tipo de usuário autenticado: o **admin** (tabela `AdminUser`), criado pelo seed. Senha com **bcrypt** (custo 12).",
+            "`POST /auth/login` devolve um **JWT** de 12 h. Todas as rotas dentro de `routes/admin/` passam por um hook `onRequest` que verifica o token: nenhuma rota de admin fica pública por esquecimento.",
+            "Usuário inexistente e senha errada têm a mesma resposta e o mesmo custo de tempo (hash falso), para não revelar usuários.",
+            "No front o token fica no `localStorage` (`saborDeMae:token`); qualquer `401` em rota de admin faz logout e volta ao login."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "protecoes",
+          "text": "Proteções da API"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Proteção",
+            "Detalhe"
+          ],
+          "rows": [
+            [
+              "CORS",
+              "Uma única origem (`WEB_URL`); métodos `GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS`."
+            ],
+            [
+              "Rate limit",
+              "`POST /pedido`: 10/min; `POST /auth/login`: 5/min (por IP, em memória)."
+            ],
+            [
+              "Validação",
+              "Todo body/query/params passa por Zod; preço sempre recalculado no servidor."
+            ],
+            [
+              "Logo",
+              "Tamanho, assinatura do PNG e SVG sem conteúdo ativo; servida com `nosniff` e `Content-Security-Policy` restritiva."
+            ],
+            [
+              "Erros",
+              "Erros 500 devolvem mensagem genérica; o detalhe só vai para o log."
+            ],
+            [
+              "Segredos",
+              "`JWT_SECRET` com mínimo de 32 caracteres, validado na inicialização; `.env` fora do git."
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "dados-pessoais",
+          "text": "Dados pessoais"
+        },
+        {
+          "type": "list",
+          "items": [
+            "O cliente informa nome, telefone e (na entrega) endereço. Esses dados ficam na tabela `Pedido`.",
+            "`GET /pedido/:codigo` é público para quem tem o código, mas **não** devolve o telefone. Só o admin vê o contato.",
+            "O aviso do ntfy **não** leva dados pessoais (só código, quantidade, tipo e total), porque o tópico do servidor público é aberto a quem souber o nome.",
+            "O admin pode excluir um pedido definitivamente (`DELETE /pedido/:codigo`)."
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "A confirmar",
+          "text": "A confirmar: não há política de privacidade, prazo de retenção de pedidos nem `SECURITY.md` com canal para reportar vulnerabilidades no repositório. Defina com o responsável pelo projeto (provavelmente relevante pela LGPD)."
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "title": "Verificação do celular",
+          "text": "A branch `update/4-adicionar-verificacao-de-telefone` valida o **formato** do celular. Ela não envia código por SMS/WhatsApp para confirmar que o número pertence ao cliente."
+        }
+      ]
+    },
+    {
+      "id": "troubleshooting",
+      "group": "Operação",
+      "title": "Troubleshooting",
+      "summary": "Problemas comuns e como resolver.",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Sintoma",
+            "Causa provável",
+            "Solução"
+          ],
+          "rows": [
+            [
+              "API não inicia: “Variáveis de ambiente inválidas”",
+              "`JWT_SECRET` com menos de 32 caracteres, `DATABASE_URL` vazia ou `WEB_URL` que não é uma URL.",
+              "Corrija o `api/.env` (veja [Variáveis de ambiente](#/variaveis-de-ambiente))."
+            ],
+            [
+              "Front: “Não foi possível conectar ao servidor”",
+              "A API não está rodando ou `VITE_API_URL` está errada.",
+              "Suba a API (`npm run dev`) e confira `GET /health`."
+            ],
+            [
+              "Erro de CORS no navegador",
+              "O front está em origem diferente de `WEB_URL` (porta diferente de 5173, URL de preview da Vercel, barra no final).",
+              "Use a porta 5173 ou ajuste `WEB_URL` para a origem exata do front."
+            ],
+            [
+              "Cannot find module `src/generated/prisma`",
+              "O cliente do Prisma não foi gerado (a pasta está no `.gitignore`).",
+              "`npm run db:generate` (ou `npm install`, que roda o `postinstall`)."
+            ],
+            [
+              "Login do admin retorna 401",
+              "O seed não rodou ou a senha mudou no `.env` sem rodar o seed de novo.",
+              "Rode `npm run db:seed` (ele sempre atualiza a senha do admin)."
+            ],
+            [
+              "429 inesperado",
+              "Rate limit por IP e por minuto.",
+              "Aguarde 1 minuto."
+            ],
+            [
+              "`npm test` se recusa a rodar",
+              "`DATABASE_TESTS_URL` ausente ou igual a `DATABASE_URL`.",
+              "Crie um banco/branch de testes separado e defina a variável."
+            ],
+            [
+              "A opção Pix não aparece para o cliente",
+              "A chave ainda é o marcador `00000000000` (`configurada: false`).",
+              "No painel, abra **Pix e contato** e cadastre a chave."
+            ],
+            [
+              "500 na Vercel logo no deploy",
+              "Falha ao iniciar a função (variáveis ausentes, migration não aplicada ou entrada incorreta).",
+              "Confira as variáveis, aplique `db:deploy` e veja o log da função. A entrada deve ser `src/index.ts`."
+            ],
+            [
+              "Abrir `/pedido/CODIGO` direto dá 404 na Vercel",
+              "Falta a reescrita para `index.html`.",
+              "Mantenha o `web/vercel.json`."
+            ],
+            [
+              "Mudei `VITE_API_URL` e nada mudou",
+              "As variáveis `VITE_*` entram no build.",
+              "Faça um novo deploy."
+            ],
+            [
+              "Sem som de novo pedido no painel",
+              "Navegadores só liberam áudio após uma interação, ou o som está desligado.",
+              "Clique em qualquer lugar da página e confira o botão de som."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "decisoes",
+      "group": "Operação",
+      "title": "Decisões de arquitetura",
+      "summary": "Por que o projeto é como é (registros curtos, inferidos do código e dos comentários).",
+      "blocks": [
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "A confirmar",
+          "text": "As decisões abaixo foram inferidas dos comentários do código e do histórico do git; revise a motivação com quem as tomou."
+        },
+        {
+          "type": "heading",
+          "id": "adr-preco",
+          "text": "ADR 1 — Preço sempre calculado no servidor"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Contexto:** o front mostra uma prévia, mas o cliente poderia alterar a requisição.",
+            "**Decisão:** a API ignora qualquer valor enviado e recalcula subtotal, taxa e total (em centavos inteiros).",
+            "**Consequência:** a regra de preço existe em dois lugares (API e `web/src/lib/preco.ts`); a API é a fonte da verdade."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-pix",
+          "text": "ADR 2 — Pix manual, sem integração bancária"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Contexto:** loja pequena, sem gateway de pagamento.",
+            "**Decisão:** o cliente copia a chave e envia o comprovante por WhatsApp; o admin aprova (`PAGAMENTO_APROVADO`).",
+            "**Consequência:** sem custo de gateway e sem webhooks, mas a confirmação é manual."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-serverless",
+          "text": "ADR 3 — API como função serverless na Vercel"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Contexto:** deploy simples e barato; histórico mostra um 500 corrigido com um handler serverless.",
+            "**Decisão:** `src/index.ts` exporta um handler que cria o Fastify uma vez por container; `server.ts` cuida do uso local.",
+            "**Consequência:** rate limit em memória é aproximado; migrations não rodam no deploy; pooler do Neon recomendado."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-config",
+          "text": "ADR 4 — Configuração em uma linha única no banco"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Contexto:** a loja é única e o lojista edita preços, horários, Pix e marca pelo painel.",
+            "**Decisão:** tabela `Configuracao` com `id = 1`, mais `FaixaPreco` para a tabela de preços.",
+            "**Consequência:** sem multi-tenant; mudanças não exigem novo deploy. O seed preserva o que o admin já editou."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-logo",
+          "text": "ADR 5 — Logo guardada no banco e enviada em base64"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Contexto:** serverless não tem disco persistente e um plugin de upload adiciona complexidade.",
+            "**Decisão:** PNG/SVG de até 300 KB enviado como JSON base64 e guardado em `Bytes`, servido em `/marca/logo?v=<versão>` com cache imutável.",
+            "**Consequência:** conteúdo validado no servidor; cada logo nova muda a URL e invalida o cache."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-sem-conta",
+          "text": "ADR 6 — Cliente sem conta"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Contexto:** o brief pede um fluxo estilo apps de delivery simples, sem login para o cliente.",
+            "**Decisão:** o cliente acompanha o pedido por um código de 8 caracteres.",
+            "**Consequência:** quem tem o código vê o pedido (sem telefone); não há histórico por cliente."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-ntfy",
+          "text": "ADR 7 — Aviso por ntfy sem dados pessoais"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Contexto:** o lojista precisa saber de pedidos novos mesmo fora do painel.",
+            "**Decisão:** push opcional via ntfy com tempo limite de 3 s e sem nunca lançar erro; mensagem só com código, quantidade, tipo e total.",
+            "**Consequência:** o nome do tópico funciona como senha."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "glossario",
+      "group": "Operação",
+      "title": "Glossário",
+      "summary": "Termos do domínio, em português como no código.",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Termo",
+            "Significado"
+          ],
+          "rows": [
+            [
+              "Pedido",
+              "Compra feita pelo cliente: quantidade, sabores, entrega/retirada, pagamento."
+            ],
+            [
+              "Código",
+              "Identificador de 8 caracteres do pedido, usado para consultar o andamento."
+            ],
+            [
+              "Sabor",
+              "Tipo de mini salgado (ex.: coxinha, kibe). Pode ser ativado ou desativado, nunca apagado."
+            ],
+            [
+              "Misto",
+              "Pedido sem sabores escolhidos; a loja decide."
+            ],
+            [
+              "Faixa de preço",
+              "Preço fixo para 10, 20, … 100 unidades."
+            ],
+            [
+              "Entrega / Retirada",
+              "Levar ao endereço do cliente / o cliente busca no local."
+            ],
+            [
+              "Horário agendado",
+              "Data e hora pedidas pelo cliente. Ausente = “para quando ficar pronto”."
+            ],
+            [
+              "Pix",
+              "Meio de pagamento instantâneo brasileiro. Aqui é manual: o cliente paga e envia o comprovante."
+            ],
+            [
+              "Comprovante",
+              "Prova do pagamento, enviada ao WhatsApp da loja."
+            ],
+            [
+              "Troco",
+              "Dinheiro devolvido quando o cliente paga em dinheiro com nota maior que o total."
+            ],
+            [
+              "Estabelecimento fechado",
+              "Chave manual do admin que recusa todos os pedidos."
+            ],
+            [
+              "Entrega de hoje",
+              "Chave que desliga a entrega só no dia atual."
+            ],
+            [
+              "Admin / Lojista",
+              "A dona ou dono da loja, que usa o painel `/admin`."
+            ],
+            [
+              "Neon",
+              "Serviço de PostgreSQL gerenciado usado pelo projeto."
+            ],
+            [
+              "ntfy",
+              "Serviço de notificações push por tópico (opcional)."
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}
