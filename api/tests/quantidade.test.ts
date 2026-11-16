@@ -28,7 +28,8 @@ const pedido = {
   tipoEntrega: "RETIRADA",
 };
 
-const camposComErro = (res: { json: () => { erros: { campo: string }[] } }) => res.json().erros.map((e) => e.campo);
+// Um valor pode quebrar mais de uma regra do mesmo campo (ex.: abaixo do mínimo e não múltiplo de 10): conta o campo uma vez.
+const camposComErro = (res: { json: () => { erros: { campo: string }[] } }) => [...new Set(res.json().erros.map((e) => e.campo))];
 
 // O limite do POST /pedido é de 10 por minuto: este arquivo usa menos que isso na soma dos casos que chegam à API.
 describe("pedidos acima de 1000 unidades", () => {
