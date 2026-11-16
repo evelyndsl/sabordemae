@@ -8,7 +8,7 @@ const base = {
   tipoEntrega: "RETIRADA",
   quantidade: 50,
 };
-const MSG = "Informe um celular com DDD e o 9 na frente (ex.: (11) 91234-5678).";
+const MSG = "Informe um celular com DDD + 9 (ex.: (44) 91234-5678). Não inclua o +55 do Brasil.";
 
 const telefoneDe = (telefone: string) => {
   const r = criarPedidoSchema.safeParse({ ...base, telefone });
