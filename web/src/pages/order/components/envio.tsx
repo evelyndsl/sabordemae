@@ -66,7 +66,7 @@ const Envio = ({
   return (
     <section className="section">
       <h2 className="section__title">
-        <span className="section__step">3</span> Entrega ou retirada
+        <span className="section__step">4</span> Entrega ou retirada
       </h2>
       <div className="option-grid">
         <button

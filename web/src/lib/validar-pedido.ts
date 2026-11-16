@@ -33,6 +33,12 @@ export interface DadosPedido {
   selecao: Record<number, number>
   /** Modo "selecao": ids dos sabores marcados. */
   escolhidos: number[]
+  /** Há bebidas à venda: a escolha é obrigatória. */
+  bebidaObrigatoria: boolean
+  /** bebidaId -> unidades. */
+  bebidas: Record<number, number>
+  /** Marcou "Não quero bebida". */
+  semBebida: boolean
   tipo: TipoEntrega | null
   endereco: string
   numero: string
@@ -66,6 +72,8 @@ export function validarPedido(d: DadosPedido): Erros {
   } else if (d.modoSabores === 'selecao' && d.escolhidos.length === 0) {
     e.sabores = 'Marque ao menos um sabor.'
   }
+  if (d.bebidaObrigatoria && !d.semBebida && Object.keys(d.bebidas).length === 0)
+    e.bebida = 'Escolha ao menos uma bebida ou marque "Não quero bebida".'
   if (!d.tipo) e.tipoEntrega = 'Escolha entrega ou retirada.'
   if (d.tipo === 'ENTREGA') {
     if (d.endereco.trim().length < 5) e.endereco = 'Informe a rua ou avenida de entrega.'

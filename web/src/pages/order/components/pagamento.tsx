@@ -54,7 +54,7 @@ const Pagamento = ({
   return (
     <section className="section">
       <h2 className="section__title">
-        <span className="section__step">5</span> Pagamento
+        <span className="section__step">6</span> Pagamento
       </h2>
       <div
         className={cn(

@@ -19,6 +19,8 @@ interface ResumoProps {
   subtotal: number | null;
   preco: ReturnType<typeof calcularPreco> | null;
   faltaParaGratis: number;
+  /** Bebidas escolhidas (null = nenhuma ou ainda não escolheu). */
+  bebidas: { unidades: number; valor: number } | null;
   erroGeral: string;
   enviando: boolean;
 }
@@ -33,6 +35,7 @@ const Resumo = ({
   subtotal,
   preco,
   faltaParaGratis,
+  bebidas,
   erroGeral,
   enviando,
 }: ResumoProps) => {
@@ -54,6 +57,14 @@ const Resumo = ({
           <dt>Subtotal</dt>
           <dd>{subtotal !== null ? formatPrice(subtotal) : "—"}</dd>
         </div>
+        {bebidas && (
+          <div className="summary__row">
+            <dt>
+              Bebidas ({bebidas.unidades})
+            </dt>
+            <dd>{formatPrice(bebidas.valor)}</dd>
+          </div>
+        )}
         <div className="summary__row">
           <dt>
             {tipo === "ENTREGA"

@@ -12,7 +12,7 @@ const Observacao = ({ observacao, setObservacao, erros }: ObservacaoProps) => {
   return (
     <section className="section">
       <h2 className="section__title">
-        <span className="section__step">6</span> Observações{" "}
+        <span className="section__step">7</span> Observações{" "}
         <span className="field__optional">(opcional)</span>
       </h2>
       <div className="field">

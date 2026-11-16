@@ -32,6 +32,7 @@ import { calcularPreco, quantidadeValida } from "@/lib/preco";
 import { validarPedido, valorTroco } from "@/lib/validar-pedido";
 import Quantidade from "./components/quantidade";
 import Sabores from "./components/sabores";
+import BebidaEscolha from "./components/bebida";
 import Envio from "./components/envio";
 import DadosCliente from "./components/dadosCliente";
 import Pagamento from "./components/pagamento";
@@ -80,7 +81,7 @@ function TrackOrder() {
 }
 
 function OrderForm({ catalogo }: { catalogo: Catalogo }) {
-  const { sabores, valores, tempo, taxas, pix, funcionamento } = catalogo;
+  const { sabores, bebidas, valores, tempo, taxas, pix, funcionamento } = catalogo;
   const navigate = useNavigate();
 
   // Nada vem pré-selecionado: o cliente escolhe cada opção (null = ainda não escolheu).
@@ -88,6 +89,8 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
   const [modoSabores, setModoSabores] = useState<ModoSabores | null>(null);
   const [selecao, setSelecao] = useState<Record<number, number>>({}); // modo "quantidades": saborId -> unidades
   const [escolhidos, setEscolhidos] = useState<number[]>([]); // modo "selecao": só os sabores marcados
+  const [bebidasQtd, setBebidasQtd] = useState<Record<number, number>>({}); // bebidaId -> unidades
+  const [semBebida, setSemBebida] = useState(false);
   const [tipo, setTipo] = useState<TipoEntrega | null>(null);
   const [endereco, setEndereco] = useState("");
   const [numero, setNumero] = useState("");
@@ -124,10 +127,23 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
       qtdOk ? calcularPreco(qtd, "RETIRADA", valores, taxas).subtotal : null,
     [qtd, qtdOk, valores, taxas],
   );
-  const preco = useMemo(
-    () => (qtdOk && tipo ? calcularPreco(qtd, tipo, valores, taxas) : null),
-    [qtd, qtdOk, tipo, valores, taxas],
+  // Bebidas escolhidas: o valor (quantidade x preço) entra no total (a API confere ao criar o pedido).
+  const bebidaObrigatoria = bebidas.length > 0;
+  const bebidasEscolhidas = bebidas.filter((b) => (bebidasQtd[b.id] ?? 0) > 0);
+  const unidadesBebida = bebidasEscolhidas.reduce(
+    (soma, b) => soma + bebidasQtd[b.id],
+    0,
   );
+  const valorBebida =
+    bebidasEscolhidas.reduce(
+      (soma, b) => soma + Math.round(parseFloat(b.preco) * 100) * bebidasQtd[b.id],
+      0,
+    ) / 100;
+  const preco = useMemo(() => {
+    if (!qtdOk || !tipo) return null;
+    const base = calcularPreco(qtd, tipo, valores, taxas);
+    return { ...base, total: Math.round((base.total + valorBebida) * 100) / 100 };
+  }, [qtd, qtdOk, tipo, valores, taxas, valorBebida]);
   const faltaParaGratis = taxas.entregaGratisAPartirDe - (qtdOk ? qtd : 0);
 
   const formasPagamento = (
@@ -165,6 +181,9 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
       modoSabores,
       selecao,
       escolhidos,
+      bebidaObrigatoria,
+      bebidas: bebidasQtd,
+      semBebida,
       tipo,
       endereco,
       numero,
@@ -219,6 +238,13 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
           : modoSabores === "selecao"
             ? escolhidos.map((id) => ({ saborId: id }))
             : [],
+      // [] = "Não quero bebida"; sem bebidas à venda o campo nem é enviado.
+      ...(bebidaObrigatoria && {
+        bebidas: bebidasEscolhidas.map((b) => ({
+          bebidaId: b.id,
+          quantidade: bebidasQtd[b.id],
+        })),
+      }),
       tipoEntrega: tipo,
       endereco: tipo === "ENTREGA" ? endereco.trim() : undefined,
       numero: tipo === "ENTREGA" ? numero.trim() : undefined,
@@ -245,7 +271,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
       if (err instanceof ApiError && err.erros.length) {
         const mapped: Erros = {};
         for (const item of err.erros)
-          mapped[item.campo.split(".")[0]] ??= item.mensagem;
+          mapped[item.campo.split(".")[0] === "bebidas" ? "bebida" : item.campo.split(".")[0]] ??= item.mensagem;
         setErros(mapped);
       }
       setErroGeral(
@@ -285,7 +311,19 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
           erro={erros.sabores}
         />
 
-        {/* 3. Entrega ou retirada */}
+        {/* 3. Bebidas (só quando há bebidas à venda) */}
+        {bebidaObrigatoria && (
+          <BebidaEscolha
+            bebidas={bebidas}
+            quantidades={bebidasQtd}
+            setQuantidades={setBebidasQtd}
+            semBebida={semBebida}
+            setSemBebida={setSemBebida}
+            erro={erros.bebida}
+          />
+        )}
+
+        {/* 4. Entrega ou retirada */}
         <Envio
           taxas={taxas}
           tempo={tempo}
@@ -312,7 +350,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
           erros={erros}
         />
 
-        {/* 4. Dados */}
+        {/* 5. Dados */}
         <DadosCliente
           nome={nome}
           setNome={setNome}
@@ -321,7 +359,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
           erros={erros}
         />
 
-        {/* 5. Pagamento */}
+        {/* 6. Pagamento */}
         <Pagamento
           formasPagamento={formasPagamento}
           pagamento={pagamento}
@@ -339,7 +377,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
           erros={erros}
         />
 
-        {/* 6. Observação */}
+        {/* 7. Observação */}
         <Observacao
           observacao={observacao}
           setObservacao={setObservacao}
@@ -358,6 +396,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
         subtotal={subtotal}
         preco={preco}
         faltaParaGratis={faltaParaGratis}
+        bebidas={unidadesBebida > 0 ? { unidades: unidadesBebida, valor: valorBebida } : null}
         erroGeral={erroGeral}
         enviando={enviando}
       />

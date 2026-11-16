@@ -21,7 +21,7 @@ const DadosCliente = ({
   return (
     <section className="section">
       <h2 className="section__title">
-        <span className="section__step">4</span> Seus dados
+        <span className="section__step">5</span> Seus dados
       </h2>
       <div className="stack mt-3">
         <div className="field">
