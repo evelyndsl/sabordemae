@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { FormaPagamento, StatusPedido, TipoEntrega } from "../generated/prisma/enums.js";
 import type { PedidoComItens } from "../services/pedidos.js";
-import { PASSO_QUANTIDADE, QUANTIDADE_MAXIMA, QUANTIDADE_MINIMA } from "../services/preco.js";
+import { PASSO_QUANTIDADE, paraCentavos, QUANTIDADE_MAXIMA, QUANTIDADE_MINIMA } from "../services/preco.js";
 
 const CELULAR = /^[1-9][1-9]9\d{8}$/;
 
@@ -18,6 +18,11 @@ export const SABOR_MISTO = "Misto";
 const itemSaborSchema = z.object({
   saborId: z.number().int().positive(),
   quantidade: z.number().int().positive().optional(),
+});
+
+const itemBebidaSchema = z.object({
+  bebidaId: z.number().int().positive(),
+  quantidade: z.number().int().min(1).max(50, "Máximo de 50 unidades por bebida."),
 });
 
 // Texto aparado; vazio vira undefined. O limite de tamanho tem mensagem própria.
@@ -70,6 +75,9 @@ export const criarPedidoSchema = z
       .datetime({ offset: true })
       .transform((v) => new Date(v))
       .optional(),
+    // Bebidas escolhidas (ids de GET /bebidas, cada uma com a quantidade). [] = não quer bebida.
+    // Obrigatório enquanto houver bebidas à venda (a API confere); sem bebidas à venda, pode ser omitido.
+    bebidas: z.array(itemBebidaSchema).max(30).optional(),
     formaPagamento: z.enum(FormaPagamento),
     // Só vale com pagamento em dinheiro. trocoPara = valor da nota (em reais), ex.: 100.
     precisaTroco: z.boolean().default(false),
@@ -98,6 +106,13 @@ export const criarPedidoSchema = z
         path: ["horarioAgendado"],
         message: "O horário escolhido deve ser no futuro.",
       });
+    }
+
+    if (pedido.bebidas) {
+      const ids = pedido.bebidas.map((b) => b.bebidaId);
+      if (new Set(ids).size !== ids.length) {
+        ctx.addIssue({ code: "custom", path: ["bebidas"], message: "Bebida repetida no pedido." });
+      }
     }
 
     if (pedido.sabores.length > 0) {
@@ -162,6 +177,13 @@ export const pedidoRespostaSchema = z.object({
   subtotal: z.string(),
   taxaEntrega: z.string(),
   total: z.string(),
+  // Bebidas pedidas (o valor já está no total). Vazio = sem bebida.
+  // valorUnitario * quantidade = valor.
+  bebidas: z.array(
+    z.object({ nome: z.string(), quantidade: z.number(), valorUnitario: z.string(), valor: z.string() }),
+  ),
+  // Soma das bebidas (já incluída no total).
+  totalBebidas: z.string(),
   criadoEm: z.string(),
   // Pedido sem sabores escolhidos aparece como "Misto" (no banco o item fica com saborId nulo).
   // quantidade nula = o cliente só escolheu o sabor (a loja divide as unidades).
@@ -204,6 +226,13 @@ export function paraResposta(p: PedidoComItens): z.infer<typeof pedidoRespostaSc
     subtotal: p.subtotal.toFixed(2),
     taxaEntrega: p.taxaEntrega.toFixed(2),
     total: p.total.toFixed(2),
+    bebidas: p.bebidas.map((b) => ({
+      nome: b.nome,
+      quantidade: b.quantidade,
+      valorUnitario: b.valorUnitario.toFixed(2),
+      valor: (paraCentavos(b.valorUnitario) * b.quantidade / 100).toFixed(2),
+    })),
+    totalBebidas: (p.bebidas.reduce((soma, b) => soma + paraCentavos(b.valorUnitario) * b.quantidade, 0) / 100).toFixed(2),
     criadoEm: p.criadoEm.toISOString(),
     itens: p.itens.map((i) => ({ sabor: i.sabor?.nome ?? SABOR_MISTO, quantidade: i.quantidade })),
   };

@@ -44,6 +44,18 @@ model Sabor {
   itens ItemPedido[]
 }
 
+// Bebidas à venda. A foto fica no próprio banco (limite de 300 KB), como a logo.
+model Bebida {
+  id               Int       @id @default(autoincrement())
+  nome             String    @db.VarChar(80)
+  preco            Decimal   @db.Decimal(10, 2)
+  ativo            Boolean   @default(true)
+  fotoDados        Bytes?
+  fotoTipo         String?   @db.VarChar(30)
+  fotoAtualizadaEm DateTime?
+  criadoEm         DateTime  @default(now())
+}
+
 model FaixaPreco {
   id         Int     @id @default(autoincrement())
   quantidade Int     @unique
@@ -86,6 +98,8 @@ model Configuracao {
   enderecoRetirada                String?      @db.VarChar(300)
   // Dia (AAAA-MM-DD, Brasília) em que a entrega está desligada. Vale só nesse dia: no dia seguinte volta sozinha.
   entregaSuspensaEm               String?      @db.VarChar(10)
+  // Chave geral: desligada, o app não oferece nenhuma bebida, independente de cada uma estar ativa.
+  vendaBebidasAtiva               Boolean      @default(true)
   // Marca e aparência (editáveis no painel). A logo fica no próprio banco (limite de 300 KB).
   nomeMarca                       String       @default("Sabor de Mãe") @db.VarChar(60)
   logoDados                       Bytes?
@@ -134,6 +148,8 @@ model Pedido {
   pagarAte             DateTime?
   criadoEm             DateTime       @default(now())
   itens                ItemPedido[]
+  // Sem itens = sem bebida. O valor das bebidas já está somado ao total.
+  bebidas              ItemBebida[]
 
   @@index([status, criadoEm])
 }
@@ -147,6 +163,16 @@ model ItemPedido {
   sabor      Sabor? @relation(fields: [saborId], references: [id], onDelete: Restrict)
   // Nulo quando o cliente só escolheu os sabores, sem dizer quantas unidades de cada (a loja divide).
   quantidade Int?
+}
+
+// Bebida pedida: guarda nome e valor unitário da hora do pedido (a bebida pode ser alterada ou excluída depois).
+model ItemBebida {
+  id            Int     @id @default(autoincrement())
+  pedidoId      String  @db.Uuid
+  pedido        Pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  nome          String  @db.VarChar(80)
+  valorUnitario Decimal @db.Decimal(10, 2)
+  quantidade    Int
 }
 
 model AdminUser {

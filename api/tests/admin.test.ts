@@ -4,6 +4,9 @@ import { autenticar, criarApp, criarPedidoDireto, encerrar, obterPrisma, salvarC
 import { ADMIN_TESTE } from "./test-env.js";
 
 const NOME_SABOR = "Sabor de Teste Admin";
+const NOME_BEBIDA = "Bebida de Teste Admin";
+// PNG mínimo (1x1) em base64.
+const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 const CPF_VALIDO = "529.982.247-25";
 
 let app: FastifyInstance;
@@ -32,6 +35,7 @@ afterAll(async () => {
   await restaurarConfiguracao();
   await prisma.pedido.deleteMany({ where: { codigo: { in: codigosCriados } } });
   await prisma.sabor.deleteMany({ where: { nome: NOME_SABOR } });
+  await prisma.bebida.deleteMany({ where: { nome: { startsWith: NOME_BEBIDA } } });
   await encerrar(app);
 });
 
@@ -46,6 +50,12 @@ describe("proteção das rotas do admin", () => {
     { method: "GET", url: "/admin/sabores" },
     { method: "POST", url: "/sabores", payload: { nome: NOME_SABOR } },
     { method: "PATCH", url: "/sabores/1", payload: { ativo: false } },
+    { method: "GET", url: "/admin/bebidas" },
+    { method: "PUT", url: "/bebidas/venda", payload: { ativa: false } },
+    { method: "POST", url: "/bebidas", payload: { nome: NOME_BEBIDA, preco: 5 } },
+    { method: "PATCH", url: "/bebidas/1", payload: { ativo: false } },
+    { method: "DELETE", url: "/bebidas/1" },
+    { method: "PUT", url: "/bebidas/1/foto", payload: { tipo: "image/png", dados: PNG } },
   ] as const;
 
   it.each(rotas)("$method $url sem token responde 401", async ({ method, url, ...resto }) => {
@@ -402,5 +412,116 @@ describe("sabores", () => {
 
     const vazio = await app.inject({ method: "PATCH", url: `/sabores/${saborId}`, payload: {}, headers });
     expect(vazio.statusCode).toBe(400);
+  });
+});
+
+describe("bebidas", () => {
+  const chamar = (method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", url: string, payload?: object) =>
+    app.inject({ method, url, payload, headers });
+
+  // Amanhã às 12h (Brasília): dentro do atendimento em qualquer hora em que o teste rode.
+  const amanhaAoMeioDia = () => {
+    const d = new Date(Date.now() + 24 * 3600_000);
+    d.setUTCHours(15, 0, 0, 0);
+    return d.toISOString();
+  };
+  const pedir = (extra: object = {}) =>
+    app.inject({
+      method: "POST",
+      url: "/pedido",
+      payload: {
+        nomeCliente: "Cliente de Teste",
+        telefone: "11912345678",
+        formaPagamento: "DINHEIRO",
+        quantidade: 30,
+        tipoEntrega: "RETIRADA",
+        horarioAgendado: amanhaAoMeioDia(),
+        ...extra,
+      },
+    });
+
+  it("cria, edita, desativa, recebe foto e exclui; recusa dados inválidos", async () => {
+    const criada = await chamar("POST", "/bebidas", { nome: ` ${NOME_BEBIDA} 2L `, preco: 12 });
+    expect(criada.statusCode).toBe(201);
+    expect(criada.json()).toMatchObject({ nome: `${NOME_BEBIDA} 2L`, preco: "12.00", ativo: true, fotoVersao: null });
+    const id = criada.json().id as number;
+
+    expect((await chamar("POST", "/bebidas", { nome: NOME_BEBIDA, preco: 0 })).statusCode).toBe(400);
+    expect((await chamar("POST", "/bebidas", { nome: NOME_BEBIDA, preco: 5.555 })).statusCode).toBe(400);
+
+    expect((await chamar("PATCH", `/bebidas/${id}`, { preco: 13.5, ativo: false })).json()).toMatchObject({
+      preco: "13.50",
+      ativo: false,
+    });
+
+    const falsa = Buffer.from("isto nao e um png").toString("base64");
+    expect((await chamar("PUT", `/bebidas/${id}/foto`, { tipo: "image/png", dados: falsa })).statusCode).toBe(400);
+
+    const foto = await chamar("PUT", `/bebidas/${id}/foto`, { tipo: "image/png", dados: PNG });
+    expect(foto.statusCode).toBe(200);
+    // A foto é pública (usada em <img>) e vem como imagem.
+    const imagem = await app.inject({ method: "GET", url: `/bebidas/${id}/foto?v=${foto.json().fotoVersao}` });
+    expect(imagem.headers["content-type"]).toBe("image/png");
+    expect((await chamar("DELETE", `/bebidas/${id}/foto`)).json().fotoVersao).toBeNull();
+
+    expect((await chamar("DELETE", `/bebidas/${id}`)).statusCode).toBe(204);
+    expect((await chamar("PATCH", `/bebidas/${id}`, { ativo: true })).statusCode).toBe(404);
+  });
+
+  it("a lista pública só tem bebidas ativas, e nenhuma com a venda desligada", async () => {
+    const ativa = (await chamar("POST", "/bebidas", { nome: `${NOME_BEBIDA} ativa`, preco: 8 })).json();
+    const inativa = (await chamar("POST", "/bebidas", { nome: `${NOME_BEBIDA} inativa`, preco: 9 })).json();
+    await chamar("PATCH", `/bebidas/${inativa.id}`, { ativo: false });
+
+    const ids = async () => (await app.inject({ method: "GET", url: "/bebidas" })).json().map((b: { id: number }) => b.id);
+    expect(await ids()).toContain(ativa.id);
+    expect(await ids()).not.toContain(inativa.id);
+    expect((await get("/admin/bebidas")).json().bebidas.map((b: { id: number }) => b.id)).toContain(inativa.id);
+
+    expect((await chamar("PUT", "/bebidas/venda", { ativa: false })).json()).toEqual({ vendaAtiva: false });
+    expect(await ids()).toEqual([]);
+    // Com a venda desligada o pedido não exige (nem aceita) bebidas.
+    const semVenda = await pedir();
+    expect(semVenda.statusCode).toBe(201);
+    codigosCriados.push(semVenda.json().codigo);
+    expect(semVenda.json().bebidas).toEqual([]);
+    expect((await pedir({ bebidas: [{ bebidaId: ativa.id, quantidade: 1 }] })).statusCode).toBe(400);
+    await chamar("PUT", "/bebidas/venda", { ativa: true });
+  });
+
+  it("o pedido exige escolher as bebidas (ou nenhuma) e soma quantidade x valor ao total", async () => {
+    const coca = (await chamar("POST", "/bebidas", { nome: `${NOME_BEBIDA} coca`, preco: 12 })).json();
+    const guarana = (await chamar("POST", "/bebidas", { nome: `${NOME_BEBIDA} guarana`, preco: 10.5 })).json();
+
+    expect((await pedir()).statusCode).toBe(400);
+    expect((await pedir({ bebidas: [{ bebidaId: 999999, quantidade: 1 }] })).statusCode).toBe(400);
+    expect((await pedir({ bebidas: [{ bebidaId: coca.id, quantidade: 1 }, { bebidaId: coca.id, quantidade: 2 }] })).statusCode).toBe(400);
+    expect((await pedir({ bebidas: [{ bebidaId: coca.id, quantidade: 0 }] })).statusCode).toBe(400);
+
+    const nenhuma = await pedir({ bebidas: [] });
+    expect(nenhuma.statusCode).toBe(201);
+    codigosCriados.push(nenhuma.json().codigo);
+    expect(nenhuma.json()).toMatchObject({ bebidas: [], totalBebidas: "0.00", total: "29.00" });
+
+    // 3 de um sabor e 2 do outro: 3 x 12,00 + 2 x 10,50 = 57,00.
+    const comBebidas = await pedir({
+      bebidas: [{ bebidaId: coca.id, quantidade: 3 }, { bebidaId: guarana.id, quantidade: 2 }],
+    });
+    expect(comBebidas.statusCode).toBe(201);
+    codigosCriados.push(comBebidas.json().codigo);
+    expect(comBebidas.json()).toMatchObject({
+      subtotal: "29.00",
+      bebidas: [
+        { nome: `${NOME_BEBIDA} coca`, quantidade: 3, valorUnitario: "12.00", valor: "36.00" },
+        { nome: `${NOME_BEBIDA} guarana`, quantidade: 2, valorUnitario: "10.50", valor: "21.00" },
+      ],
+      totalBebidas: "57.00",
+      total: "86.00",
+    });
+
+    // O pedido guarda o nome e o valor da hora: excluir a bebida não o altera.
+    await chamar("DELETE", `/bebidas/${coca.id}`);
+    const salvo = await app.inject({ method: "GET", url: `/pedido/${comBebidas.json().codigo}` });
+    expect(salvo.json().bebidas[0]).toMatchObject({ nome: `${NOME_BEBIDA} coca`, quantidade: 3, valor: "36.00" });
   });
 });
