@@ -1,0 +1,55 @@
+name: API - migrations e deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - ".github/workflows/api-migrations.yml"
+
+# Uma execução por vez no mesmo banco, sem cancelar a que já está rodando.
+concurrency:
+  group: api-migrations
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Ambiente "production" do GitHub: guarda o DATABASE_URL do banco de produção
+    # (Settings > Environments > production > Secrets) e permite exigir aprovação.
+    environment: production
+    defaults:
+      run:
+        working-directory: api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      # O "postinstall" roda `prisma generate`, que só lê o schema (a URL abaixo é fictícia e não é usada para conectar).
+      - name: Instalar dependências
+        run: npm ci
+        env:
+          DATABASE_URL: postgresql://usuario:senha@localhost:5432/ci
+
+      # Aplica só as migrations ainda não aplicadas; não apaga nem recria dados.
+      - name: Aplicar migrations
+        run: npm run db:deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      # O deploy automático da Vercel está desligado para a API (api/vercel.json): ele só acontece aqui,
+      # depois das migrations. Se a migration falhar, este passo não roda e o deploy não é feito.
+      - name: Disparar deploy da API na Vercel
+        run: curl --fail --silent --show-error -X POST "$VERCEL_DEPLOY_HOOK_API"
+        env:
+          VERCEL_DEPLOY_HOOK_API: ${{ secrets.VERCEL_DEPLOY_HOOK_API }}

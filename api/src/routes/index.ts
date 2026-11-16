@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { adminRoutes } from "./admin/index.js";
 import { authRoutes } from "./auth.js";
+import { bebidasRoutes } from "./bebidas.js";
 import { catalogoRoutes } from "./catalogo.js";
 import { healthRoutes } from "./health.js";
 import { marcaRoutes } from "./marca.js";
@@ -10,6 +11,7 @@ export const routes: FastifyPluginAsyncZod = async (app) => {
   await app.register(healthRoutes);
   await app.register(catalogoRoutes);
   await app.register(marcaRoutes);
+  await app.register(bebidasRoutes);
   await app.register(pedidosRoutes);
   await app.register(authRoutes);
   await app.register(adminRoutes);

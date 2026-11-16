@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { authenticate } from "../../plugins/auth.js";
+import { adminBebidasRoutes } from "./bebidas.js";
 import { adminConfigRoutes } from "./config.js";
 import { adminMarcaRoutes } from "./marca.js";
 import { adminPedidosRoutes } from "./pedidos.js";
@@ -14,4 +15,5 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
   await app.register(adminConfigRoutes);
   await app.register(adminMarcaRoutes);
   await app.register(adminSaboresRoutes);
+  await app.register(adminBebidasRoutes);
 };
