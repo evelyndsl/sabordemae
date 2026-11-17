@@ -4,6 +4,7 @@ API REST do app de pedidos. O front fica em [`../web`](../web/README.md); a vis�
 
 - **Stack:** Node.js 24, Fastify 5, TypeScript, Prisma 7 (PostgreSQL / Neon), Zod, JWT, Vitest.
 - **Regras de negócio** (preços, quantidades, entrega, Pix, status): [`APP.md`](APP.md).
+- Bebidas: com a venda ligada e ao menos uma bebida ativa, o `POST /pedido` exige o campo `bebidas` (lista de `{ bebidaId, quantidade }`; `[]` = "não quero bebida"). O valor entra no total, calculado no servidor.
 - O preço é sempre calculado no servidor; nada que o cliente envia sobre valores é usado.
 
 ## Requisitos
@@ -117,18 +118,21 @@ Observações de produção:
 | Método | Rota | Acesso |
 |---|---|---|
 | GET | `/health` | público |
-| GET | `/sabores`, `/valores`, `/tempo-preparo`, `/taxa-entrega`, `/pix`, `/funcionamento`, `/marca` | público |
+| GET | `/sabores`, `/bebidas`, `/valores`, `/tempo-preparo`, `/taxa-entrega`, `/pix`, `/funcionamento`, `/marca` | público |
 | GET | `/marca/logo` (imagem PNG/SVG da logo; `?modo=escuro` para a do modo escuro; 404 se não houver) | público |
+| GET | `/bebidas/:id/foto` (foto da bebida; `?v=` é a versão, 404 se não houver) | público |
 | POST | `/pedido` (limite: 10/min) | público |
 | GET | `/pedido/:codigo` | público |
 | POST | `/auth/login` (limite: 5/min) | público |
-| GET | `/pedidos`, `/admin/sabores` | admin |
+| GET | `/pedidos`, `/admin/sabores`, `/admin/bebidas` (todas, com `vendaAtiva`) | admin |
 | PUT | `/pedido/:codigo/status`, `/pedido/:codigo/tempo-preparo` | admin |
 | PUT | `/tempo-preparo`, `/taxa-entrega`, `/pix`, `/valores`, `/funcionamento` | admin |
 | PUT | `/marca` (nome e cores), `/marca/logo` (logo em base64; `modo`: `claro` ou `escuro`) | admin |
 | DELETE | `/pedido/:codigo` (exclusão definitiva), `/marca/logo` (`?modo=escuro` remove só a logo do modo escuro) | admin |
-| POST | `/sabores` | admin |
-| PATCH | `/sabores/:id` | admin |
+| POST | `/sabores`, `/bebidas` | admin |
+| PATCH | `/sabores/:id`, `/bebidas/:id` | admin |
+| PUT | `/bebidas/venda` (liga/desliga a venda de bebidas), `/bebidas/:id/foto` (foto em base64, até 1 MB) | admin |
+| DELETE | `/bebidas/:id`, `/bebidas/:id/foto` | admin |
 
 Rotas de admin exigem `Authorization: Bearer <token>` (token do `POST /auth/login`, válido por 12 h). Erros de validação voltam como `400` com `{ "mensagem": "Dados inválidos.", "erros": [{ "campo", "mensagem" }] }`.
 
