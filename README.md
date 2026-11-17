@@ -1,11 +1,16 @@
 # Sabor de Mãe — app de pedidos de mini salgados
 
-Aplicação de delivery para uma única loja (sem multi-tenant): o cliente monta o pedido pela quantidade e pelos sabores, escolhe entrega ou retirada, paga em dinheiro, cartão (presencial) ou Pix (copia a chave e envia o comprovante por WhatsApp), e o lojista acompanha tudo em um painel.
+Aplicação de delivery para uma única loja (sem multi-tenant): o cliente monta o pedido pela quantidade e pelos sabores (e, se o lojista vender, bebidas), escolhe entrega ou retirada, paga em dinheiro, cartão (presencial) ou Pix (copia a chave e envia o comprovante por WhatsApp), e o lojista acompanha tudo em um painel.
 
 | Pasta | O que é | Detalhes |
 |---|---|---|
 | [`api/`](api/README.md) | API REST: Node.js, Fastify, Prisma, PostgreSQL (Neon) | regras de negócio em [`api/APP.md`](api/APP.md) |
 | [`web/`](web/README.md) | Front: React, TypeScript, Vite, Tailwind, shadcn/ui | páginas do cliente e painel do admin |
+| [`doc/`](doc/README.md) | Site de documentação (PT-BR e EN-US) | publicado em <https://sabordemae-doc.vercel.app/> |
+
+## Documentação
+
+A documentação completa do projeto está em **<https://sabordemae-doc.vercel.app/>** (código-fonte em [`doc/`](doc/README.md)).
 
 ## Rodar localmente (resumo)
 
@@ -62,5 +67,6 @@ deliveryapp/
 ├── .github/workflows/   testes da API e do web (GitHub Actions)
 ├── api/                 backend
 ├── web/                 frontend
+├── doc/                 site de documentação
 └── README.md            este arquivo
 ```

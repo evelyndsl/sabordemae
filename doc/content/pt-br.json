@@ -4,8 +4,8 @@
     "version": "1.0.0",
     "language": "pt-br",
     "languageName": "Português",
-    "generatedAt": "2026-11-11",
-    "sourceCommit": "f21e900",
+    "generatedAt": "2026-11-16",
+    "sourceCommit": "1cbebe9",
     "repository": "https://github.com/evelyndsl/sabordemae"
   },
   "ui": {
@@ -35,7 +35,7 @@
         },
         {
           "type": "paragraph",
-          "text": "**Sabor de Mãe** é uma aplicação de delivery para uma única loja (sem multi-tenant) que vende mini salgados. O cliente monta o pedido escolhendo a **quantidade** (de 10 em 10) e, se quiser, os **sabores**; escolhe **entrega** ou **retirada**; e paga em dinheiro, cartão (presencialmente) ou **Pix** (copia a chave e envia o comprovante por WhatsApp). O lojista recebe os pedidos em um painel, muda o status de cada um e configura preços, horários, Pix e a aparência da marca."
+          "text": "**Sabor de Mãe** é uma aplicação de delivery para uma única loja (sem multi-tenant) que vende mini salgados. O cliente monta o pedido escolhendo a **quantidade** (de 10 em 10) e, se quiser, os **sabores**; escolhe as **bebidas** (ou marca que não quer); escolhe **entrega** ou **retirada**; e paga em dinheiro, cartão (presencialmente) ou **Pix** (copia a chave e envia o comprovante por WhatsApp). O lojista recebe os pedidos em um painel, muda o status de cada um e configura preços, horários, Pix e a aparência da marca."
         },
         {
           "type": "heading",
@@ -84,8 +84,12 @@
               "text": "Horário diário, dias de atendimento, “fechado” manual e entrega desligada só por um dia."
             },
             {
+              "title": "Bebidas",
+              "text": "Bebidas opcionais no pedido, com foto e quantidade por bebida; o lojista liga e desliga a venda."
+            },
+            {
               "title": "Painel do lojista",
-              "text": "Pedidos, status, sabores, preços, Pix, funcionamento e marca (logo e cores)."
+              "text": "Pedidos, status, sabores, bebidas, preços, Pix, funcionamento e marca (logo e cores)."
             },
             {
               "title": "Aviso de novo pedido",
@@ -106,7 +110,7 @@
           "type": "callout",
           "variant": "info",
           "title": "Sobre esta documentação",
-          "text": "Foi gerada a partir do commit `f21e900` **mais** as alterações ainda não commitadas da branch `update/4-adicionar-verificacao-de-telefone` (validação de celular e reorganização dos testes da API)."
+          "text": "Atualizada até o commit `1cbebe9` da branch `feat/8-feature-criar-secao-para-bebidas` (bebidas, validação de celular, nova suíte de testes e deploy da API pelo GitHub Actions), **mais** a alteração ainda não commitada de `.github/workflows/api-tests.yml`."
         },
         {
           "type": "callout",
@@ -392,7 +396,7 @@
             [
               "Serviços",
               "`src/services/`",
-              "Regras de negócio: preço, pedidos, funcionamento, prazo do Pix, catálogo, marca, auth, notificação."
+              "Regras de negócio: preço, pedidos, bebidas, funcionamento, prazo do Pix, catálogo, marca, auth, notificação."
             ],
             [
               "Plugins",
@@ -402,7 +406,7 @@
             [
               "Lib",
               "`src/lib/`",
-              "Env validado, cliente Prisma, código do pedido, validação de chave Pix e de logo, erros de negócio."
+              "Env validado, cliente Prisma, código do pedido, validação de chave Pix, de logo e de foto, erros de negócio."
             ]
           ]
         },
@@ -435,7 +439,7 @@
         {
           "type": "code",
           "language": "text",
-          "code": "sabordemae/\n├── .github/\n│   ├── workflows/            testes da API e do web (GitHub Actions)\n│   ├── ISSUE_TEMPLATE/       modelo de issue\n│   └── pull_request_template.md\n├── api/\n│   ├── prisma/               schema.prisma, migrations/, seed.ts\n│   ├── src/\n│   │   ├── index.ts          entrada da Vercel (handler serverless)\n│   │   ├── server.ts         entrada local (listen)\n│   │   ├── buildApp.ts       monta o Fastify\n│   │   ├── routes/           públicas, auth e admin/\n│   │   ├── schemas/          Zod\n│   │   ├── services/         regras de negócio\n│   │   ├── plugins/          auth e tratamento de erros\n│   │   └── lib/              env, prisma, pix, logo, codigo, errors\n│   ├── tests/                Vitest\n│   └── APP.md                brief e regras de negócio\n├── web/\n│   ├── src/\n│   │   ├── pages/            order/ e admin/\n│   │   ├── components/       app + ui/ (shadcn)\n│   │   ├── context/ hooks/ lib/ types/ tests/\n│   │   └── styles/           Tailwind, tokens e CSS por área\n│   └── vercel.json           reescreve tudo para index.html\n└── doc/                      esta documentação"
+          "code": "sabordemae/\n├── .github/\n│   ├── workflows/            testes da API e do web, migrations e deploy da API (GitHub Actions)\n│   ├── ISSUE_TEMPLATE/       modelo de issue\n│   └── pull_request_template.md\n├── api/\n│   ├── prisma/               schema.prisma, migrations/, seed.ts\n│   ├── src/\n│   │   ├── index.ts          entrada da Vercel (handler serverless)\n│   │   ├── server.ts         entrada local (listen)\n│   │   ├── buildApp.ts       monta o Fastify\n│   │   ├── routes/           públicas, auth e admin/\n│   │   ├── schemas/          Zod\n│   │   ├── services/         regras de negócio\n│   │   ├── plugins/          auth e tratamento de erros\n│   │   └── lib/              env, prisma, pix, logo, foto, codigo, errors\n│   ├── tests/                Vitest\n│   └── APP.md                brief e regras de negócio\n├── web/\n│   ├── src/\n│   │   ├── pages/            order/ e admin/\n│   │   ├── components/       app + ui/ (shadcn)\n│   │   ├── context/ hooks/ lib/ types/ tests/\n│   │   └── styles/           Tailwind, tokens e CSS por área\n│   └── vercel.json           reescreve tudo para index.html\n└── doc/                      esta documentação"
         }
       ]
     },
@@ -452,7 +456,7 @@
         },
         {
           "type": "mermaid",
-          "code": "sequenceDiagram\n  actor Cli as Cliente\n  participant Web as Web\n  participant API as API\n  participant DB as PostgreSQL\n  participant Ntfy as ntfy\n  Cli->>Web: abre /pedido\n  Web->>API: GET sabores, valores, taxa-entrega, pix, funcionamento\n  API-->>Web: catálogo e regras\n  Cli->>Web: monta e envia o pedido\n  Web->>API: POST /pedido\n  API->>API: valida body, funcionamento, sabores e troco\n  API->>API: calcula preço e prazo do Pix\n  API->>DB: grava pedido e itens\n  API->>Ntfy: aviso (opcional, com tempo limite)\n  API-->>Web: 201 com código e total\n  Web-->>Cli: redireciona para /pedido/CODIGO",
+          "code": "sequenceDiagram\n  actor Cli as Cliente\n  participant Web as Web\n  participant API as API\n  participant DB as PostgreSQL\n  participant Ntfy as ntfy\n  Cli->>Web: abre /pedido\n  Web->>API: GET sabores, bebidas, valores, taxa-entrega, pix, funcionamento\n  API-->>Web: catálogo e regras\n  Cli->>Web: monta e envia o pedido\n  Web->>API: POST /pedido\n  API->>API: valida body, funcionamento, sabores, bebidas e troco\n  API->>API: calcula preço e prazo do Pix\n  API->>DB: grava pedido, itens e bebidas\n  API->>Ntfy: aviso (opcional, com tempo limite)\n  API-->>Web: 201 com código e total\n  Web-->>Cli: redireciona para /pedido/CODIGO",
           "caption": "O preço mostrado no front é só uma prévia; o valor oficial vem da API."
         },
         {
@@ -495,7 +499,7 @@
       "id": "banco-de-dados",
       "group": "Arquitetura",
       "title": "Banco de dados",
-      "summary": "PostgreSQL gerenciado pelo Prisma: 6 tabelas e 12 migrations.",
+      "summary": "PostgreSQL gerenciado pelo Prisma: 8 tabelas e 15 migrations.",
       "blocks": [
         {
           "type": "heading",
@@ -504,11 +508,11 @@
         },
         {
           "type": "mermaid",
-          "code": "erDiagram\n  PEDIDO ||--|{ ITEM_PEDIDO : itens\n  SABOR |o--o{ ITEM_PEDIDO : sabor\n  PEDIDO {\n    uuid id PK\n    string codigo UK\n    string nomeCliente\n    string telefone\n    enum tipoEntrega\n    enum formaPagamento\n    enum status\n    int quantidadeTotal\n    decimal total\n    datetime horarioAgendado\n    datetime criadoEm\n  }\n  ITEM_PEDIDO {\n    int id PK\n    uuid pedidoId FK\n    int saborId FK\n    int quantidade\n  }\n  SABOR {\n    int id PK\n    string nome UK\n    boolean ativo\n  }\n  FAIXA_PRECO {\n    int id PK\n    int quantidade UK\n    decimal valor\n  }\n  CONFIGURACAO {\n    int id PK\n    int tempoPreparoMinimoMin\n    decimal taxaEntregaAte49\n    string chavePix\n    string horarioAbertura\n    string nomeMarca\n    json cores\n  }\n  ADMIN_USER {\n    int id PK\n    string usuario UK\n    string senhaHash\n  }"
+          "code": "erDiagram\n  PEDIDO ||--|{ ITEM_PEDIDO : itens\n  SABOR |o--o{ ITEM_PEDIDO : sabor\n  PEDIDO ||--o{ ITEM_BEBIDA : bebidas\n  PEDIDO {\n    uuid id PK\n    string codigo UK\n    string nomeCliente\n    string telefone\n    enum tipoEntrega\n    enum formaPagamento\n    enum status\n    int quantidadeTotal\n    decimal total\n    datetime horarioAgendado\n    datetime criadoEm\n  }\n  ITEM_PEDIDO {\n    int id PK\n    uuid pedidoId FK\n    int saborId FK\n    int quantidade\n  }\n  SABOR {\n    int id PK\n    string nome UK\n    boolean ativo\n  }\n  FAIXA_PRECO {\n    int id PK\n    int quantidade UK\n    decimal valor\n  }\n  CONFIGURACAO {\n    int id PK\n    int tempoPreparoMinimoMin\n    decimal taxaEntregaAte49\n    string chavePix\n    string horarioAbertura\n    string nomeMarca\n    json cores\n  }\n  BEBIDA {\n    int id PK\n    string nome\n    decimal preco\n    boolean ativo\n    bytes fotoDados\n  }\n  ITEM_BEBIDA {\n    int id PK\n    uuid pedidoId FK\n    string nome\n    decimal valorUnitario\n    int quantidade\n  }\n  ADMIN_USER {\n    int id PK\n    string usuario UK\n    string senhaHash\n  }"
         },
         {
           "type": "paragraph",
-          "text": "`FAIXA_PRECO`, `CONFIGURACAO` e `ADMIN_USER` não têm relação direta com os pedidos: o preço e as regras são lidos na hora de criar o pedido e o resultado é gravado no próprio pedido."
+          "text": "`FAIXA_PRECO`, `CONFIGURACAO` e `ADMIN_USER` não têm relação direta com os pedidos: o preço e as regras são lidos na hora de criar o pedido e o resultado é gravado no próprio pedido. `ITEM_BEBIDA` guarda uma **cópia** do nome e do valor da bebida no momento do pedido (por isso não aponta para `BEBIDA`): editar ou apagar uma bebida não muda pedidos antigos."
         },
         {
           "type": "heading",
@@ -576,7 +580,7 @@
             [
               "`quantidadeTotal`, `subtotal`, `taxaEntrega`, `total`",
               "int, decimal(10,2)",
-              "Calculados no servidor."
+              "Calculados no servidor. O `total` já inclui as bebidas."
             ],
             [
               "`tempoPreparoMin`, `previsaoEm`",
@@ -609,6 +613,48 @@
         },
         {
           "type": "heading",
+          "id": "bebidas-db",
+          "text": "Bebida e ItemBebida"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Campo",
+            "Tipo",
+            "Observação"
+          ],
+          "rows": [
+            [
+              "`Bebida.nome`, `preco`",
+              "varchar(80), decimal(10,2)",
+              "Nome e preço exibidos ao cliente (o front mostra com `R$`)."
+            ],
+            [
+              "`Bebida.ativo`",
+              "boolean",
+              "Desativada = some do pedido, mas continua cadastrada."
+            ],
+            [
+              "`Bebida.fotoDados`, `fotoTipo`, `fotoAtualizadaEm`",
+              "bytea, varchar, timestamp",
+              "Foto guardada no próprio banco (PNG, JPEG ou WebP). `fotoAtualizadaEm` vira a “versão” da URL da imagem."
+            ],
+            [
+              "`ItemBebida`",
+              "nome, valorUnitario, quantidade",
+              "Uma linha por bebida do pedido, com o nome e o valor **no momento da compra**."
+            ]
+          ]
+        },
+        {
+          "type": "list",
+          "items": [
+            "`ItemBebida.pedidoId` é apagado junto com o pedido (`onDelete: Cascade`). Não há chave para `Bebida`: bebidas podem ser excluídas de vez sem afetar pedidos antigos.",
+            "A listagem das bebidas nunca seleciona os bytes da foto; eles só saem em `GET /bebidas/:id/foto`."
+          ]
+        },
+        {
+          "type": "heading",
           "id": "config",
           "text": "Configuracao (linha única)"
         },
@@ -626,6 +672,10 @@
             [
               "Tempo de preparo",
               "`tempoPreparoMinimoMin`, `tempoPreparoMaximoMin`"
+            ],
+            [
+              "Bebidas",
+              "`vendaBebidasAtiva`"
             ],
             [
               "Preços e taxas",
@@ -682,7 +732,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Ficam em `api/prisma/migrations/` (de `20261027182308_init` a `20261108120000_numero_e_bairro`). Em produção use `npm run db:deploy`; `npm run db:migrate` cria uma **nova** migration e só serve em desenvolvimento."
+          "text": "Ficam em `api/prisma/migrations/` (de `20261027182308_init` a `20261116120000_itens_bebida`). Em produção use `npm run db:deploy`; `npm run db:migrate` cria uma **nova** migration e só serve em desenvolvimento."
         },
         {
           "type": "callout",
@@ -826,6 +876,18 @@
               "Imagem da logo (`?modo=escuro`, `?v=`)."
             ],
             [
+              "GET",
+              "`/bebidas`",
+              "público",
+              "Bebidas à venda (vazio se a venda estiver desligada)."
+            ],
+            [
+              "GET",
+              "`/bebidas/:id/foto`",
+              "público",
+              "Foto da bebida (`?v=`)."
+            ],
+            [
               "POST",
               "`/pedido`",
               "público (10/min)",
@@ -932,6 +994,36 @@
               "`/sabores/:id`",
               "admin",
               "Renomeia e/ou ativa/desativa."
+            ],
+            [
+              "GET",
+              "`/admin/bebidas`",
+              "admin",
+              "Todas as bebidas e o estado da venda."
+            ],
+            [
+              "PUT",
+              "`/bebidas/venda`",
+              "admin",
+              "Liga ou desliga a venda de bebidas."
+            ],
+            [
+              "POST",
+              "`/bebidas`",
+              "admin",
+              "Cria bebida."
+            ],
+            [
+              "PATCH / DELETE",
+              "`/bebidas/:id`",
+              "admin",
+              "Edita, ativa/desativa ou exclui."
+            ],
+            [
+              "PUT / DELETE",
+              "`/bebidas/:id/foto`",
+              "admin",
+              "Envia ou remove a foto."
             ]
           ]
         },
@@ -1004,6 +1096,11 @@
               "Opcional, no futuro. Ausente = “para quando ficar pronto”. Sem fuso (`...T15:00:00`) é recusado."
             ],
             [
+              "`bebidas`",
+              "array",
+              "`[{ bebidaId, quantidade }]`, de 1 a 50 por bebida, até 30 itens, sem repetir. `[]` = não quer bebida. **Obrigatório** enquanto houver bebidas à venda; sem bebidas à venda pode ser omitido."
+            ],
+            [
               "`formaPagamento`",
               "`DINHEIRO` | `CARTAO` | `PIX`",
               "Obrigatório / Required"
@@ -1019,13 +1116,13 @@
           "type": "code",
           "language": "json",
           "title": "Body (exemplo fictício)",
-          "code": "{\n  \"nomeCliente\": \"Maria Silva\",\n  \"telefone\": \"(11) 91234-5678\",\n  \"quantidade\": 50,\n  \"sabores\": [{ \"saborId\": 1, \"quantidade\": 20 }, { \"saborId\": 4, \"quantidade\": 30 }],\n  \"tipoEntrega\": \"ENTREGA\",\n  \"endereco\": \"Rua das Flores\",\n  \"numero\": \"123\",\n  \"bairro\": \"Centro\",\n  \"formaPagamento\": \"PIX\"\n}"
+          "code": "{\n  \"nomeCliente\": \"Maria Silva\",\n  \"telefone\": \"(11) 91234-5678\",\n  \"quantidade\": 50,\n  \"sabores\": [{ \"saborId\": 1, \"quantidade\": 20 }, { \"saborId\": 4, \"quantidade\": 30 }],\n  \"tipoEntrega\": \"ENTREGA\",\n  \"endereco\": \"Rua das Flores\",\n  \"numero\": \"123\",\n  \"bairro\": \"Centro\",\n  \"bebidas\": [{ \"bebidaId\": 1, \"quantidade\": 2 }],\n  \"formaPagamento\": \"PIX\"\n}"
         },
         {
           "type": "code",
           "language": "json",
           "title": "201 Created",
-          "code": "{\n  \"codigo\": \"K7M2QX9R\",\n  \"status\": \"AGUARDANDO_PAGAMENTO\",\n  \"nomeCliente\": \"Maria Silva\",\n  \"tipoEntrega\": \"ENTREGA\",\n  \"endereco\": \"Rua das Flores\",\n  \"numero\": \"123\",\n  \"bairro\": \"Centro\",\n  \"pontoReferencia\": null,\n  \"observacao\": null,\n  \"enderecoRetirada\": null,\n  \"horarioAgendado\": null,\n  \"tempoPreparoMin\": null,\n  \"previsaoEm\": null,\n  \"formaPagamento\": \"PIX\",\n  \"troco\": null,\n  \"instrucaoPix\": { \"imediato\": true, \"horasAntecedencia\": null, \"pagarAte\": null },\n  \"quantidadeTotal\": 50,\n  \"subtotal\": \"39.00\",\n  \"taxaEntrega\": \"5.00\",\n  \"total\": \"44.00\",\n  \"criadoEm\": \"2026-11-11T14:00:00.000Z\",\n  \"itens\": [{ \"sabor\": \"Coxinha de frango\", \"quantidade\": 20 }, { \"sabor\": \"Bolinha de queijo\", \"quantidade\": 30 }]\n}"
+          "code": "{\n  \"codigo\": \"K7M2QX9R\",\n  \"status\": \"AGUARDANDO_PAGAMENTO\",\n  \"nomeCliente\": \"Maria Silva\",\n  \"tipoEntrega\": \"ENTREGA\",\n  \"endereco\": \"Rua das Flores\",\n  \"numero\": \"123\",\n  \"bairro\": \"Centro\",\n  \"pontoReferencia\": null,\n  \"observacao\": null,\n  \"enderecoRetirada\": null,\n  \"horarioAgendado\": null,\n  \"tempoPreparoMin\": null,\n  \"previsaoEm\": null,\n  \"formaPagamento\": \"PIX\",\n  \"troco\": null,\n  \"instrucaoPix\": { \"imediato\": true, \"horasAntecedencia\": null, \"pagarAte\": null },\n  \"quantidadeTotal\": 50,\n  \"subtotal\": \"39.00\",\n  \"taxaEntrega\": \"5.00\",\n  \"bebidas\": [{ \"nome\": \"Coca-Cola 2L\", \"quantidade\": 2, \"valorUnitario\": \"12.00\", \"valor\": \"24.00\" }],\n  \"totalBebidas\": \"24.00\",\n  \"total\": \"68.00\",\n  \"criadoEm\": \"2026-11-11T14:00:00.000Z\",\n  \"itens\": [{ \"sabor\": \"Coxinha de frango\", \"quantidade\": 20 }, { \"sabor\": \"Bolinha de queijo\", \"quantidade\": 30 }]\n}"
         },
         {
           "type": "table",
@@ -1040,7 +1137,7 @@
             ],
             [
               "400",
-              "Dados inválidos; estabelecimento fechado, fora do horário ou sem entrega no dia; sabor indisponível; troco menor que o total."
+              "Dados inválidos; estabelecimento fechado, fora do horário ou sem entrega no dia; sabor ou bebida indisponível; bebida não escolhida (quando há bebidas à venda); troco menor que o total."
             ],
             [
               "429",
@@ -1257,6 +1354,23 @@
             "`DELETE /marca/logo` remove a logo normal; com `?modo=escuro`, só a do modo escuro.",
             "`GET /marca/logo?v=<versão>` devolve a imagem com cache longo e cabeçalhos que impedem execução de conteúdo ativo; `404` se não houver logo."
           ]
+        },
+        {
+          "type": "heading",
+          "id": "bebidas-api",
+          "text": "Bebidas"
+        },
+        {
+          "type": "list",
+          "items": [
+            "`GET /bebidas` → `[{ id, nome, preco: \"12.00\", ativo, fotoVersao }]`. Só as bebidas **ativas**, e lista vazia quando a venda de bebidas está desligada. `fotoVersao` é `null` quando não há foto.",
+            "`GET /bebidas/:id/foto?v=<versão>` devolve a imagem com cache longo e cabeçalhos que impedem execução de conteúdo ativo; `404` se não houver foto.",
+            "`GET /admin/bebidas` (admin) → `{ vendaAtiva, bebidas }` com todas as bebidas, inclusive desativadas.",
+            "`PUT /bebidas/venda` (admin) → `{ ativa: boolean }` liga ou desliga a venda de todas as bebidas.",
+            "`POST /bebidas` (admin) → `{ nome (2–80), preco }`, com `preco` em reais, maior que 0, até 1000 e 2 casas. Responde `201`.",
+            "`PATCH /bebidas/:id` (admin) → qualquer um entre `nome`, `preco` e `ativo` (ao menos um). `DELETE /bebidas/:id` exclui de vez (`204`); pedidos antigos mantêm a cópia da bebida. `404` se o id não existir.",
+            "`PUT /bebidas/:id/foto` (admin) → `{ tipo: \"image/png\"|\"image/jpeg\"|\"image/webp\", dados: <base64> }`, até 300 KB; a API confere a assinatura real do arquivo. `DELETE /bebidas/:id/foto` remove a foto."
+          ]
         }
       ]
     },
@@ -1406,6 +1520,22 @@
         },
         {
           "type": "heading",
+          "id": "bebidas-regra",
+          "text": "Bebidas"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Venda ligada e ao menos uma bebida ativa:** a escolha é **obrigatória**, como os outros campos. `bebidas` ausente é recusado (400, `Escolha as bebidas ou marque \"Não quero bebida\".`); `bebidas: []` significa que o cliente não quer bebida. Com a venda desligada ou sem bebidas ativas, a etapa não aparece e `bebidas` pode ser omitido.",
+            "**Quantidades:** de 1 a 50 unidades por bebida, sem repetir a mesma bebida, e várias bebidas no mesmo pedido (ex.: 3 de uma e 2 de outra). Bebida inexistente ou desativada é recusada (400).",
+            "**Valor:** a soma de quantidade × preço de cada bebida entra no `total` (subtotal + taxa de entrega + bebidas), em centavos. As bebidas **não** mudam a faixa de preço nem a taxa de entrega, que dependem só da quantidade de salgados.",
+            "**Cópia no pedido:** o pedido guarda nome, valor unitário e quantidade (`ItemBebida`). Mudar o preço, desativar ou apagar a bebida depois não altera pedidos já feitos.",
+            "**Foto:** PNG, JPEG ou WebP de até 300 KB, conferido pela assinatura do arquivo. O painel reduz a imagem no navegador (até 800 px) antes de enviar.",
+            "**No pedido e no acompanhamento:** Itens, o grupo “Bebidas” (sem linhas entre as bebidas) e os totais (Subtotal, Bebidas, Entrega, Total) usam o mesmo componente (`web/src/components/pedido-itens.tsx`). Origem: `services/bebidas.ts`, `services/pedidos.ts`."
+          ]
+        },
+        {
+          "type": "heading",
           "id": "endereco-regra",
           "text": "Entrega, retirada e endereço"
         },
@@ -1479,7 +1609,7 @@
         },
         {
           "type": "paragraph",
-          "text": "`precisaTroco` e `trocoPara` só valem em dinheiro. Com troco, `trocoPara` é obrigatório e precisa ser **maior que o total** do pedido; caso contrário, 400."
+          "text": "`precisaTroco` e `trocoPara` só valem em dinheiro. Com troco, `trocoPara` é obrigatório e precisa ser **maior que o total** do pedido (já com as bebidas); caso contrário, 400."
         },
         {
           "type": "heading",
@@ -1790,7 +1920,7 @@
           "items": [
             "Usam o banco de `DATABASE_TESTS_URL` e **se recusam a rodar** se ele for igual ao `DATABASE_URL` (`tests/test-env.ts`).",
             "Antes de tudo, `tests/global-setup.ts` roda `prisma migrate deploy` e o seed com `SEED_SOBRESCREVER=1`, deixando o banco no estado base com um admin próprio (`admin_teste`).",
-            "`tests/setup.ts` fixa `NODE_ENV=test` e um `JWT_SECRET` de teste antes de importar a aplicação.",
+            "`tests/setup.ts` fixa `NODE_ENV=test` e um `JWT_SECRET` de teste antes de importar a aplicação. Fora do horário de atendimento (CI em UTC, madrugada), leva o relógio (`Date`) para as 12h do dia, para os testes que criam pedidos “para agora” não dependerem da hora em que rodam.",
             "As rotas são chamadas em memória com `app.inject` (sem abrir porta). Os arquivos rodam em sequência (`fileParallelism: false`), pois dividem o mesmo banco."
           ]
         },
@@ -1807,7 +1937,7 @@
           "rows": [
             [
               "`admin.test.ts`",
-              "Proteção das rotas de admin, login, listagem e status de pedidos, tempo de preparo, taxas, valores, Pix e sabores."
+              "Proteção das rotas de admin, login, listagem e status de pedidos, tempo de preparo, taxas, valores, Pix, sabores e bebidas (cadastro, foto, venda ligada/desligada e pedido com bebidas)."
             ],
             [
               "`api.test.ts`",
@@ -1841,9 +1971,9 @@
         },
         {
           "type": "callout",
-          "variant": "warning",
-          "title": "A confirmar",
-          "text": "A confirmar: na cópia de trabalho atual vários arquivos de teste da API (por exemplo `preco`, `prazo-pix`, `funcionamento`, `marca`, `pix`, `rate-limit`, `vercel-handler`) aparecem como **apagados** e foram substituídos por `entrega`, `retirada`, `quantidade` e `telefone`. Confirme se a reorganização é intencional; o `api/README.md` ainda descreve a cobertura anterior (preço, prazo do Pix, validações)."
+          "variant": "info",
+          "title": "Observação",
+          "text": "A suíte foi reduzida de propósito (commit `ef6cc07`): os arquivos antigos (`preco`, `prazo-pix`, `funcionamento`, `marca`, `pix`, `rate-limit`, `vercel-handler` e outros) deram lugar a `entrega`, `retirada`, `quantidade` e `telefone`. Os testes de bebidas ficam dentro de `admin.test.ts`. O `api/README.md` ainda pode descrever a cobertura anterior."
         },
         {
           "type": "heading",
@@ -1876,12 +2006,17 @@
             [
               "`api-tests.yml`",
               "push em `main` e PRs que mexam em `api/**`",
-              "`npm ci` → `npm run typecheck` → `npm test` (secret `DATABASE_TESTS_URL`; execuções em série para não disputar o banco)."
+              "`npm ci` → `npm run typecheck` → confere o secret `DATABASE_TESTS_URL` → `npm test` (execuções em série para não disputar o banco)."
             ],
             [
               "`web-tests.yml`",
               "push em `main` e PRs que mexam em `web/**`",
               "`npm ci` → `npm run build` (tipos + Vite) → `npm test`."
+            ],
+            [
+              "`api-migrations.yml`",
+              "push em `main` que mexa em `api/**` (ou seja, no merge do PR)",
+              "`npm ci` → `npm run db:deploy` (secret `DATABASE_URL` do ambiente `production`) → dispara o Deploy Hook da Vercel (secret `VERCEL_DEPLOY_HOOK_API`). Se a migration falhar, a API não é publicada."
             ]
           ]
         },
@@ -2051,9 +2186,9 @@
           "type": "list",
           "ordered": true,
           "items": [
-            "Crie um projeto na Vercel apontando para o repositório com **Root Directory = `api`**. Não há `vercel.json`: a Vercel usa `src/index.ts`, que exporta o handler.",
+            "Crie um projeto na Vercel apontando para o repositório com **Root Directory = `api`**. A Vercel usa `src/index.ts`, que exporta o handler. O `api/vercel.json` só desliga o deploy automático da branch `main` (veja “Deploy da API pelo GitHub Actions”).",
             "Defina `DATABASE_URL` (string `-pooler`), `JWT_SECRET` e `WEB_URL` (URL do front em produção). Opcional: `NTFY_TOPIC`.",
-            "Aplique migrations e seed no banco de produção — a Vercel **não** faz isso:"
+            "Na primeira vez, aplique migrations e seed no banco de produção na mão — a Vercel **não** faz isso (depois, as migrations passam a ser aplicadas pelo GitHub Actions; o seed continua manual):"
           ]
         },
         {
@@ -2071,6 +2206,24 @@
         {
           "type": "paragraph",
           "text": "Por fim, teste `GET <url-da-api>/health`."
+        },
+        {
+          "type": "heading",
+          "id": "deploy-api-ci",
+          "text": "Deploy da API pelo GitHub Actions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Depois da configuração inicial, o deploy da API acontece no merge para a `main`, sempre **depois** das migrations. Assim a API nova nunca roda contra um banco sem as tabelas e colunas que ela usa."
+        },
+        {
+          "type": "list",
+          "items": [
+            "O workflow `.github/workflows/api-migrations.yml` roda em todo push na `main` que mude `api/**`: aplica `npm run db:deploy` e, só se der certo, chama o Deploy Hook da Vercel. Se a migration falhar, nada é publicado.",
+            "O `api/vercel.json` (`git.deploymentEnabled.main = false`) desliga o deploy automático da `main` só para a API. Branches de preview continuam funcionando, e o Deploy Hook também.",
+            "**Configuração (uma vez):** na Vercel (projeto da API → Settings → Git → Deploy Hooks) crie um hook para a branch `main`; no GitHub, em Settings → Environments, crie o ambiente `production` com o secret `DATABASE_URL` (string **direta** do Neon, sem `-pooler`) e cadastre o secret `VERCEL_DEPLOY_HOOK_API` com a URL do hook. Opcional: exigir aprovação no ambiente.",
+            "O primeiro merge que traz o `api/vercel.json` ainda pode disparar um deploy automático da Vercel. Não há execução manual (`workflow_dispatch`); para repetir, use “Re-run jobs” na execução em Actions."
+          ]
         },
         {
           "type": "heading",
@@ -2095,7 +2248,7 @@
         {
           "type": "list",
           "items": [
-            "**Migration antes do código:** sempre aplique a migration **antes** de publicar um código que dependa dela.",
+            "**Migration antes do código:** sempre aplique a migration **antes** de publicar um código que dependa dela. O workflow `api-migrations.yml` garante essa ordem na API.",
             "**Rate limit aproximado:** o limite (`/pedido`: 10/min, `/auth/login`: 5/min) fica na memória de cada instância; em serverless ele é aproximado.",
             "**CORS de uma origem:** URLs de preview da Vercel (outro domínio) não funcionam com a API de produção.",
             "**`trustProxy`:** ligado, para o rate limit usar o IP real do `x-forwarded-for` atrás da Vercel."
@@ -2163,12 +2316,16 @@
               "Tamanho, assinatura do PNG e SVG sem conteúdo ativo; servida com `nosniff` e `Content-Security-Policy` restritiva."
             ],
             [
+              "Foto de bebida",
+              "Até 300 KB, PNG/JPEG/WebP conferidos pela assinatura; servida com `nosniff` e `Content-Security-Policy` restritiva."
+            ],
+            [
               "Erros",
               "Erros 500 devolvem mensagem genérica; o detalhe só vai para o log."
             ],
             [
               "Segredos",
-              "`JWT_SECRET` com mínimo de 32 caracteres, validado na inicialização; `.env` fora do git."
+              "`JWT_SECRET` com mínimo de 32 caracteres, validado na inicialização; `.env` fora do git. No GitHub Actions, `DATABASE_URL`, `DATABASE_TESTS_URL` e `VERCEL_DEPLOY_HOOK_API` ficam em secrets, nunca no código."
             ]
           ]
         },
@@ -2196,7 +2353,7 @@
           "type": "callout",
           "variant": "info",
           "title": "Verificação do celular",
-          "text": "A branch `update/4-adicionar-verificacao-de-telefone` valida o **formato** do celular. Ela não envia código por SMS/WhatsApp para confirmar que o número pertence ao cliente."
+          "text": "O celular é validado só no **formato** (DDD + 9 + 8 dígitos, com o +55 colado removido). A API não envia código por SMS/WhatsApp para confirmar que o número pertence ao cliente."
         }
       ]
     },
@@ -2248,6 +2405,11 @@
               "`npm test` se recusa a rodar",
               "`DATABASE_TESTS_URL` ausente ou igual a `DATABASE_URL`.",
               "Crie um banco/branch de testes separado e defina a variável."
+            ],
+            [
+              "No GitHub Actions, “No test files found” seguido de `TypeError: code.charCodeAt is not a function`",
+              "A preparação dos testes falhou antes de rodar (quase sempre o secret `DATABASE_TESTS_URL` ausente no repositório) e o vitest esconde a causa real.",
+              "Cadastre `DATABASE_TESTS_URL` em Settings → Secrets and variables → Actions (secret do **repositório**, não de ambiente) e rode de novo. O workflow tem um passo que avisa quando ele está vazio."
             ],
             [
               "A opção Pix não aparece para o cliente",
@@ -2380,6 +2542,32 @@
             "**Decisão:** push opcional via ntfy com tempo limite de 3 s e sem nunca lançar erro; mensagem só com código, quantidade, tipo e total.",
             "**Consequência:** o nome do tópico funciona como senha."
           ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-bebidas",
+          "text": "ADR 8 — Bebidas com foto no banco e cópia no pedido"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Contexto:** o lojista quer vender bebidas com foto; preços e cadastro mudam com o tempo.",
+            "**Decisão:** `Bebida` guarda a foto em `Bytes` (mesmo caminho da logo: base64 em JSON, validação pela assinatura, URL com `?v=` e cache imutável). Cada pedido grava uma cópia de nome, valor e quantidade em `ItemBebida`.",
+            "**Consequência:** bebidas podem ser editadas ou apagadas sem alterar pedidos antigos; o banco guarda imagens (limite de 300 KB, reduzidas no navegador)."
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "adr-deploy-actions",
+          "text": "ADR 9 — Migrations e deploy da API pelo GitHub Actions"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Contexto:** a Vercel não roda migrations, e um deploy que chegasse antes delas faria a API nova falhar contra o banco antigo (erro 500).",
+            "**Decisão:** o deploy automático da `main` é desligado só para a API (`api/vercel.json`); o workflow `api-migrations.yml` aplica `db:deploy` e depois chama um Deploy Hook da Vercel.",
+            "**Consequência:** a ordem migrations → código é garantida e uma migration que falha impede a publicação; em troca, o deploy da API depende do GitHub Actions e de dois secrets."
+          ]
         }
       ]
     },
@@ -2415,6 +2603,18 @@
             [
               "Faixa de preço",
               "Preço fixo para 10, 20, … 100 unidades."
+            ],
+            [
+              "Bebida",
+              "Item opcional do pedido (ex.: Coca-Cola 2L), com nome, preço e foto, escolhido em unidades. O cliente pode levar mais de uma, de sabores diferentes."
+            ],
+            [
+              "Venda de bebidas",
+              "Chave do admin que liga ou desliga todas as bebidas no app."
+            ],
+            [
+              "Deploy Hook",
+              "URL secreta da Vercel que dispara um deploy; o GitHub Actions a chama depois de aplicar as migrations."
             ],
             [
               "Entrega / Retirada",
