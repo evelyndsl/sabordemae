@@ -8,6 +8,10 @@ interface DadosClienteProps {
   setNome: (v: string) => void;
   telefone: string;
   setTelefone: (v: string) => void;
+  /** O cliente aceitou guardar dados neste aparelho: mostra a opção de lembrar. */
+  podeLembrar: boolean;
+  lembrar: boolean;
+  setLembrar: (v: boolean) => void;
   erros: Erros;
 }
 
@@ -16,6 +20,9 @@ const DadosCliente = ({
   setNome,
   telefone,
   setTelefone,
+  podeLembrar,
+  lembrar,
+  setLembrar,
   erros,
 }: DadosClienteProps) => {
   return (
@@ -62,10 +69,19 @@ const DadosCliente = ({
             placeholder="(11) 99999-9999"
             aria-invalid={!!erros.telefone}
           />
-          {erros.telefone && (
-            <p className="field__error">{erros.telefone}</p>
-          )}
+          {erros.telefone && <p className="field__error">{erros.telefone}</p>}
         </div>
+        {podeLembrar && (
+          <label className="drink-none">
+            <input
+              type="checkbox"
+              className="size-4 accent-current"
+              checked={lembrar}
+              onChange={(e) => setLembrar(e.target.checked)}
+            />
+            Lembrar meus dados neste aparelho para o próximo pedido.
+          </label>
+        )}
       </div>
     </section>
   );

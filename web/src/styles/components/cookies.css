@@ -1,0 +1,108 @@
+/* Banner de cookies, rodapé e página da política de cookies. */
+.cookie-banner {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 30;
+  padding: 0.75rem;
+}
+
+.cookie-banner__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 48rem;
+  margin-inline: auto;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 1.4);
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.18);
+
+  @media (min-width: 40rem) {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.cookie-banner__text {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.cookie-banner__text > svg {
+  margin-top: 0.125rem;
+}
+
+.cookie-banner__actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.site-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: 1.25rem 1rem;
+}
+
+.policy h2 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.policy p,
+.policy li {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.policy ul {
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.policy__scroll {
+  overflow-x: auto;
+}
+
+.policy__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.policy__table th,
+.policy__table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.policy__table code {
+  word-break: break-all;
+}
+
+.site-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
