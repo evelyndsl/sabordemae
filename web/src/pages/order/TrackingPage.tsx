@@ -1,26 +1,49 @@
-import { useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, CheckCircle2, Clock, Copy, Package, MapPin, MessageCircle, MessageSquare, Store } from 'lucide-react'
-import { SiteHeader } from '@/components/site-header'
-import { ErrorState, LoadingState } from '@/components/state-views'
-import { PedidoItens } from '@/components/pedido-itens'
-import { StatusBadge } from '@/components/status-badge'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { useFetch } from '@/hooks/use-fetch'
-import { ApiError, api } from '@/lib/api'
-import { formatDateTime, formatPrice, formatTime, paymentLabels, QUANDO_PRONTO, statusFlow, statusLabels, tipoLabels, textoEndereco, textoTroco } from '@/lib/format'
-import { textoPrazoPix } from '@/lib/prazo-pix'
-import { whatsappLink } from '@/lib/whatsapp'
-import type { Pedido, Pix } from '@/types/types'
+import { useState } from "react";
+import { Link, useLocation, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  Check,
+  CheckCircle2,
+  Clock,
+  Copy,
+  Package,
+  MapPin,
+  MessageCircle,
+  MessageSquare,
+  Store,
+} from "lucide-react";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
+import { ErrorState, LoadingState } from "@/components/state-views";
+import { PedidoItens } from "@/components/pedido-itens";
+import { StatusBadge } from "@/components/status-badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { useFetch } from "@/hooks/use-fetch";
+import { ApiError, api } from "@/lib/api";
+import {
+  formatDateTime,
+  formatPrice,
+  formatTime,
+  paymentLabels,
+  QUANDO_PRONTO,
+  statusFlow,
+  statusLabels,
+  tipoLabels,
+  textoEndereco,
+  textoTroco,
+} from "@/lib/format";
+import { textoPrazoPix } from "@/lib/prazo-pix";
+import { whatsappLink } from "@/lib/whatsapp";
+import type { Pedido, Pix } from "@/types/types";
 
 function CopyButton({ text, label }: { text: string; label: string }) {
-  const [copiado, setCopiado] = useState(false)
+  const [copiado, setCopiado] = useState(false);
 
   async function copiar() {
     try {
-      await navigator.clipboard.writeText(text)
-      setCopiado(true)
-      setTimeout(() => setCopiado(false), 2500)
+      await navigator.clipboard.writeText(text);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2500);
     } catch {
       /* clipboard indisponível: o cliente ainda pode selecionar o texto manualmente */
     }
@@ -28,29 +51,46 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 
   return (
     <Button type="button" variant="outline" size="sm" onClick={copiar}>
-      {copiado ? <Check /> : <Copy />} {copiado ? 'Copiado!' : label}
+      {copiado ? <Check /> : <Copy />} {copiado ? "Copiado!" : label}
     </Button>
-  )
+  );
 }
 
 function PixBox({ pix, pedido }: { pix: Pix; pedido: Pedido }) {
-  const instrucao = pedido.instrucaoPix
-  const mensagem = `Olá! Segue o comprovante do pagamento via Pix do pedido ${pedido.codigo} (${formatPrice(pedido.total)}), em nome de ${pedido.nomeCliente}.`
+  const instrucao = pedido.instrucaoPix;
+  const mensagem = `Olá! Segue o comprovante do pagamento via Pix do pedido ${pedido.codigo} (${formatPrice(pedido.total)}), em nome de ${pedido.nomeCliente}.`;
 
   return (
     <section className="pix-box" aria-label="Pagamento via Pix">
       <h2 className="text-lg font-semibold">Pague com Pix</h2>
-      {instrucao && <p className="alert alert--info font-medium">{textoPrazoPix(instrucao, formatDateTime)}</p>}
+      {instrucao && (
+        <p className="alert alert--info font-medium">
+          {textoPrazoPix(instrucao, formatDateTime)}
+        </p>
+      )}
 
       <dl className="pix-box__data">
         <div>
           <dt>Valor</dt>
           <dd className="pix-box__amount">{formatPrice(pedido.total)}</dd>
         </div>
-        {pix.titular && <div><dt>Favorecido</dt><dd>{pix.titular}</dd></div>}
-        {pix.banco && <div><dt>Banco</dt><dd>{pix.banco}</dd></div>}
+        {pix.titular && (
+          <div>
+            <dt>Favorecido</dt>
+            <dd>{pix.titular}</dd>
+          </div>
+        )}
+        {pix.banco && (
+          <div>
+            <dt>Banco</dt>
+            <dd>{pix.banco}</dd>
+          </div>
+        )}
         <div>
-          <dt>Chave Pix ({pix.tipo === 'ALEATORIA' ? 'aleatória' : pix.tipo.toLowerCase()})</dt>
+          <dt>
+            Chave Pix (
+            {pix.tipo === "ALEATORIA" ? "aleatória" : pix.tipo.toLowerCase()})
+          </dt>
           <dd className="pix-box__key">{pix.chaveParaCopiar}</dd>
         </div>
       </dl>
@@ -65,35 +105,49 @@ function PixBox({ pix, pedido }: { pix: Pix; pedido: Pedido }) {
           href={whatsappLink(pix.whatsapp, mensagem)}
           target="_blank"
           rel="noopener noreferrer"
-          className={buttonVariants({ size: 'lg', className: 'h-11 w-full text-base' })}
+          className={buttonVariants({
+            size: "lg",
+            className: "h-11 w-full text-base",
+          })}
         >
           <MessageCircle /> Enviar comprovante no WhatsApp
         </a>
       ) : (
-        <p className="text-sm text-muted-foreground">Depois de pagar, envie o comprovante para o WhatsApp do estabelecimento. O pedido só será iniciado após a confirmação do pagamento.</p>
+        <p className="text-sm text-muted-foreground">
+          Depois de pagar, envie o comprovante para o WhatsApp do
+          estabelecimento. O pedido só será iniciado após a confirmação do
+          pagamento.
+        </p>
       )}
     </section>
-  )
+  );
 }
 
 function Quando({ p }: { p: Pedido }) {
-  if (p.horarioAgendado) return <>{formatDateTime(p.horarioAgendado)}</>
-  return <>{QUANDO_PRONTO}</>
+  if (p.horarioAgendado) return <>{formatDateTime(p.horarioAgendado)}</>;
+  return <>{QUANDO_PRONTO}</>;
 }
 
 export default function TrackingPage() {
-  const { codigo = '' } = useParams()
-  const location = useLocation()
-  const recemCriado = (location.state as { novo?: boolean } | null)?.novo === true
+  const { codigo = "" } = useParams();
+  const location = useLocation();
+  const recemCriado =
+    (location.state as { novo?: boolean } | null)?.novo === true;
 
-  const pedido = useFetch(() => api.buscarPedido(codigo), [codigo], 20_000)
+  const pedido = useFetch(() => api.buscarPedido(codigo), [codigo], 20_000);
   // Pedidos feitos antes de o endereço ser cadastrado não o guardam: usa o endereço atual do estabelecimento.
-  const funcionamento = useFetch(api.funcionamento, [])
-  const extras = useFetch(async () => ({ pix: await api.pix(), tempo: await api.tempoPreparo() }), [])
+  const funcionamento = useFetch(api.funcionamento, []);
+  const extras = useFetch(
+    async () => ({ pix: await api.pix(), tempo: await api.tempoPreparo() }),
+    [],
+  );
 
-  const naoEncontrado = pedido.error instanceof ApiError && pedido.error.status === 404
-  const p = pedido.data
-  const aguardandoPagamento = p?.formaPagamento === 'PIX' && (p.status === 'AGUARDANDO_PAGAMENTO' || p.status === 'AGUARDANDO')
+  const naoEncontrado =
+    pedido.error instanceof ApiError && pedido.error.status === 404;
+  const p = pedido.data;
+  const aguardandoPagamento =
+    p?.formaPagamento === "PIX" &&
+    (p.status === "AGUARDANDO_PAGAMENTO" || p.status === "AGUARDANDO");
 
   return (
     <>
@@ -108,18 +162,28 @@ export default function TrackingPage() {
         ) : !p ? (
           <ErrorState
             error={pedido.error}
-            title={naoEncontrado ? 'Pedido não encontrado' : 'Não conseguimos abrir o pedido'}
+            title={
+              naoEncontrado
+                ? "Pedido não encontrado"
+                : "Não conseguimos abrir o pedido"
+            }
             onRetry={naoEncontrado ? undefined : pedido.reload}
           >
-            {naoEncontrado && <p>Confira o código ({codigo}) e tente de novo.</p>}
+            {naoEncontrado && (
+              <p>Confira o código ({codigo}) e tente de novo.</p>
+            )}
           </ErrorState>
         ) : (
           <div className="stack">
             {recemCriado && (
-              <div className="alert alert--info flex items-start gap-2" role="status">
+              <div
+                className="alert alert--info flex items-start gap-2"
+                role="status"
+              >
                 <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
                 <p>
-                  <b>Pedido recebido!</b> Guarde o código abaixo para acompanhar. Esta página atualiza sozinha.
+                  <b>Pedido recebido!</b> Guarde o código abaixo para
+                  acompanhar. Esta página atualiza sozinha.
                 </p>
               </div>
             )}
@@ -132,37 +196,54 @@ export default function TrackingPage() {
                 </div>
                 <StatusBadge status={p.status} />
               </div>
-              {p.previsaoEm && p.status !== 'FINALIZADO' ? (
+              {p.previsaoEm && p.status !== "FINALIZADO" ? (
                 <p className="section__hint mt-3 mb-0 flex items-center gap-1.5">
-                  <Clock className="size-4" /> Previsão de ficar pronto: <b>{formatTime(p.previsaoEm)}</b>
-                  {p.tempoPreparoMin ? ` (cerca de ${p.tempoPreparoMin} min)` : ''}
+                  <Clock className="size-4" /> Previsão de ficar pronto:{" "}
+                  <b>{formatTime(p.previsaoEm)}</b>
+                  {p.tempoPreparoMin
+                    ? ` (cerca de ${p.tempoPreparoMin} min)`
+                    : ""}
                 </p>
               ) : (
                 extras.data &&
                 !p.horarioAgendado &&
                 !aguardandoPagamento &&
-                (p.status === 'AGUARDANDO' || p.status === 'PAGAMENTO_APROVADO' || p.status === 'EM_PRODUCAO') && (
+                (p.status === "AGUARDANDO" ||
+                  p.status === "PAGAMENTO_APROVADO" ||
+                  p.status === "EM_PRODUCAO") && (
                   <p className="section__hint mt-3 mb-0 flex items-center gap-1.5">
-                    <Clock className="size-4" /> Preparo em {extras.data.tempo.minimoMin} a {extras.data.tempo.maximoMin} min.
+                    <Clock className="size-4" /> Preparo em{" "}
+                    {extras.data.tempo.minimoMin} a{" "}
+                    {extras.data.tempo.maximoMin} min.
                   </p>
                 )
               )}
             </section>
 
-            {aguardandoPagamento && extras.data?.pix.configurada && <PixBox pix={extras.data.pix} pedido={p} />}
+            {aguardandoPagamento && extras.data?.pix.configurada && (
+              <PixBox pix={extras.data.pix} pedido={p} />
+            )}
 
             <section className="section">
               <h2 className="section__title mb-3">Andamento</h2>
               <ol className="timeline">
                 {(() => {
-                  const flow = statusFlow(p)
-                  const atual = flow.indexOf(p.status)
+                  const flow = statusFlow(p);
+                  const atual = flow.indexOf(p.status);
                   return flow.map((s, i) => (
-                    <li key={s} className="timeline__step" data-state={i < atual ? 'done' : i === atual ? 'current' : 'todo'}>
-                      <span className="timeline__dot">{i <= atual ? <Check className="size-4" /> : i + 1}</span>
+                    <li
+                      key={s}
+                      className="timeline__step"
+                      data-state={
+                        i < atual ? "done" : i === atual ? "current" : "todo"
+                      }
+                    >
+                      <span className="timeline__dot">
+                        {i <= atual ? <Check className="size-4" /> : i + 1}
+                      </span>
                       <span className="timeline__label">{statusLabels[s]}</span>
                     </li>
-                  ))
+                  ));
                 })()}
               </ol>
             </section>
@@ -171,32 +252,55 @@ export default function TrackingPage() {
               <h2 className="section__title mb-3">Detalhes</h2>
               <dl className="info-list">
                 <div>
-                  <dt>{p.tipoEntrega === 'ENTREGA' ? <MapPin className="size-3.5" /> : <Store className="size-3.5" />} {tipoLabels[p.tipoEntrega]}</dt>
+                  <dt>
+                    {p.tipoEntrega === "ENTREGA" ? (
+                      <MapPin className="size-3.5" />
+                    ) : (
+                      <Store className="size-3.5" />
+                    )}{" "}
+                    {tipoLabels[p.tipoEntrega]}
+                  </dt>
                   <dd>
-                    {p.tipoEntrega === 'ENTREGA' ? (
+                    {p.tipoEntrega === "ENTREGA" ? (
                       <>
                         {textoEndereco(p)}
-                        {p.pontoReferencia && <span className="block font-normal text-muted-foreground">Ref.: {p.pontoReferencia}</span>}
+                        {p.pontoReferencia && (
+                          <span className="block font-normal text-muted-foreground">
+                            Ref.: {p.pontoReferencia}
+                          </span>
+                        )}
                       </>
                     ) : (
                       <>
                         Retirada no local
-                        {(p.enderecoRetirada ?? funcionamento.data?.enderecoRetirada) && (
-                          <span className="block font-normal text-muted-foreground">{p.enderecoRetirada ?? funcionamento.data?.enderecoRetirada}</span>
+                        {(p.enderecoRetirada ??
+                          funcionamento.data?.enderecoRetirada) && (
+                          <span className="block font-normal text-muted-foreground">
+                            {p.enderecoRetirada ??
+                              funcionamento.data?.enderecoRetirada}
+                          </span>
                         )}
                       </>
                     )}
                   </dd>
                 </div>
                 <div>
-                  <dt><Clock className="size-3.5" /> Quando</dt>
-                  <dd><Quando p={p} /></dd>
+                  <dt>
+                    <Clock className="size-3.5" /> Quando
+                  </dt>
+                  <dd>
+                    <Quando p={p} />
+                  </dd>
                 </div>
                 <div>
                   <dt>Pagamento</dt>
                   <dd>
                     {paymentLabels[p.formaPagamento]}
-                    {p.troco && <span className="block font-normal text-muted-foreground">{textoTroco(p.troco)}</span>}
+                    {p.troco && (
+                      <span className="block font-normal text-muted-foreground">
+                        {textoTroco(p.troco)}
+                      </span>
+                    )}
                   </dd>
                 </div>
                 <div>
@@ -205,7 +309,9 @@ export default function TrackingPage() {
                 </div>
                 {p.observacao && (
                   <div>
-                    <dt><MessageSquare className="size-3.5" /> Observações</dt>
+                    <dt>
+                      <MessageSquare className="size-3.5" /> Observações
+                    </dt>
                     <dd className="whitespace-pre-wrap">{p.observacao}</dd>
                   </div>
                 )}
@@ -213,12 +319,18 @@ export default function TrackingPage() {
             </section>
 
             <section className="section">
-              <h2 className="section__title mb-2"><Package className="size-4" /> Itens</h2>
-              <PedidoItens pedido={p} notaDividir={`Você escolheu só os sabores: a gente divide as ${p.quantidadeTotal} unidades entre eles.`} />
+              <h2 className="section__title mb-2">
+                <Package className="size-4" /> Itens
+              </h2>
+              <PedidoItens
+                pedido={p}
+                notaDividir={`Você escolheu só os sabores: a gente divide as ${p.quantidadeTotal} unidades entre eles.`}
+              />
             </section>
           </div>
         )}
       </main>
+      <SiteFooter />
     </>
-  )
+  );
 }

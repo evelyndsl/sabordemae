@@ -1,15 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Clock,
-  Info,
-  MapPinCheck,
-  Search,
-  Store,
-  Truck,
-} from "lucide-react";
+import { Clock, Info, MapPinCheck, Search, Store, Truck } from "lucide-react";
 import { AvisoEntrega } from "@/components/aviso-entrega";
 import { ErrorState, LoadingState } from "@/components/state-views";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,11 +17,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { useFetch } from "@/hooks/use-fetch";
 import { ApiError, api } from "@/lib/api";
+import { apagarDados, carregarDados, salvarDados } from "@/lib/dados-cliente";
+import { useConsentimento } from "@/lib/consentimento";
 import { textoHorario } from "@/lib/funcionamento";
-import {
-  formatPhone,
-  normalizarTelefone,
-} from "@/lib/format";
+import { formatPhone, normalizarTelefone } from "@/lib/format";
 import { calcularPreco, quantidadeValida } from "@/lib/preco";
 import { validarPedido, valorTroco } from "@/lib/validar-pedido";
 import Quantidade from "./components/quantidade";
@@ -81,8 +74,13 @@ function TrackOrder() {
 }
 
 function OrderForm({ catalogo }: { catalogo: Catalogo }) {
-  const { sabores, bebidas, valores, tempo, taxas, pix, funcionamento } = catalogo;
+  const { sabores, bebidas, valores, tempo, taxas, pix, funcionamento } =
+    catalogo;
   const navigate = useNavigate();
+  // Dados lembrados neste aparelho (só existem se o cliente aceitou no aviso de cookies).
+  const [salvos] = useState(() => carregarDados());
+  const aceitouLembrar = useConsentimento() === "aceito";
+  const [lembrar, setLembrar] = useState(true);
 
   // Nada vem pré-selecionado: o cliente escolhe cada opção (null = ainda não escolheu).
   const [qtdText, setQtdText] = useState("");
@@ -92,24 +90,35 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
   const [bebidasQtd, setBebidasQtd] = useState<Record<number, number>>({}); // bebidaId -> unidades
   const [semBebida, setSemBebida] = useState(false);
   const [tipo, setTipo] = useState<TipoEntrega | null>(null);
-  const [endereco, setEndereco] = useState("");
-  const [numero, setNumero] = useState("");
-  const [bairro, setBairro] = useState("");
-  const [pontoReferencia, setPontoReferencia] = useState("");
+  const [endereco, setEndereco] = useState(salvos?.endereco ?? "");
+  const [numero, setNumero] = useState(salvos?.numero ?? "");
+  const [bairro, setBairro] = useState(salvos?.bairro ?? "");
+  const [pontoReferencia, setPontoReferencia] = useState(
+    salvos?.pontoReferencia ?? "",
+  );
   const [observacao, setObservacao] = useState("");
   const [quando, setQuando] = useState<Quando | null>(null);
   const [horario, setHorario] = useState("");
-  const [nome, setNome] = useState("");
-  const [telefone, setTelefone] = useState("");
+  const [nome, setNome] = useState(salvos?.nome ?? "");
+  const [telefone, setTelefone] = useState(salvos?.telefone ?? "");
   const [pagamento, setPagamento] = useState<FormaPagamento | null>(null);
   const [precisaTroco, setPrecisaTroco] = useState(false);
   const [trocoText, setTrocoText] = useState("");
   const [erros, setErros] = useState<Erros>({});
   const [erroGeral, setErroGeral] = useState("");
   const [enviando, setEnviando] = useState(false);
-  // Confirmação do telefone antes de enviar: o número que o cliente já confirmou não é perguntado de novo.
-  const [confirmandoTelefone, setConfirmandoTelefone] = useState(false);
-  const [telefoneConfirmado, setTelefoneConfirmado] = useState("");
+  // Confirmação dos dados antes de enviar (nome, telefone e, na entrega, endereço). Se o cliente já confirmou
+  // exatamente estes dados, não perguntamos de novo; mudou qualquer campo, confirma outra vez.
+  const [confirmandoDados, setConfirmandoDados] = useState(false);
+  const [dadosConfirmados, setDadosConfirmados] = useState("");
+  const entrega = tipo === "ENTREGA";
+  const assinaturaDados = JSON.stringify([
+    nome.trim(),
+    normalizarTelefone(telefone),
+    entrega
+      ? [endereco.trim(), numero.trim(), bairro.trim(), pontoReferencia.trim()]
+      : null,
+  ]);
 
   const qtd = Number(qtdText);
   const qtdOk = quantidadeValida(qtd, valores);
@@ -136,13 +145,17 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
   );
   const valorBebida =
     bebidasEscolhidas.reduce(
-      (soma, b) => soma + Math.round(parseFloat(b.preco) * 100) * bebidasQtd[b.id],
+      (soma, b) =>
+        soma + Math.round(parseFloat(b.preco) * 100) * bebidasQtd[b.id],
       0,
     ) / 100;
   const preco = useMemo(() => {
     if (!qtdOk || !tipo) return null;
     const base = calcularPreco(qtd, tipo, valores, taxas);
-    return { ...base, total: Math.round((base.total + valorBebida) * 100) / 100 };
+    return {
+      ...base,
+      total: Math.round((base.total + valorBebida) * 100) / 100,
+    };
   }, [qtd, qtdOk, tipo, valores, taxas, valorBebida]);
   const faltaParaGratis = taxas.entregaGratisAPartirDe - (qtdOk ? qtd : 0);
 
@@ -169,9 +182,9 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
       setQuando("agendar");
   }
 
-  async function submit(ev?: React.FormEvent, telefoneJaConfirmado = false) {
+  async function submit(ev?: React.FormEvent, dadosJaConfirmados = false) {
     ev?.preventDefault();
-    setConfirmandoTelefone(false);
+    setConfirmandoDados(false);
     setErroGeral("");
     const e = validarPedido({
       valores,
@@ -214,12 +227,10 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
       return;
     }
 
-    // Erro de digitação no telefone (ou o 55 do Brasil colado junto) é comum: o cliente confere antes de enviar.
-    if (
-      !telefoneJaConfirmado &&
-      telefoneConfirmado !== normalizarTelefone(telefone)
-    ) {
-      setConfirmandoTelefone(true);
+    // Erro de digitação no telefone (ou o 55 do Brasil colado junto) ou dados antigos preenchidos
+    // automaticamente são comuns: o cliente confere tudo antes de enviar.
+    if (!dadosJaConfirmados && dadosConfirmados !== assinaturaDados) {
+      setConfirmandoDados(true);
       return;
     }
 
@@ -266,12 +277,33 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
     setEnviando(true);
     try {
       const pedido = await api.criarPedido(body);
+      if (aceitouLembrar && lembrar) {
+        // Retirada não pergunta endereço: mantém o último endereço de entrega salvo.
+        salvarDados({
+          nome: nome.trim(),
+          telefone,
+          endereco:
+            tipo === "ENTREGA" ? endereco.trim() : (salvos?.endereco ?? ""),
+          numero: tipo === "ENTREGA" ? numero.trim() : (salvos?.numero ?? ""),
+          bairro: tipo === "ENTREGA" ? bairro.trim() : (salvos?.bairro ?? ""),
+          pontoReferencia:
+            tipo === "ENTREGA"
+              ? pontoReferencia.trim()
+              : (salvos?.pontoReferencia ?? ""),
+        });
+      } else if (!lembrar) {
+        apagarDados();
+      }
       navigate(`/pedido/${pedido.codigo}`, { state: { novo: true } });
     } catch (err) {
       if (err instanceof ApiError && err.erros.length) {
         const mapped: Erros = {};
         for (const item of err.erros)
-          mapped[item.campo.split(".")[0] === "bebidas" ? "bebida" : item.campo.split(".")[0]] ??= item.mensagem;
+          mapped[
+            item.campo.split(".")[0] === "bebidas"
+              ? "bebida"
+              : item.campo.split(".")[0]
+          ] ??= item.mensagem;
         setErros(mapped);
       }
       setErroGeral(
@@ -356,6 +388,9 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
           setNome={setNome}
           telefone={telefone}
           setTelefone={setTelefone}
+          podeLembrar={aceitouLembrar}
+          lembrar={lembrar}
+          setLembrar={setLembrar}
           erros={erros}
         />
 
@@ -396,36 +431,66 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
         subtotal={subtotal}
         preco={preco}
         faltaParaGratis={faltaParaGratis}
-        bebidas={unidadesBebida > 0 ? { unidades: unidadesBebida, valor: valorBebida } : null}
+        bebidas={
+          unidadesBebida > 0
+            ? { unidades: unidadesBebida, valor: valorBebida }
+            : null
+        }
         erroGeral={erroGeral}
         enviando={enviando}
       />
 
-      <Dialog open={confirmandoTelefone} onOpenChange={setConfirmandoTelefone}>
+      <Dialog open={confirmandoDados} onOpenChange={setConfirmandoDados}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              Tem certeza de que esse número está correto?
-            </DialogTitle>
+            <DialogTitle>Confira se seus dados estão corretos</DialogTitle>
             <DialogDescription>
-              Vamos chamar você no WhatsApp neste número. Confira o DDD e não
-              inclua o 55 do Brasil.
+              Vamos chamar você no WhatsApp neste número, se precisarmos.
+              {entrega
+                ? " A entrega será feita no endereço informado."
+                : ""}{" "}
+              Confira o DDD e não inclua o 55 do Brasil.
             </DialogDescription>
           </DialogHeader>
-          <p
-            className="text-center text-xl font-semibold tabular-nums"
-            aria-label={`Telefone ${formatPhone(telefone)}`}
-          >
-            {formatPhone(telefone)}
-          </p>
+          <dl className="grid gap-3 text-sm" aria-label="Dados do pedido">
+            <div>
+              <dt className="text-muted-foreground">Nome</dt>
+              <dd className="font-semibold">{nome.trim()}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Telefone / WhatsApp</dt>
+              <dd
+                className="text-xl font-semibold tabular-nums"
+                aria-label={`Telefone ${formatPhone(telefone)}`}
+              >
+                {formatPhone(telefone)}
+              </dd>
+            </div>
+            {entrega && (
+              <div>
+                <dt className="text-muted-foreground">Endereço de entrega</dt>
+                <dd className="font-semibold">
+                  {endereco.trim()}, {numero.trim()} - {bairro.trim()}
+                  {pontoReferencia.trim() && (
+                    <span className="block font-normal text-muted-foreground">
+                      Ponto de referência: {pontoReferencia.trim()}
+                    </span>
+                  )}
+                </dd>
+              </div>
+            )}
+          </dl>
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
               onClick={() => {
-                setConfirmandoTelefone(false);
+                setConfirmandoDados(false);
+                // O endereço é o primeiro campo do formulário; na retirada ele não existe e vale o nome.
                 requestAnimationFrame(() =>
-                  document.getElementById("telefone")?.focus(),
+                  document
+                    .getElementById(entrega ? "endereco" : "nome")
+                    ?.focus(),
                 );
               }}
             >
@@ -434,11 +499,11 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
             <Button
               type="button"
               onClick={() => {
-                setTelefoneConfirmado(normalizarTelefone(telefone));
+                setDadosConfirmados(assinaturaDados);
                 void submit(undefined, true);
               }}
             >
-              Está correto, enviar pedido
+              Está tudo correto, enviar pedido
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -550,6 +615,7 @@ export default function OrderPage() {
           />
         )}
       </main>
+      <SiteFooter />
     </>
   );
 }

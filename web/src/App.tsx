@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { CookieBanner } from '@/components/cookie-banner'
 import { AuthProvider } from '@/context/auth'
 import { BrandProvider } from '@/context/brand'
 import AdminLayout from '@/pages/admin/AdminLayout'
@@ -11,6 +12,9 @@ import OrderDetailPage from '@/pages/admin/OrderDetailPage'
 import PixPage from '@/pages/admin/PixPage'
 import PricingPage from '@/pages/admin/PricingPage'
 import SettingsPage from '@/pages/admin/SettingsPage'
+import CookiesPage from '@/pages/CookiesPage'
+import PrivacyPage from '@/pages/PrivacyPage'
+import TermsPage from '@/pages/TermsPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import OrderPage from '@/pages/order/OrderPage'
 import TrackingPage from '@/pages/order/TrackingPage'
@@ -24,6 +28,9 @@ export default function App() {
             <Route path="/" element={<Navigate to="/pedido" replace />} />
             <Route path="/pedido" element={<OrderPage />} />
             <Route path="/pedido/:codigo" element={<TrackingPage />} />
+            <Route path="/politica-de-cookies" element={<CookiesPage />} />
+            <Route path="/politica-de-privacidade" element={<PrivacyPage />} />
+            <Route path="/termos-de-uso" element={<TermsPage />} />
 
             <Route path="/admin/login" element={<LoginPage />} />
             <Route path="/admin" element={<AdminLayout />}>
@@ -40,6 +47,7 @@ export default function App() {
 
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
+          <CookieBanner />
         </AuthProvider>
       </BrandProvider>
     </BrowserRouter>
