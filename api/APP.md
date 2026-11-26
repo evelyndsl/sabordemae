@@ -94,9 +94,10 @@ Exemplos: 10 retirada = R$ 13,00 · 10 entrega = R$ 20,00 · 50 entrega = R$ 44,
 - **O pedido com Pix só é iniciado depois do comprovante e da confirmação do pagamento.** Ele fica em `AGUARDANDO_PAGAMENTO` até o admin conferir o comprovante e mudar para `PAGAMENTO_APROVADO`; só então segue para `EM_PRODUCAO`. O cliente é avisado disso na página de pedido (ao escolher Pix) e no acompanhamento.
 
 ## Funcionamento (horário, fechado e entrega do dia)
-Tudo no horário de Brasília. `GET /funcionamento` (público) devolve `{ horarioAbertura, horarioFechamento, estabelecimentoFechado, aberto, motivoFechado, entregaHoje }`; o admin altera com `PUT /funcionamento`.
+Tudo no horário de Brasília. `GET /funcionamento` (público) devolve `{ horarioAbertura, horarioFechamento, estabelecimentoFechado, aberto, motivoFechado, entregaHoje, ferias }`; o admin altera com `PUT /funcionamento` (e as férias com `PUT /ferias`).
 - **Horário de atendimento:** um intervalo diário (`"HH:MM"`), igual todos os dias. Os dois campos `null` = sem horário definido, sem restrição. A abertura vale e o fechamento não (às 18:00 em ponto já fechou). Se o fechamento for menor que a abertura (18:00 às 02:00), o atendimento passa da meia-noite.
 - **Estabelecimento fechado:** chave do admin que fecha de vez, independente do horário, até ser desligada. Fechado manualmente, **nenhum pedido** é aceito, nem os agendados.
+- **Férias:** período do primeiro ao último dia, inclusive (`ferias: { inicio, fim }`, `"AAAA-MM-DD"`). Durante ele, `motivoFechado: "FERIAS"` e **nenhum pedido** é aceito; antes dele, não dá para agendar para um dia do período. A página de pedido mostra uma faixa rolante desde que as datas são salvas. Passado o último dia, tudo volta ao normal sozinho e `ferias` vem `null`.
 - **Fora do horário** (sem a chave ligada): `POST /pedido` sem `horarioAgendado` ("assim que ficar pronto") é recusado; o cliente pode **agendar** para um horário dentro do atendimento. Com horário definido, todo `horarioAgendado` precisa cair dentro dele.
 - **Entrega do dia:** o admin desliga a entrega só para hoje (`entregaHoje: false`). Guardamos o dia (`entregaSuspensaEm`), então a chave volta a ligar sozinha à meia-noite. Hoje só retirada: entrega "assim que ficar pronto" ou agendada para hoje é recusada; entrega agendada para outro dia é aceita.
 - Os bloqueios respondem 400 com mensagem em português. O front espelha as regras só para avisar antes de enviar; a decisão é sempre da API.
@@ -119,6 +120,7 @@ Tudo no horário de Brasília. `GET /funcionamento` (público) devolve `{ horari
 | `PUT /tempo-preparo` | `{ minimoMin, maximoMin }` |
 | `PUT /taxa-entrega` | `{ taxaAte49, taxaDe50a199 }` (em reais, até 2 casas) |
 | `PUT /funcionamento` | `{ horarioAbertura, horarioFechamento, estabelecimentoFechado, entregaHoje }`, sempre o estado completo. Horários `"HH:MM"` ou `null` nos dois |
+| `PUT /ferias` | `{ inicio, fim }` em `"AAAA-MM-DD"`; os dois `null` removem. `fim` não pode ser antes de `inicio` nem estar no passado |
 | `PUT /pix` | `{ tipo: CPF \| CNPJ \| TELEFONE \| ALEATORIA, chave }`. CPF e CNPJ são validados pelos dígitos verificadores, o telefone exige DDD e a chave aleatória deve ser um UUID |
 | `PUT /valores` | Tabela completa (10 a 100) mais `valorUnidadeAcimaDe100` |
 | `GET /admin/sabores` | Todos os sabores, inclusive desativados |

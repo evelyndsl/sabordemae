@@ -11,6 +11,7 @@ import type {
   Pix,
   Sabor,
   SaborAdmin,
+  SalvarFeriasBody,
   SalvarFuncionamentoBody,
   SalvarPixBody,
   StatusPedido,
@@ -169,6 +170,8 @@ export const api = {
     request<TempoPreparo>('/tempo-preparo', { method: 'PUT', auth: true, body }),
   salvarEnderecoRetirada: (enderecoRetirada: string) =>
     request<Funcionamento>('/endereco-retirada', { method: 'PUT', auth: true, body: { enderecoRetirada } }),
+  salvarFerias: (body: SalvarFeriasBody) =>
+    request<Funcionamento>('/ferias', { method: 'PUT', auth: true, body }),
   salvarFuncionamento: (body: SalvarFuncionamentoBody) =>
     request<Funcionamento>('/funcionamento', { method: 'PUT', auth: true, body }),
   salvarPix: (body: SalvarPixBody) => request<Pix>('/pix', { method: 'PUT', auth: true, body }),

@@ -8,11 +8,12 @@ import { Label } from '@/components/ui/label'
 import { useFetch } from '@/hooks/use-fetch'
 import { useSave } from '@/hooks/use-save'
 import { api } from '@/lib/api'
-import { NOMES_DOS_DIAS, textoHorario } from '@/lib/funcionamento'
-import type { Funcionamento, SalvarFuncionamentoBody } from '@/types/types'
+import { NOMES_DOS_DIAS, diaEmBrasilia, textoHorario, textoPeriodo } from '@/lib/funcionamento'
+import type { Funcionamento, SalvarFeriasBody, SalvarFuncionamentoBody } from '@/types/types'
 
 function situacaoTexto(f: Funcionamento) {
   if (f.motivoFechado === 'FECHADO_MANUAL') return 'Fechado (você marcou "Estabelecimento fechado")'
+  if (f.motivoFechado === 'FERIAS') return 'Fechado (período de férias)'
   if (f.motivoFechado === 'FORA_DO_HORARIO') return 'Fechado (fora dos dias e do horário de atendimento)'
   return 'Aberto'
 }
@@ -144,6 +145,62 @@ function Horario({ salvo, onSaved }: { salvo: Funcionamento; onSaved: (f: Funcio
   )
 }
 
+function PeriodoFerias({ salvo, onSaved }: { salvo: Funcionamento; onSaved: (f: Funcionamento) => void }) {
+  const [inicio, setInicio] = useState(salvo.ferias?.inicio ?? '')
+  const [fim, setFim] = useState(salvo.ferias?.fim ?? '')
+  const [erro, setErro] = useState('')
+  const save = useSave()
+  const hoje = diaEmBrasilia(new Date())
+
+  const mudou = () => {
+    save.reset()
+    setErro('')
+  }
+
+  const salvar = (body: SalvarFeriasBody) => save.run(async () => onSaved(await api.salvarFerias(body)))
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!inicio || !fim) return setErro('Informe o primeiro e o último dia das férias.')
+    if (fim < inicio) return setErro('O último dia não pode ser antes do primeiro.')
+    if (fim < hoje) return setErro('O último dia das férias não pode estar no passado.')
+    setErro('')
+    await salvar({ inicio, fim })
+  }
+
+  return (
+    <form onSubmit={submit} className="section" noValidate>
+      <h3 className="section__title">Férias</h3>
+      <p className="section__hint">
+        Do primeiro ao último dia (inclusive) o estabelecimento fica fechado e ninguém consegue fazer pedido. Antes disso, o cliente
+        não consegue agendar para esses dias. Assim que as datas são salvas, a página de pedido mostra uma faixa avisando; passado o
+        último dia, tudo volta ao normal sozinho.
+      </p>
+      <div className="field-pair">
+        <div className="field">
+          <Label htmlFor="ferias-inicio">Primeiro dia</Label>
+          <Input id="ferias-inicio" type="date" value={inicio} onChange={(e) => { setInicio(e.target.value); mudou() }} aria-invalid={!!erro} />
+        </div>
+        <div className="field">
+          <Label htmlFor="ferias-fim">Último dia</Label>
+          <Input id="ferias-fim" type="date" min={inicio || hoje} value={fim} onChange={(e) => { setFim(e.target.value); mudou() }} aria-invalid={!!erro} />
+        </div>
+      </div>
+      {erro && <p className="field__error mt-2">{erro}</p>}
+      {salvo.ferias && <p className="field__hint mt-2">Férias marcadas {textoPeriodo(salvo.ferias)}.</p>}
+      <div className="form-actions">
+        <Button type="submit" disabled={save.saving}>{save.saving ? 'Salvando...' : 'Salvar férias'}</Button>
+        {salvo.ferias && (
+          <Button type="button" variant="ghost" disabled={save.saving} onClick={() => { setErro(''); void salvar({ inicio: null, fim: null }) }}>
+            Remover férias
+          </Button>
+        )}
+        <FormStatus error={save.error} saved={save.saved} />
+      </div>
+    </form>
+  )
+}
+
 function EnderecoRetirada({ salvo, onSaved }: { salvo: Funcionamento; onSaved: (f: Funcionamento) => void }) {
   const [endereco, setEndereco] = useState(salvo.enderecoRetirada ?? '')
   const save = useSave()
@@ -187,7 +244,7 @@ export default function FuncionamentoPage() {
       <div className="page-head">
         <div>
           <h2 className="page-head__title">Funcionamento</h2>
-          <p className="page-head__text">Dias e horário de atendimento, endereço de retirada, fechamento do estabelecimento e entrega do dia.</p>
+          <p className="page-head__text">Dias e horário de atendimento, endereço de retirada, fechamento do estabelecimento, férias e entrega do dia.</p>
         </div>
       </div>
 
@@ -207,6 +264,7 @@ export default function FuncionamentoPage() {
           </div>
           <Chaves salvo={dados} onSaved={(f) => funcionamento.mutate(() => f)} />
           <Horario key={`${dados.diasAtendimento.join()}-${dados.horarioAbertura}-${dados.horarioFechamento}`} salvo={dados} onSaved={(f) => funcionamento.mutate(() => f)} />
+          <PeriodoFerias key={`${dados.ferias?.inicio}-${dados.ferias?.fim}`} salvo={dados} onSaved={(f) => funcionamento.mutate(() => f)} />
           <EnderecoRetirada salvo={dados} onSaved={(f) => funcionamento.mutate(() => f)} />
         </>
       )}

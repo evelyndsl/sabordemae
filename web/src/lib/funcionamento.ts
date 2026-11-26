@@ -1,4 +1,4 @@
-import type { Funcionamento, TipoEntrega } from '@/types/types'
+import type { Ferias, Funcionamento, TipoEntrega } from '@/types/types'
 
 // Espelha as regras da API (api/src/services/funcionamento.ts) só para avisar o cliente antes de enviar.
 // Quem decide é sempre a API. Tudo no horário de Brasília.
@@ -89,8 +89,30 @@ export function textoHorario(f: Horario) {
   return [horas, dias].filter(Boolean).join(', ') || null
 }
 
+/** Dia do atendimento a que o momento pertence: a madrugada de um turno noturno é do dia anterior. */
+function diaDoAtendimento(f: Horario, data: Date) {
+  const { horarioAbertura: abre, horarioFechamento: fecha } = f
+  const madrugada = !!abre && !!fecha && paraMinutos(abre) > paraMinutos(fecha) && minutosEmBrasilia(data) < paraMinutos(fecha)
+  return diaEmBrasilia(madrugada ? new Date(data.getTime() - 24 * 3600_000) : data)
+}
+
+export function emFerias(f: Funcionamento, data: Date) {
+  if (!f.ferias) return false
+  const dia = diaDoAtendimento(f, data)
+  return dia >= f.ferias.inicio && dia <= f.ferias.fim
+}
+
+/** "2026-12-20" -> "20/12". */
+export const formatarDiaMes = (dia: string) => dia.split('-').slice(1).reverse().join('/')
+
+/** "de 20/12 até 05/01" ou, num dia só, "no dia 20/12". */
+export function textoPeriodo({ inicio, fim }: Ferias) {
+  return inicio === fim ? `no dia ${formatarDiaMes(inicio)}` : `de ${formatarDiaMes(inicio)} até ${formatarDiaMes(fim)}`
+}
+
 /** Mensagem de erro para um pedido agendado (undefined = tudo certo). */
 export function erroDeAgendamento(f: Funcionamento, tipo: TipoEntrega | null, horario: Date, agora = new Date()) {
+  if (f.ferias && emFerias(f, horario)) return `Estaremos fechados ${textoPeriodo(f.ferias)}. Escolha uma data fora desse período.`
   if (!dentroDoHorario(f, horario)) return `Escolha um horário dentro do atendimento (${textoHorario(f)}).`
   if (tipo === 'ENTREGA' && !f.entregaHoje && diaEmBrasilia(horario) === diaEmBrasilia(agora)) {
     return 'Hoje não estamos fazendo entregas. Escolha outro dia ou a retirada.'

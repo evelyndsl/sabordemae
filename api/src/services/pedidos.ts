@@ -179,6 +179,18 @@ export async function atualizarStatusPedido(codigo: string, status: StatusPedido
   return prisma.pedido.update({ where: { codigo }, data: { status }, include: incluirItens });
 }
 
+// Pedido que já saiu (em rota de entrega ou pronto para retirada) não precisa mais de clique manual:
+// todo dia às 23h (Brasília), horário em que o estabelecimento certamente já fechou, esses pedidos viram
+// FINALIZADO. Chamada pelo cron da Vercel (vercel.json) via GET /cron/finalizar-pedidos. Devolve quantos
+// pedidos foram finalizados.
+export async function finalizarPedidosEmAberto() {
+  const { count } = await prisma.pedido.updateMany({
+    where: { status: { in: [StatusPedido.EM_ROTA_ENTREGA, StatusPedido.PRONTO_RETIRADA] } },
+    data: { status: StatusPedido.FINALIZADO },
+  });
+  return count;
+}
+
 // Pedidos sem horário agendado ("para quando ficar pronto"): o admin informa quanto tempo vai levar
 // e a previsão passa a contar a partir de agora.
 export async function definirTempoPreparoPedido(codigo: string, minutos: number) {

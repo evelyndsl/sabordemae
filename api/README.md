@@ -40,6 +40,7 @@ Copie `.env.example` para `.env` (o `.env` nunca vai para o git).
 |---|---|---|
 | `DATABASE_URL` | sim | Connection string do PostgreSQL. |
 | `JWT_SECRET` | sim | Segredo do token do admin, mínimo de 32 caracteres. Gere com `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. |
+| `CRON_SECRET` | em produção | Segredo (mínimo de 16 caracteres) de `GET /cron/finalizar-pedidos`. Sem ele a rota responde 401 e os pedidos não são finalizados automaticamente. |
 | `WEB_URL` | não | Origem do front liberada no CORS (uma só, sem barra no final). Padrão `http://localhost:5173`. **Em produção, use a URL do front.** |
 | `PORT` | não | Porta local (padrão `3333`). |
 | `NODE_ENV` | não | `development`, `production` ou `test`. |
@@ -91,10 +92,10 @@ npm test
 
 ## Deploy (Vercel)
 
-A API roda na Vercel como função serverless, **sem `vercel.json`** (a Vercel usa `src/index.ts`, que exporta o handler). Resumo:
+A API roda na Vercel como função serverless (a entrada é `src/index.ts`, que exporta o handler; o `vercel.json` só desliga o deploy automático da `main` e agenda o cron). Resumo:
 
 1. Crie um projeto na Vercel apontando para este repositório com **Root Directory = `api`**.
-2. Configure `DATABASE_URL`, `JWT_SECRET` e `WEB_URL` (URL do front em produção).
+2. Configure `DATABASE_URL`, `JWT_SECRET`, `CRON_SECRET` e `WEB_URL` (URL do front em produção).
 3. Aplique as migrations e o seed no banco de produção (a Vercel não faz isso):
    ```bash
    # bash
@@ -113,6 +114,10 @@ Observações de produção:
 - O CORS aceita **uma** origem (`WEB_URL`). URLs de preview da Vercel (outro domínio) não funcionam com a API de produção.
 - Sempre aplique a migration **antes** de publicar um código que dependa dela.
 
+## Finalização automática dos pedidos
+
+Todo dia às 23h (Brasília), os pedidos em `EM_ROTA_ENTREGA` ou `PRONTO_RETIRADA` passam para `FINALIZADO`. Quem dispara é o cron da Vercel (`vercel.json`, `0 2 * * *`, em UTC), que chama `GET /cron/finalizar-pedidos` com `Authorization: Bearer <CRON_SECRET>`. O cron só roda no deploy de produção; no plano Hobby a execução pode acontecer em qualquer momento dentro da hora (entre 23h00 e 23h59). Rodando localmente, chame a rota manualmente.
+
 ## Rotas
 
 | Método | Rota | Acesso |
@@ -124,9 +129,10 @@ Observações de produção:
 | POST | `/pedido` (limite: 10/min) | público |
 | GET | `/pedido/:codigo` | público |
 | POST | `/auth/login` (limite: 5/min) | público |
+| GET | `/cron/finalizar-pedidos` (devolve `{ finalizados }`) | `CRON_SECRET` |
 | GET | `/pedidos`, `/admin/sabores`, `/admin/bebidas` (todas, com `vendaAtiva`) | admin |
 | PUT | `/pedido/:codigo/status`, `/pedido/:codigo/tempo-preparo` | admin |
-| PUT | `/tempo-preparo`, `/taxa-entrega`, `/pix`, `/valores`, `/funcionamento` | admin |
+| PUT | `/tempo-preparo`, `/taxa-entrega`, `/pix`, `/valores`, `/funcionamento`, `/ferias` | admin |
 | PUT | `/marca` (nome e cores), `/marca/logo` (logo em base64; `modo`: `claro` ou `escuro`) | admin |
 | DELETE | `/pedido/:codigo` (exclusão definitiva), `/marca/logo` (`?modo=escuro` remove só a logo do modo escuro) | admin |
 | POST | `/sabores`, `/bebidas` | admin |
@@ -414,7 +420,15 @@ Repita sem token, com token inválido (`Bearer abc`) e com token adulterado (alt
 | 117 | Com `entregaHoje: false`: retirada, ou entrega agendada para outro dia | 201 |
 | 118 | No dia seguinte, sem mexer em nada | `entregaHoje: true` de novo (a chave vale só para o dia em que foi desligada) |
 
-> Ao terminar, volte tudo ao normal (`estabelecimentoFechado: false`, `entregaHoje: true`, horários `null`).
+**Férias** — `PUT /ferias` (admin) com `{ "inicio": "AAAA-MM-DD", "fim": "AAAA-MM-DD" }`; os dois `null` removem.
+
+| # | Cenário | Esperado |
+|---|---|---|
+| 118a | Período futuro | 200; `GET /funcionamento` traz `ferias`, `aberto` segue o horário; `POST /pedido` agendado para dentro do período retorna 400 |
+| 118b | Período que inclui hoje | `motivoFechado: "FERIAS"`; `POST /pedido` retorna 400 |
+| 118c | Só uma das datas, `fim` antes de `inicio`, ou `fim` no passado | 400 |
+
+> Ao terminar, volte tudo ao normal (`estabelecimentoFechado: false`, `entregaHoje: true`, horários `null`, sem férias).
 
 #### 4.13 Outros
 

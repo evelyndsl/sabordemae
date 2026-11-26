@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock, Info, MapPinCheck, Search, Store, Truck } from "lucide-react";
 import { AvisoEntrega } from "@/components/aviso-entrega";
+import { FaixaFerias } from "@/components/faixa-ferias";
 import { ErrorState, LoadingState } from "@/components/state-views";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -19,7 +20,7 @@ import { useFetch } from "@/hooks/use-fetch";
 import { ApiError, api } from "@/lib/api";
 import { apagarDados, carregarDados, salvarDados } from "@/lib/dados-cliente";
 import { useConsentimento } from "@/lib/consentimento";
-import { textoHorario } from "@/lib/funcionamento";
+import { textoHorario, textoPeriodo } from "@/lib/funcionamento";
 import { formatPhone, normalizarTelefone } from "@/lib/format";
 import { calcularPreco, quantidadeValida } from "@/lib/preco";
 import { validarPedido, valorTroco } from "@/lib/validar-pedido";
@@ -512,7 +513,7 @@ function OrderForm({ catalogo }: { catalogo: Catalogo }) {
   );
 }
 
-// Avisos do topo da página: estabelecimento fechado, fora do horário e dia sem entrega.
+// Avisos do topo da página: estabelecimento fechado, férias, fora do horário e dia sem entrega.
 function AvisoFuncionamento({ f }: { f: Funcionamento }) {
   const horario = textoHorario(f);
 
@@ -525,6 +526,20 @@ function AvisoFuncionamento({ f }: { f: Funcionamento }) {
         <p>
           Não estamos aceitando pedidos agora.{" "}
           {horario ? `Nosso atendimento é ${horario}. ` : ""}Volte em breve!
+        </p>
+      </div>
+    );
+  }
+
+  if (f.motivoFechado === "FERIAS" && f.ferias) {
+    return (
+      <div role="status" className="alert alert--error aviso">
+        <p className="aviso__title">
+          <Store className="size-4" /> Estamos de férias
+        </p>
+        <p>
+          Ficaremos fechados {textoPeriodo(f.ferias)} e não estamos aceitando
+          pedidos nesse período. Até a volta!
         </p>
       </div>
     );
@@ -562,6 +577,12 @@ export default function OrderPage() {
     <>
       <AvisoEntrega />
       <SiteHeader whatsapp={catalogo.data?.pix.whatsapp} />
+      {catalogo.data?.funcionamento.ferias && (
+        <FaixaFerias
+          ferias={catalogo.data.funcionamento.ferias}
+          emAndamento={catalogo.data.funcionamento.motivoFechado === "FERIAS"}
+        />
+      )}
       <main className="page">
         <section className="hero">
           {catalogo.data && (
@@ -602,10 +623,11 @@ export default function OrderPage() {
         ) : catalogo.data ? (
           <>
             <AvisoFuncionamento f={catalogo.data.funcionamento} />
-            {/* Fechado pelo admin: não há o que pedir até reabrir. */}
-            {catalogo.data.funcionamento.motivoFechado !== "FECHADO_MANUAL" && (
-              <OrderForm catalogo={catalogo.data} />
-            )}
+            {/* Fechado pelo admin ou de férias: não há o que pedir até reabrir. */}
+            {catalogo.data.funcionamento.motivoFechado !== "FECHADO_MANUAL" &&
+              catalogo.data.funcionamento.motivoFechado !== "FERIAS" && (
+                <OrderForm catalogo={catalogo.data} />
+              )}
           </>
         ) : (
           <ErrorState

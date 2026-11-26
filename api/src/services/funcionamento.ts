@@ -7,21 +7,25 @@ import { diaEmBrasilia } from "./prazoPix.js";
 // Funcionamento do estabelecimento (tudo no horário de Brasília):
 // - horário de atendimento diário (abertura e fechamento; sem horário = sem restrição);
 // - "estabelecimento fechado": fecha de vez, até o admin desativar, independente do horário;
-// - entrega desligada só no dia vigente: o cliente ainda pode agendar entrega para outro dia.
+// - entrega desligada só no dia vigente: o cliente ainda pode agendar entrega para outro dia;
+// - férias: período (do primeiro ao último dia, inclusive) em que fica fechado. Passado o fim, volta sozinho.
 //
 // Regras para novos pedidos:
-// - fechado manualmente: nenhum pedido;
+// - fechado manualmente ou de férias: nenhum pedido;
+// - antes das férias: não dá para agendar para um dia dentro delas;
 // - fora do horário: só pedidos agendados para dentro do horário de atendimento;
 // - sempre que houver horário definido, o horário agendado precisa cair dentro dele;
 // - entrega desligada hoje: entrega só com agendamento para outro dia.
 
-export type MotivoFechado = "FECHADO_MANUAL" | "FORA_DO_HORARIO";
+export type MotivoFechado = "FECHADO_MANUAL" | "FERIAS" | "FORA_DO_HORARIO";
 
 export type DadosFuncionamento = {
   horarioAbertura: string | null;
   horarioFechamento: string | null;
   estabelecimentoFechado: boolean;
   entregaSuspensaEm: string | null;
+  feriasInicio: string | null;
+  feriasFim: string | null;
   // 0 = domingo ... 6 = sábado. Dia fora da lista = fechado o dia todo.
   diasAtendimento: number[];
   enderecoRetirada?: string | null;
@@ -95,6 +99,38 @@ export function dentroDoHorario(config: DadosFuncionamento, data: Date): boolean
   return false;
 }
 
+/**
+ * Dia (AAAA-MM-DD) do atendimento a que o momento pertence: num atendimento que passa da meia-noite,
+ * a madrugada pertence ao dia anterior (mesma regra dos dias de atendimento).
+ */
+export function diaDoAtendimento(config: DadosFuncionamento, data: Date): string {
+  const { horarioAbertura, horarioFechamento } = config;
+  const madrugada =
+    !!horarioAbertura &&
+    !!horarioFechamento &&
+    paraMinutos(horarioAbertura) > paraMinutos(horarioFechamento) &&
+    minutosNoDiaEmBrasilia(data) < paraMinutos(horarioFechamento);
+  return diaEmBrasilia(madrugada ? new Date(data.getTime() - 24 * 3600_000) : data);
+}
+
+export function emFerias(config: DadosFuncionamento, data: Date): boolean {
+  if (!config.feriasInicio || !config.feriasFim) return false;
+  const dia = diaDoAtendimento(config, data);
+  return dia >= config.feriasInicio && dia <= config.feriasFim;
+}
+
+/** Férias em andamento ou marcadas para depois; null quando não há ou já acabaram. */
+function feriasVigentes(config: DadosFuncionamento, agora: Date) {
+  const { feriasInicio: inicio, feriasFim: fim } = config;
+  return inicio && fim && fim >= diaDoAtendimento(config, agora) ? { inicio, fim } : null;
+}
+
+/** "2026-12-20" -> "20/12/2026". */
+const formatarDia = (dia: string) => dia.split("-").reverse().join("/");
+
+const textoFerias = (config: DadosFuncionamento) =>
+  `de ${formatarDia(config.feriasInicio!)} a ${formatarDia(config.feriasFim!)}`;
+
 /** A entrega só fica desligada no dia marcado; em qualquer outro dia está disponível. */
 export const entregaDisponivelNoDia = (config: DadosFuncionamento, data: Date) =>
   config.entregaSuspensaEm !== diaEmBrasilia(data);
@@ -102,9 +138,11 @@ export const entregaDisponivelNoDia = (config: DadosFuncionamento, data: Date) =
 export function situacao(config: DadosFuncionamento, agora: Date) {
   const motivoFechado: MotivoFechado | null = config.estabelecimentoFechado
     ? "FECHADO_MANUAL"
-    : dentroDoHorario(config, agora)
-      ? null
-      : "FORA_DO_HORARIO";
+    : emFerias(config, agora)
+      ? "FERIAS"
+      : dentroDoHorario(config, agora)
+        ? null
+        : "FORA_DO_HORARIO";
 
   return {
     horarioAbertura: config.horarioAbertura,
@@ -115,6 +153,7 @@ export function situacao(config: DadosFuncionamento, agora: Date) {
     aberto: motivoFechado === null,
     motivoFechado,
     entregaHoje: entregaDisponivelNoDia(config, agora),
+    ferias: feriasVigentes(config, agora),
   };
 }
 
@@ -134,7 +173,17 @@ export function validarPedidoNoFuncionamento(
     throw new RegraDeNegocioError("Estamos fechados no momento e não estamos aceitando pedidos. Tente novamente mais tarde.");
   }
 
+  if (emFerias(config, agora)) {
+    throw new RegraDeNegocioError(
+      `Estamos de férias ${textoFerias(config)} e não estamos aceitando pedidos nesse período.`,
+    );
+  }
+
   const { horarioAgendado, tipoEntrega } = pedido;
+
+  if (horarioAgendado && emFerias(config, horarioAgendado)) {
+    throw new RegraDeNegocioError(`Estaremos de férias ${textoFerias(config)}. Escolha uma data fora desse período.`);
+  }
 
   if (!horarioAgendado && !dentroDoHorario(config, agora)) {
     throw new RegraDeNegocioError(
@@ -181,6 +230,15 @@ export async function atualizarFuncionamento(dados: {
       entregaSuspensaEm: dados.entregaHoje ? null : diaEmBrasilia(new Date()),
     },
   });
+  return obterFuncionamento();
+}
+
+/** Define o período de férias; os dois nulos removem. */
+export async function atualizarFerias(dados: { inicio: string | null; fim: string | null }) {
+  if (dados.fim && dados.fim < diaEmBrasilia(new Date())) {
+    throw new RegraDeNegocioError("O último dia das férias não pode estar no passado.");
+  }
+  await prisma.configuracao.update({ where: { id: 1 }, data: { feriasInicio: dados.inicio, feriasFim: dados.fim } });
   return obterFuncionamento();
 }
 
