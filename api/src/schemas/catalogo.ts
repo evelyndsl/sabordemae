@@ -61,11 +61,13 @@ export const funcionamentoRespostaSchema = z.object({
   enderecoRetirada: z.string().nullable(),
   // Chave do admin: fecha o estabelecimento até ser desativada, independente do horário.
   estabelecimentoFechado: z.boolean(),
-  // Resultado agora: false se fechado manualmente ou fora do horário.
+  // Resultado agora: false se fechado manualmente, de férias ou fora do horário.
   aberto: z.boolean(),
-  motivoFechado: z.enum(["FECHADO_MANUAL", "FORA_DO_HORARIO"]).nullable(),
+  motivoFechado: z.enum(["FECHADO_MANUAL", "FERIAS", "FORA_DO_HORARIO"]).nullable(),
   // false = hoje só retirada (entrega ainda pode ser agendada para outro dia).
   entregaHoje: z.boolean(),
+  // Período de férias em andamento ou futuro (AAAA-MM-DD, inclusive); nulo quando não há ou já acabou.
+  ferias: z.object({ inicio: z.string(), fim: z.string() }).nullable(),
 });
 
 // Entradas do admin
@@ -167,6 +169,24 @@ export const atualizarFuncionamentoSchema = z
         path: ["horarioFechamento"],
         message: "O fechamento deve ser diferente da abertura.",
       });
+    }
+  });
+
+// Os dois dias definem o período; os dois nulos removem as férias.
+export const atualizarFeriasSchema = z
+  .object({
+    inicio: z.iso.date("Informe uma data válida.").nullable(),
+    fim: z.iso.date("Informe uma data válida.").nullable(),
+  })
+  .superRefine((f, ctx) => {
+    if ((f.inicio === null) !== (f.fim === null)) {
+      ctx.addIssue({
+        code: "custom",
+        path: [f.inicio === null ? "inicio" : "fim"],
+        message: "Informe o primeiro e o último dia das férias.",
+      });
+    } else if (f.inicio !== null && f.fim !== null && f.fim < f.inicio) {
+      ctx.addIssue({ code: "custom", path: ["fim"], message: "O último dia não pode ser antes do primeiro." });
     }
   });
 

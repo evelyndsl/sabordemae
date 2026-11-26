@@ -98,6 +98,9 @@ model Configuracao {
   enderecoRetirada                String?      @db.VarChar(300)
   // Dia (AAAA-MM-DD, Brasília) em que a entrega está desligada. Vale só nesse dia: no dia seguinte volta sozinha.
   entregaSuspensaEm               String?      @db.VarChar(10)
+  // Férias: primeiro e último dia fechado (AAAA-MM-DD, Brasília, inclusive). Os dois nulos = sem férias.
+  feriasInicio                    String?      @db.VarChar(10)
+  feriasFim                       String?      @db.VarChar(10)
   // Chave geral: desligada, o app não oferece nenhuma bebida, independente de cada uma estar ativa.
   vendaBebidasAtiva               Boolean      @default(true)
   // Marca e aparência (editáveis no painel). A logo fica no próprio banco (limite de 300 KB).

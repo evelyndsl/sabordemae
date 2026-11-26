@@ -68,10 +68,21 @@ export interface Funcionamento {
   estabelecimentoFechado: boolean
   /** Resultado agora (fechado manualmente ou fora do horário = false). */
   aberto: boolean
-  motivoFechado: 'FECHADO_MANUAL' | 'FORA_DO_HORARIO' | null
+  motivoFechado: 'FECHADO_MANUAL' | 'FERIAS' | 'FORA_DO_HORARIO' | null
   /** false = hoje só retirada (a entrega ainda pode ser agendada para outro dia). */
   entregaHoje: boolean
+  /** Férias em andamento ou futuras; null quando não há ou já acabaram. */
+  ferias: Ferias | null
 }
+
+/** Primeiro e último dia fechado (AAAA-MM-DD, inclusive). */
+export interface Ferias {
+  inicio: string
+  fim: string
+}
+
+/** Os dois null removem as férias. */
+export type SalvarFeriasBody = Ferias | { inicio: null; fim: null }
 
 export interface SalvarFuncionamentoBody {
   horarioAbertura: string | null

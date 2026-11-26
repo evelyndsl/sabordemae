@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dentroDoHorario, diaEmBrasilia, erroDeAgendamento, formatarHora, minutosEmBrasilia, textoDias, textoHorario } from '@/lib/funcionamento'
+import { dentroDoHorario, diaEmBrasilia, emFerias, erroDeAgendamento, formatarHora, minutosEmBrasilia, textoDias, textoHorario, textoPeriodo } from '@/lib/funcionamento'
 import type { Funcionamento } from '@/types/types'
 
 const base: Funcionamento = {
@@ -11,6 +11,7 @@ const base: Funcionamento = {
   aberto: true,
   motivoFechado: null,
   entregaHoje: true,
+  ferias: null,
 }
 
 // Brasília é UTC-3 o ano todo.
@@ -54,6 +55,29 @@ describe('funcionamento (cliente)', () => {
     expect(erroDeAgendamento(semEntrega, 'ENTREGA', em('2026-11-03T16:00:00'), agora)).toMatch(/Hoje não estamos fazendo entregas/)
     expect(erroDeAgendamento(semEntrega, 'ENTREGA', em('2026-11-04T10:00:00'), agora)).toBeUndefined()
     expect(erroDeAgendamento(semEntrega, 'RETIRADA', em('2026-11-03T16:00:00'), agora)).toBeUndefined()
+  })
+})
+
+describe('férias (cliente)', () => {
+  const deFerias = { ...base, ferias: { inicio: '2026-12-20', fim: '2027-01-05' } }
+  const agora = em('2026-12-10T12:00:00')
+
+  it('recusa agendamento do primeiro ao último dia, inclusive', () => {
+    expect(erroDeAgendamento(deFerias, 'RETIRADA', em('2026-12-19T10:00:00'), agora)).toBeUndefined()
+    expect(erroDeAgendamento(deFerias, 'RETIRADA', em('2026-12-20T10:00:00'), agora)).toMatch(/de 20\/12 até 05\/01/)
+    expect(erroDeAgendamento(deFerias, 'ENTREGA', em('2027-01-05T10:00:00'), agora)).toMatch(/fora desse período/)
+    expect(erroDeAgendamento(deFerias, 'RETIRADA', em('2027-01-06T10:00:00'), agora)).toBeUndefined()
+  })
+
+  it('a madrugada de um atendimento noturno pertence ao dia em que começou', () => {
+    const noite = { ...deFerias, horarioAbertura: '18:00', horarioFechamento: '02:00' }
+    expect(emFerias(noite, em('2026-12-20T01:00:00'))).toBe(false)
+    expect(emFerias(noite, em('2027-01-06T01:00:00'))).toBe(true)
+  })
+
+  it('texto do período, inclusive de um dia só', () => {
+    expect(textoPeriodo(deFerias.ferias)).toBe('de 20/12 até 05/01')
+    expect(textoPeriodo({ inicio: '2026-12-25', fim: '2026-12-25' })).toBe('no dia 25/12')
   })
 })
 

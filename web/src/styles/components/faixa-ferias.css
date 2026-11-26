@@ -1,0 +1,64 @@
+/* Faixa rolante com o aviso de férias, presa logo abaixo do cabeçalho da página de pedido. */
+.faixa-ferias {
+  position: sticky;
+  /* Altura do .site-header: 4rem + 1px da borda. */
+  top: calc(4rem + 1px);
+  z-index: 19;
+  display: flex;
+  overflow: hidden;
+  padding-block: 0.625rem;
+  background: #ca0000;
+  color: #fff;
+  line-height: 1.5rem;
+  font-weight: 700;
+  white-space: nowrap;
+  user-select: none;
+
+  /* Passar o mouse pausa, para dar tempo de ler. */
+  &:hover .faixa-ferias__grupo {
+    animation-play-state: paused;
+  }
+}
+
+.faixa-ferias__grupo {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: space-around;
+  min-width: 100%;
+  animation: faixa-ferias-rolar 40s linear infinite;
+}
+
+.faixa-ferias__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline: 1.5rem;
+}
+
+/* Com a faixa no topo, o resumo do pedido (fixo em telas largas) para abaixo dela. */
+@media (min-width: 64rem) {
+  .faixa-ferias ~ .page .summary {
+    top: 8.75rem;
+  }
+}
+
+@keyframes faixa-ferias-rolar {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* Quem pede menos movimento vê o aviso parado, centralizado e uma vez só. */
+@media (prefers-reduced-motion: reduce) {
+  .faixa-ferias__grupo {
+    justify-content: center;
+    animation: none;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .faixa-ferias__grupo ~ .faixa-ferias__grupo,
+  .faixa-ferias__item ~ .faixa-ferias__item {
+    display: none;
+  }
+}

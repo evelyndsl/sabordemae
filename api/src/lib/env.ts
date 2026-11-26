@@ -7,6 +7,8 @@ const envSchema = z.object({
   WEB_URL: z.url().default("http://localhost:5173"),
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(32, "Use pelo menos 32 caracteres."),
+  // Protege /cron/*: a Vercel Cron envia "Authorization: Bearer <CRON_SECRET>". Sem ela, a rota fica desligada.
+  CRON_SECRET: z.string().min(16).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
